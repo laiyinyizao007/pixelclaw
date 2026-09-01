@@ -1,0 +1,244 @@
+# PixelClaw Global Settings
+# Location: /home/averypi/Projects/pixelclaw/config/settings.yaml
+
+project:
+  name: "PixelClaw"
+  version: "0.1.0"
+  description: "OpenClaw automation system for Pixel 8a"
+  debug: true
+  log_level: "INFO"
+  log_dir: "./logs"
+
+device:
+  # Pixel 8a Configuration
+  name: "Pixel 8a"
+  ip: "172.19.0.1"
+  port: 45373
+  pairing_code: "444047"
+  # Connection settings
+  connection_timeout: 30
+  reconnect_interval: 30
+  max_reconnect_attempts: 10
+  # ADB settings
+  adb_path: "adb"
+  adb_wireless: true
+
+strategies:
+  # Fallback strategy priority (highest to lowest)
+  priority:
+    - "step1v"
+    - "minicpm"
+    - "ocr"
+
+  # Step-1V (StepFun) API Configuration
+  step1v:
+    enabled: true
+    api_key: ""  # Load from api_keys.json or env var STEP1V_API_KEY
+    base_url: "https://api.stepfun.com/v1"
+    model: "step-1v"
+    timeout: 30
+    max_retries: 3
+    retry_delay: 2.0
+
+  # MiniCPM-V Local Model Configuration
+  minicpm:
+    enabled: false  # Set to true if local model is installed
+    model_path: "./models/MiniCPM-V-2_6"
+    device: "cpu"  # or "cuda" if available
+    quantization: "int8"  # int8, int4, or none
+    max_new_tokens: 512
+    temperature: 0.7
+
+  # OCR Strategy Configuration
+  ocr:
+    enabled: true
+    engine: "paddleocr"  # or "easyocr"
+    lang: "en"
+    # Rule-based matching thresholds
+    confidence_threshold: 0.6
+    # Predefined UI element templates
+    templates_dir: "./config/templates"
+
+monitor:
+  # Health check settings
+  health_check_interval: 30
+  connection_timeout: 10
+  # Notification settings
+  notify_on_disconnect: true
+  notify_on_reconnect: true
+  # Status panel
+  enable_status_panel: true
+  refresh_rate: 1.0
+
+vision_agent:
+  # Screen analysis settings
+  screenshot_interval: 2.0
+  screenshot_quality: 85
+  max_history_screenshots: 10
+
+  # Action execution settings
+  action_timeout: 30
+  tap_duration: 100  # milliseconds
+  swipe_duration: 300  # milliseconds
+
+  # Prompt templates
+  system_prompt: |
+    You are a mobile device automation assistant. Analyze the provided
+    screenshot and determine the next action to achieve the user's goal.
+
+    Available actions:
+    - TAP(x, y): Tap at coordinates
+    - SWIPE(x1, y1, x2, y2): Swipe from start to end
+    - LONG_PRESS(x, y, duration): Long press at coordinates
+    - TYPE(text): Type text input
+    - BACK(): Press back button
+    - HOME(): Press home button
+    - RECENT(): Show recent apps
+    - WAIT(seconds): Wait for specified time
+    - COMPLETE(): Task completed successfully
+
+    Respond in JSON format:
+    {
+      "action": "TAP",
+      "params": {"x": 100, "y": 200},
+      "reasoning": "Click the login button",
+      "confidence": 0.95
+    }
+
+execution:
+  # Task execution settings
+  max_steps: 50
+  step_delay: 1.0
+  error_recovery_attempts: 3
+  # Safety settings
+  confirm_dangerous_actions: true
+  dangerous_actions:
+    - "DELETE"
+    - "UNINSTALL"
+    - "FACTORY_RESET"
+
+# Memory System Configuration (Enhanced Three-Layer Architecture)
+# Addresses limitations of memos-based systems with capture -> store -> recall
+memory:
+  enabled: true  # Set to false to disable memory system and fall back to original behavior
+
+  # Backend Configuration
+  backends:
+    # Storage Layer: OpenViking-compatible backend
+    openviking:
+      # Connection string for database
+      # SQLite (default): "sqlite:///./data/pixelclaw_memory.db"
+      # PostgreSQL: "postgresql://user:pass@localhost:5432/pixelclaw_memory"
+      # Environment variable: ${OPENVIKING_DB_URL}
+      connection_string: "sqlite:///./data/pixelclaw_memory.db"
+
+      # Embedding model for semantic search
+      # Local: "sentence-transformers/all-MiniLM-L6-v2"
+      # OpenAI: "text-embedding-ada-002" (requires OPENAI_API_KEY)
+      embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
+      embedding_dimension: 384
+
+    # Retrieval Layer: QMD-compatible search engine
+    qmd:
+      # Path for QMD search index
+      index_path: "./data/qmd_index"
+
+      # Number of results to retrieve for context enhancement
+      search_k: 10
+
+      # BM25 text search parameters
+      bm25_k1: 1.5  # Term frequency saturation
+      bm25_b: 0.75  # Field length normalization
+
+  # Capture Layer Configuration
+  capture:
+    # Whether to include screenshot embeddings (increases storage but improves retrieval)
+    include_screenshots: true
+
+    # Enable semantic feature extraction from actions
+    semantic_extraction: true
+
+    # Capture device state information
+    include_device_state: true
+
+    # Maximum size for screenshot embeddings (to control memory usage)
+    max_embedding_size: 1024
+
+  # Retrieval Layer Configuration
+  retrieval:
+    # Maximum number of actions to include in enhanced context
+    max_context_actions: 10  # Increased from original 5
+
+    # Minimum similarity threshold for memory retrieval
+    similarity_threshold: 0.7
+
+    # Weight for recent memories (higher = prefer recent)
+    temporal_weight: 0.3
+
+    # Weight for successful memories (higher = prefer successes)
+    success_weight: 0.4
+
+    # Minimum success rate for memories to be included
+    min_success_rate: 0.3  # Include some failures for learning
+
+    # Score combination weights
+    bm25_weight: 0.3      # Text similarity weight
+    vector_weight: 0.4    # Semantic similarity weight
+
+  # Performance and Storage Management
+  performance:
+    # Enable asynchronous storage (non-blocking)
+    async_storage: true
+
+    # Maximum batch size for embedding generation
+    max_embedding_batch_size: 32
+
+    # Cache size for frequently accessed memories
+    cache_size: 1000
+
+    # Cleanup old memories after N days
+    cleanup_days: 30
+
+    # Maximum database size before cleanup (in MB)
+    max_db_size_mb: 500
+
+  # Feature Flags for Gradual Rollout
+  features:
+    # Enable enhanced context (vs. original action_history only)
+    enhanced_context: true
+
+    # Enable cross-task learning
+    cross_task_learning: true
+
+    # Enable failure pattern detection
+    failure_pattern_detection: true
+
+    # Enable success pattern recommendation
+    success_pattern_recommendation: true
+
+    # Enable LLM reranking (when available)
+    llm_reranking: true
+
+  # Debugging and Monitoring
+  debug:
+    # Log memory operations for debugging
+    log_operations: false
+
+    # Save retrieval results for analysis
+    save_retrieval_logs: false
+
+    # Performance metrics collection
+    collect_metrics: true
+
+    # Memory usage monitoring
+    monitor_memory_usage: true
+
+# Environment Variable Overrides (for production deployment)
+# PIXELCLAW_MEMORY_ENABLED: Override memory.enabled
+# OPENVIKING_DB_URL: Override memory.backends.openviking.connection_string
+# PIXELCLAW_EMBEDDING_MODEL: Override memory.backends.openviking.embedding_model
+# PIXELCLAW_QMD_INDEX_PATH: Override memory.backends.qmd.index_path
+# PIXELCLAW_MAX_CONTEXT_ACTIONS: Override memory.retrieval.max_context_actions
+# PIXELCLAW_SIMILARITY_THRESHOLD: Override memory.retrieval.similarity_threshold
+# PIXELCLAW_ASYNC_STORAGE: Override memory.performance.async_storage
+# PIXELCLAW_CLEANUP_DAYS: Override memory.performance.cleanup_days

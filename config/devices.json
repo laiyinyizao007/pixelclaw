@@ -1,0 +1,34 @@
+{
+  "devices": [
+    {
+      "id": "pixel8a_001",
+      "name": "Pixel 8a",
+      "type": "android",
+      "model": "Pixel 8a",
+      "ip": "172.19.0.1",
+      "port": 45373,
+      "pairing_code": "444047",
+      "pairing_port": null,
+      "status": "disconnected",
+      "capabilities": {
+        "wireless_adb": true,
+        "shizuku": true,
+        "root": false,
+        "screen_record": true,
+        "shell_access": true
+      },
+      "screen": {
+        "width": 1080,
+        "height": 2400,
+        "dpi": 430
+      },
+      "connection": {
+        "timeout": 30,
+        "reconnect_interval": 30,
+        "max_reconnect_attempts": 10
+      }
+    }
+  ],
+  "active_device": "pixel8a_001",
+  "default_device": "pixel8a_001"
+}
