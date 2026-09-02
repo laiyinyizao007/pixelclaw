@@ -3,9 +3,9 @@
 在Pixel 8a上完成小红书AI博主推荐任务
 """
 import sys
-sys.path.insert(0, '/home/averypi/Projects/pixelclaw')
+sys.path.insert(0, str(__import__('pathlib').Path(__file__).parents[3]))
 
-from skills.xhs_automation_skill import XHSAutomationSkill
+from skills.xhs import XHSAutomationSkill
 import time
 
 skill = XHSAutomationSkill()

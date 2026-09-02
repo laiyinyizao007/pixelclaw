@@ -44,6 +44,16 @@ from .storage import StorageLayer
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_TAG_RULES: List[tuple] = [
+    (["wechat", "微信"], "wechat"),
+    (["xiaohongshu", "小红书"], "xiaohongshu"),
+    (["chrome"], "chrome"),
+    (["login", "登录"], "login"),
+    (["search", "搜索"], "search"),
+    (["post", "发布"], "post"),
+    (["like", "favorite", "收藏"], "engagement"),
+]
+
 
 class MemoryManager:
     """Main memory manager coordinating the three-layer architecture.
@@ -52,13 +62,17 @@ class MemoryManager:
     Handles the flow: capture -> store -> recall with proper error handling and fallback.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: Optional[Dict[str, Any]] = None,
+                 tag_rules: Optional[List[tuple]] = None):
         """Initialize memory manager.
 
         Args:
             config: Optional configuration dictionary
+            tag_rules: Tag extraction rules as list of (keywords, tag) tuples.
+                       Defaults to DEFAULT_TAG_RULES.
         """
         self.config = load_memory_config(config)
+        self.tag_rules = tag_rules if tag_rules is not None else DEFAULT_TAG_RULES
         self.enabled = self.config.enabled
 
         # Initialize layers
@@ -372,29 +386,9 @@ class MemoryManager:
         }
 
     def _extract_goal_tags(self, goal: str) -> List[str]:
-        """Extract tags from goal description."""
-        tags = []
+        """Extract tags from goal description using configurable tag_rules."""
         goal_lower = goal.lower()
-
-        # Common app tags
-        if "wechat" in goal_lower or "微信" in goal_lower:
-            tags.append("wechat")
-        if "xiaohongshu" in goal_lower or "小红书" in goal_lower:
-            tags.append("xiaohongshu")
-        if "chrome" in goal_lower:
-            tags.append("chrome")
-
-        # Action tags
-        if "login" in goal_lower or "登录" in goal_lower:
-            tags.append("login")
-        if "search" in goal_lower or "搜索" in goal_lower:
-            tags.append("search")
-        if "post" in goal_lower or "发布" in goal_lower:
-            tags.append("post")
-        if "like" in goal_lower or "favorite" in goal_lower or "收藏" in goal_lower:
-            tags.append("engagement")
-
-        return tags
+        return [tag for kws, tag in self.tag_rules if any(kw in goal_lower for kw in kws)]
 
     def _calculate_difficulty_score(self) -> float:
         """Calculate difficulty score based on memory record."""
@@ -481,6 +475,7 @@ __all__ = [
     'MemoryConfig',
     'MemoryRecord',
     'EnhancedAction',
+    'DEFAULT_TAG_RULES',
     'create_memory_manager',
     'load_memory_config',
     'is_memory_enabled'

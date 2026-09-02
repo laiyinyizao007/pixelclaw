@@ -5,7 +5,7 @@
 提供基于 UI Automator 的精确坐标获取和自动化操作。
 
 使用方法:
-    from skills.xhs_automation_skill import XHSAutomationSkill
+    from skills.xhs import XHSAutomationSkill
 
     xhs = XHSAutomationSkill()
     xhs.favorite_current_post()  # 收藏当前帖子
@@ -67,8 +67,9 @@ class XHSAutomationSkill:
         'more': 'com.xingin.xhs:id/moreOperateIV',
     }
 
-    def __init__(self, device_id: Optional[str] = None):
+    def __init__(self, device_id: Optional[str] = None, output_dir: Optional[str] = None):
         self.device_id = device_id
+        self.output_dir = output_dir or "/tmp/pixelclaw_output"
         self.last_ui_dump = None
 
     def _adb_cmd(self, cmd: str) -> Tuple[str, str, int]:
@@ -282,9 +283,10 @@ class XHSAutomationSkill:
 
     def screenshot(self, filename: str) -> str:
         """截图并保存"""
+        local_path = f"{self.output_dir}/{filename}"
         self._adb_cmd(f"shell screencap -p /sdcard/{filename}")
-        self._adb_cmd(f"pull /sdcard/{filename} /home/averypi/Projects/pixelclaw/{filename}")
-        return f"/home/averypi/Projects/pixelclaw/{filename}"
+        self._adb_cmd(f"pull /sdcard/{filename} {local_path}")
+        return local_path
 
     def get_screen_size(self) -> Tuple[int, int]:
         """获取屏幕尺寸"""

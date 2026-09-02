@@ -5,7 +5,7 @@
 ### 快速开始
 
 ```python
-from pixelclaw.skills import XHSAutomationSkill
+from skills.xhs import XHSAutomationSkill
 
 # 创建 skill 实例
 skill = XHSAutomationSkill()
@@ -21,13 +21,13 @@ skill.like_current_post()
 
 ```bash
 # 收藏
-python3 -m pixelclaw.skills.xhs_automation_skill fav
+python3 -m skills.xhs.xhs_automation_skill fav
 
 # 点赞
-python3 -m pixelclaw.skills.xhs_automation_skill like
+python3 -m skills.xhs.xhs_automation_skill like
 
 # 返回
-python3 -m pixelclaw.skills.xhs_automation_skill back
+python3 -m skills.xhs.xhs_automation_skill back
 ```
 
 ### 核心方法
@@ -75,7 +75,7 @@ skill.tap_element('like')     # 点赞
 ### 完整示例：自动浏览并收藏
 
 ```python
-from pixelclaw.skills import XHSAutomationSkill
+from skills.xhs import XHSAutomationSkill
 import time
 
 skill = XHSAutomationSkill()
