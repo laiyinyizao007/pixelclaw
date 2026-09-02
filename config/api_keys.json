@@ -1,0 +1,8 @@
+{
+  "step1v": {
+    "api_key": "2BaYtHO6uRIqov711QOyns76G52xtH1lxX2WOYoZIMd02b6Q4X5U4Y0uy1gSuz5od",
+    "base_url": "https://api.stepfun.com/v1",
+    "model": "step-1v"
+  },
+  "note": "Keep this file secure and do not commit to version control"
+}
