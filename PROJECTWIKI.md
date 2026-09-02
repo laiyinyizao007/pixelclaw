@@ -28,10 +28,11 @@ flowchart LR
     CLI --> Mon[monitors/]
     Core --> Strat[strategies/]
     Core --> Mem[pixelclaw/memory/]
-    Strat --> Skill[skills/]
+    Strat --> Skill[skills/xhs/]
     Mon --> ADB[ADB Manager]
     Skill -->|HTTP| API[android-automation skill API]
-    Tasks[tasks/ 脚本] -->|HTTP 调用| API
+    ScenTasks[scenarios/xhs/tasks/] -->|import| Skill
+    ScenTasks -->|HTTP 调用| API
 ```
 
 ## 3. 架构决策记录（ADR）
@@ -43,8 +44,8 @@ flowchart LR
 
 | 类型 | 描述 | 优先级 |
 |------|------|--------|
-| 技术债务 | 部分任务脚本含硬编码路径 `/home/averypi/Projects/pixelclaw` | 中 |
 | 技术债务 | `pixelclaw/memory/` 子包与项目根目录同名，命名混淆 | 低 |
+| 技术债务 | `XHSAutomationSkill` 绕过 core ADBManager 直接调 subprocess | 低 |
 
 ## 5. 模块文档
 
@@ -54,11 +55,12 @@ flowchart LR
 | `strategies/` | VLM/OCR 多级回退策略实现 |
 | `monitors/` | ADB 管理、连接监控、Shizuku 权限管理 |
 | `services/` | 保活服务 |
-| `skills/` | XHS 自动化技能封装 |
-| `tasks/` | 独立任务脚本（XHS、微信、博主推荐等） |
-| `scripts/` | 环境安装与连接测试脚本 |
+| `skills/xhs/` | 小红书（XHS）自动化 skill（UIAutomator 坐标驱动） |
+| `scenarios/xhs/` | XHS 场景：任务脚本、工具脚本、文档 |
+| `tasks/` | 通用任务脚本（微信、测试等） |
+| `scripts/` | 通用环境安装与连接测试脚本 |
 | `config/` | 设备与系统配置文件 |
-| `docs/` | 项目文档（技能用法、操作指南、实现说明等） |
+| `docs/` | 通用项目文档 |
 | `pixelclaw/memory/` | 三层记忆系统（capture → store → recall） |
 
 ## 6. API 手册

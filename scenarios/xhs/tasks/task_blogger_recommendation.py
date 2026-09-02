@@ -8,9 +8,9 @@
 
 import sys
 import time
-sys.path.insert(0, '/home/averypi/Projects/pixelclaw')
+sys.path.insert(0, str(__import__('pathlib').Path(__file__).parents[3]))
 
-from skills.xhs_automation_skill import XHSAutomationSkill
+from skills.xhs import XHSAutomationSkill
 
 skill = XHSAutomationSkill()
 
