@@ -1,0 +1,8 @@
+{
+  "step1v": {
+    "api_key": "<REDACTED_API_KEY>",
+    "base_url": "https://api.stepfun.com/v1",
+    "model": "step-1v"
+  },
+  "note": "Keep this file secure and do not commit to version control"
+}
