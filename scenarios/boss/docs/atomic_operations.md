@@ -269,13 +269,30 @@ detail  = skill.get_job_detail(xml=xml_top)
 ### 6.2 滚动加载完整描述 + 公司信息
 
 ```python
-time.sleep(0.5)
-skill.scroll_down(start_y=1600, end_y=800)   # 第一次滚动
-skill.scroll_down(start_y=1600, end_y=800)   # 第二次（确保长描述展开）
-time.sleep(0.5)
-xml_bot    = skill.get_ui_hierarchy()
-detail_bot = skill.get_job_detail(xml=xml_bot)
+prev_xml, stale = "", 0
+for _ in range(30):                              # _MAX_DETAIL_SCROLLS
+    skill.scroll_down(start_y=1600, end_y=800)
+    time.sleep(0.5)
+    xml_bot = skill.get_ui_hierarchy()
+    if not xml_bot:
+        break
+    if xml_bot == prev_xml:
+        stale += 1
+        if stale >= 4:                           # _MAX_STALE_DUMPS
+            break
+        time.sleep(1.0)                          # 等懒加载 inflate
+        continue
+    stale = 0
+    prev_xml = xml_bot
+    _merge_detail(detail, skill.get_job_detail(xml=xml_bot))
+    if "company" in detail and "company_info" in detail:
+        break
 ```
+
+- **哪些字段在底部**：`company`（`tv_com_name`）、`company_info`（`tv_com_info`）、`location`（`tv_location`）三个都来自页面底部的公司信息块，不在顶部头部。若某条职位缺 `company`，多半 `location` 也一起缺——这就是没滚到底的信号。
+- **陷阱（懒加载 ≠ 到底）**：公司信息块由外层 `rv_list` RecyclerView 懒加载，inflate 之前页面**滚不动**，连续多轮 dump 字节完全相同。实测连续 3 轮 md5 一致（13880 字符、31 节点），第 4 轮突然变成 22315 字符、53 节点，`tv_com_name` / `tv_com_info` / `tv_location` / `iv_map` / `bl_location_view` 同时出现。`tv_description` 的 bounds 由 `[53,0][1027,2155]` 移到 `[53,0][1027,1095]`，证明期间确实在滚动，只是新内容尚未 inflate。
+- **因此**：`if xml == prev: break` 这种单次判定会把「内容还没加载完」误判成「已到底」，长描述（实测 1749 / 985 字）必然漏抓。必须连续 N 轮不变才退出，且每轮不变时 sleep 一下给 inflate 留时间。
+- **陷阱（滚动次数上限）**：`_MAX_STALE_DUMPS` 才是真正的到底判据，`_MAX_DETAIL_SCROLLS` 只是防死循环的安全网，必须留足余量。多数职位 4 轮即可到底，但描述越长公司信息块被推得越远——实测 2406 字的描述滚穿 14 次仍未到底（日志表现为「滚动到底仍未抓到公司信息」，但 `raw_texts` 中**没有** `网络异常` 字样，可据此与网络占位页区分）。现已提升至 30。
 
 ### 6.2.1 展开"查看更多"折叠的职位描述
 

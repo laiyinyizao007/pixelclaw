@@ -16,6 +16,7 @@ from skills.boss.boss_automation_skill import (
     BOSS_PACKAGE,
     normalize_card_title,
 )
+from skills.android.ui_types import UIElement
 
 
 # ---------------------------------------------------------------------------
@@ -666,3 +667,98 @@ class TestScrollJobListDedupAndMerge:
         jobs = self._run(skill, mock_adb, n_jobs=3)
         first = next(j for j in jobs if j.title == "AI产品经理")
         assert first.company == "字节"
+
+
+class TestSubmitSearchRecovery:
+    """
+    提交搜索后有两种卡死形态，都只能靠点击页面上的按钮恢复：
+      ① 结果页停在「网络异常」占位页 → 点「重新加载」
+      ② 回车未提交，停在搜索建议浮层 → 点浮层的 tv_search「搜索」
+    """
+
+    NETWORK_ERROR_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node bounds="[0,0][1080,2400]">
+    <node bounds="[100,900][980,960]" resource-id="{PKG}:id/tv_title" text="网络异常，请点击按钮刷新"/>
+    <node bounds="[400,1000][680,1080]" resource-id="{PKG}:id/btn_bottom" text="重新加载"/>
+  </node>
+</hierarchy>"""
+
+    OVERLAY_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node bounds="[0,0][1080,2400]">
+    <node bounds="[130,190][1027,249]" resource-id="{PKG}:id/et_search" text="FDE"/>
+    <node bounds="[890,281][1006,344]" resource-id="{PKG}:id/tv_search" text="搜索"/>
+    <node bounds="[0,400][1080,2400]" resource-id="{PKG}:id/recyclerView_list"/>
+  </node>
+</hierarchy>"""
+
+    BLANK_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0"><node bounds="[0,0][1080,2400]"/></hierarchy>"""
+
+    @staticmethod
+    def _prep(skill, waits, xmls):
+        """Stub out the polling + dump layers so only the recovery logic runs."""
+        skill.wait_for_element = MagicMock(side_effect=waits)
+        skill.get_ui_hierarchy = MagicMock(side_effect=xmls)
+        skill.tap = MagicMock(return_value=True)
+        skill.type_text = MagicMock(return_value=True)
+
+    def test_results_appear_immediately_no_recovery_tap(self, skill):
+        found = UIElement(resource_id=f"{PKG}:id/tv_position_name", bounds=(0, 0, 10, 10))
+        self._prep(skill, waits=[found], xmls=[])
+        with patch("time.sleep"):
+            assert skill._submit_search("FDE") is True
+        skill.tap.assert_not_called()
+
+    def test_network_error_page_taps_reload_then_succeeds(self, skill):
+        found = UIElement(resource_id=f"{PKG}:id/tv_position_name", bounds=(0, 0, 10, 10))
+        self._prep(skill, waits=[None, found], xmls=[self.NETWORK_ERROR_XML])
+        with patch("time.sleep"):
+            assert skill._submit_search("AI产品经理") is True
+        skill.tap.assert_called_once_with(540, 1040)
+
+    def test_suggestion_overlay_taps_search_button_then_succeeds(self, skill):
+        found = UIElement(resource_id=f"{PKG}:id/tv_position_name", bounds=(0, 0, 10, 10))
+        self._prep(skill, waits=[None, found], xmls=[self.OVERLAY_XML])
+        with patch("time.sleep"):
+            assert skill._submit_search("FDE") is True
+        skill.tap.assert_called_once_with(948, 312)
+
+    def test_gives_up_after_three_failed_recovery_taps(self, skill):
+        self._prep(
+            skill,
+            waits=[None, None, None],
+            xmls=[self.OVERLAY_XML, self.OVERLAY_XML, self.OVERLAY_XML],
+        )
+        with patch("time.sleep"):
+            assert skill._submit_search("FDE") is False
+        assert skill.tap.call_count == 3
+
+    def test_no_results_and_no_recovery_button_returns_false(self, skill):
+        """Must NOT return True — a silent success masks the failure downstream."""
+        self._prep(skill, waits=[None], xmls=[self.BLANK_XML])
+        with patch("time.sleep"):
+            assert skill._submit_search("FDE") is False
+        skill.tap.assert_not_called()
+
+    def test_type_text_failure_aborts_before_polling(self, skill):
+        self._prep(skill, waits=[], xmls=[])
+        skill.type_text = MagicMock(return_value=False)
+        with patch("time.sleep"):
+            assert skill._submit_search("FDE") is False
+        skill.wait_for_element.assert_not_called()
+
+    def test_recovery_button_prefers_reload_over_search_submit(self, skill):
+        both = self.NETWORK_ERROR_XML.replace(
+            "</hierarchy>",
+            f'  <node bounds="[890,281][1006,344]" resource-id="{PKG}:id/tv_search"'
+            ' text="搜索"/>\n</hierarchy>',
+        )
+        skill.get_ui_hierarchy = MagicMock(return_value=both)
+        btn = skill._find_recovery_button()
+        assert btn is not None and btn.text == "重新加载"
+
+    def test_recovery_button_none_on_empty_dump(self, skill):
+        skill.get_ui_hierarchy = MagicMock(return_value="")
+        assert skill._find_recovery_button() is None
