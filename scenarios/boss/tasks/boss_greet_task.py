@@ -11,7 +11,7 @@ Boss直聘求职自动化 — 第一阶段：搜索职位并发打招呼
       请先运行此脚本发送打招呼，等待 HR 回复后，再运行 boss_apply_task.py 投递简历。
 
 使用方式：
-    python scenarios/boss/tasks/boss_greet_task.py [--keyword 关键词]
+    python scenarios/boss/tasks/boss_greet_task.py --keyword "AI产品经理"
 """
 
 import argparse
@@ -222,7 +222,7 @@ def run_job_search(
 
 def main():
     parser = argparse.ArgumentParser(description="Boss直聘求职自动化 — 第一阶段：搜索+打招呼")
-    parser.add_argument("--keyword", default="Python 工程师", help="搜索关键词")
+    parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
     parser.add_argument("--greeting", default=DEFAULT_GREETING, help="打招呼消息内容")
     parser.add_argument("--max-jobs", type=int, default=5, help="最多处理职位数")
     parser.add_argument("--no-verify", action="store_true", help="发送后不验证消息已发出")
