@@ -1,3 +1,73 @@
 __pycache__/
 *.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
 .env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Project specific
+logs/
+screenshots/
+models/
+*.png
+*.jpg
+*.jpeg
+
+# Configuration with secrets
+config/api_keys.json
+config/api_keys.local.json
+*.key
+*.pem
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PID files
+*.pid
+
+# Nested git repos
+OpenViking/
+
+# Scrape artifacts (runtime output, not source)
+scenarios/*/output/*.json
+
+# Debug scratch
+tmp_dumps/
+tmp_*.py
+tmp_*.xml

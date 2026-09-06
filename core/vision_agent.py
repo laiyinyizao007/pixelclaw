@@ -20,9 +20,12 @@ from rich.progress import Progress, TaskID
 from ..strategies.base import Action
 from ..strategies.fallback_manager import FallbackManager
 from .action_executor import ActionExecutor
+from .app_knowledge import AppKnowledge
 from .device_connector import DeviceConnector
 from .screen_analyzer import ScreenAnalyzer
+from .som_annotator import SoMAnnotator
 from ..memory import MemoryManager
+from ..strategies.reflection_strategy import ReflectionStrategy
 
 
 @dataclass
@@ -55,7 +58,10 @@ to automate tasks on Android devices.
         self,
         device_connector: DeviceConnector,
         fallback_manager: Optional[FallbackManager] = None,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
+        som_enabled: bool = False,
+        reflection_enabled: bool = False,
+        app_knowledge: Optional[AppKnowledge] = None,
     ):
         self.device = device_connector
         self.adb = device_connector.adb
@@ -70,6 +76,24 @@ to automate tasks on Android devices.
         self.executor = ActionExecutor(self.adb, self.config)
         self.analyzer = ScreenAnalyzer()
 
+        # SoM / reflection / knowledge features
+        agent_cfg = self.config.get("agent", {})
+        self.som_enabled: bool = som_enabled or agent_cfg.get("som_enabled", False)
+        self.reflection_enabled: bool = reflection_enabled or agent_cfg.get("reflection_enabled", False)
+        self.app_knowledge: Optional[AppKnowledge] = app_knowledge
+
+        if self.som_enabled:
+            self.som_annotator = SoMAnnotator()
+            # Rebuild the fallback manager with SoM wrapping if none was injected
+            if fallback_manager is None:
+                self.fallback = FallbackManager(
+                    config=self.config.get("fallback", {}),
+                    som_annotator=self.som_annotator,
+                )
+        if self.reflection_enabled:
+            diff_threshold = agent_cfg.get("reflection_diff_threshold", 0.02)
+            self.reflection = ReflectionStrategy(diff_threshold=diff_threshold)
+
         # Configuration
         self.max_steps = self.config.get("max_steps", 50)
         self.step_delay = self.config.get("step_delay", 1.0)
@@ -81,6 +105,7 @@ to automate tasks on Android devices.
         self._current_goal: Optional[str] = None
         self._action_history: List[Dict[str, Any]] = []
         self._step_count = 0
+        self._consecutive_failures = 0
         self._callback: Optional[Callable] = None
 
     def set_progress_callback(self, callback: Callable[[int, int, str], None]):
@@ -116,6 +141,7 @@ to automate tasks on Android devices.
         self._current_goal = goal
         self._action_history = []
         self._step_count = 0
+        self._consecutive_failures = 0
         self._running = True
 
         self.console.print(f"[bold blue]Starting task:[/bold blue] {goal}")
@@ -167,8 +193,26 @@ to automate tasks on Android devices.
                         current_screenshot=screenshot
                     )
 
+                    # --- SoM annotation ---
+                    analyze_screenshot = screenshot
+                    if self.som_enabled:
+                        _, xml_out = self.adb.shell(
+                            "uiautomator dump /sdcard/window_dump.xml && cat /sdcard/window_dump.xml"
+                        )
+                        if xml_out:
+                            analyze_screenshot, som_mapping = self.som_annotator.annotate(
+                                screenshot, xml_out
+                            )
+                            enhanced_context["som_mapping"] = som_mapping
+
+                    # --- App knowledge injection ---
+                    if self.app_knowledge:
+                        knowledge_ctx = self.app_knowledge.get_prompt_context()
+                        if knowledge_ctx:
+                            enhanced_context["app_knowledge"] = knowledge_ctx
+
                     result = await self.fallback.analyze(
-                        screenshot,
+                        analyze_screenshot,
                         goal,
                         context=enhanced_context
                     )
@@ -192,10 +236,13 @@ to automate tasks on Android devices.
                                 action_history=self._action_history
                             )
 
-                        # Try error recovery
-                        if self._step_count < self.error_recovery_attempts:
+                        # Try error recovery using consecutive failure counter
+                        self._consecutive_failures += 1
+                        if self._consecutive_failures < self.error_recovery_attempts:
                             self.console.print(
-                                f"[yellow]Strategy failed, retrying...[/yellow]"
+                                f"[yellow]Strategy failed (attempt "
+                                f"{self._consecutive_failures}/{self.error_recovery_attempts}), "
+                                f"retrying...[/yellow]"
                             )
                             await asyncio.sleep(1)
                             continue
@@ -219,8 +266,24 @@ to automate tasks on Android devices.
                     # Execute action
                     action = result.action
                     if action is None:
-                        error_msg = "No action returned from strategy"
-                        self.console.print(f"[red]{error_msg}[/red]")
+                        self._consecutive_failures += 1
+                        self.console.print(
+                            f"[yellow]No action returned (attempt "
+                            f"{self._consecutive_failures}/{self.error_recovery_attempts})"
+                            f"[/yellow]"
+                        )
+                        await self.memory.finalize_memory_record("no_action")
+                        if self._consecutive_failures >= self.error_recovery_attempts:
+                            return TaskResult(
+                                success=False,
+                                goal=goal,
+                                steps_taken=self._step_count,
+                                execution_time=time.time() - start_time,
+                                error_message="Strategy returned no action",
+                                final_screenshot=screenshot,
+                                action_history=self._action_history,
+                            )
+                        await asyncio.sleep(1)
                         continue
 
                     self._notify_progress(
@@ -243,11 +306,31 @@ to automate tasks on Android devices.
                             # In practice, could prompt user here
                             self.console.print("[dim]Skipping confirmation in auto mode[/dim]")
 
+                    # --- Reflection: capture before-screenshot ---
+                    before_screenshot = screenshot if self.reflection_enabled else None
+
                     # Execute the action
                     exec_result = await self.executor.execute(
                         action.action_type.name,
                         action.params
                     )
+
+                    # --- Reflection: compare before/after ---
+                    if self.reflection_enabled and before_screenshot and exec_result.success:
+                        after_screenshot = self.adb.screenshot()
+                        if after_screenshot is not None:
+                            is_effective, feedback = self.reflection.evaluate(
+                                before_screenshot, after_screenshot
+                            )
+                            if not is_effective:
+                                self.console.print(
+                                    f"[yellow]Reflection: {feedback}[/yellow]"
+                                )
+                                self._action_history.append({
+                                    "step": f"{self._step_count}_reflection",
+                                    "reflection_feedback": feedback,
+                                    "source": "reflection",
+                                })
 
                     # Record action
                     self._action_history.append({
@@ -275,12 +358,12 @@ to automate tasks on Android devices.
                     )
 
                     if not exec_result.success:
+                        self._consecutive_failures += 1
                         self.console.print(
                             f"[red]Action failed: {exec_result.error_message}[/red]"
                         )
 
-                        # Try error recovery
-                        if self._step_count < self.error_recovery_attempts:
+                        if self._consecutive_failures < self.error_recovery_attempts:
                             self.console.print("[yellow]Attempting recovery...[/yellow]")
                             await asyncio.sleep(1)
                             continue
@@ -297,6 +380,9 @@ to automate tasks on Android devices.
                             final_screenshot=screenshot,
                             action_history=self._action_history
                         )
+
+                    # Successful action — reset the consecutive failure counter
+                    self._consecutive_failures = 0
 
                     # Check for task completion
                     if action.action_type.name == "COMPLETE":

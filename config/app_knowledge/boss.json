@@ -1,0 +1,614 @@
+{
+  "app_name": "boss",
+  "package": "com.hpbr.bosszhipin",
+  "note": "resource-id values verified on Pixel 8a (device 42231JEKB04971) with Boss直聘 v10.x via UIAutomator dump. Fields marked 'verified' confirmed in real-device XML; 'inferred' derived from naming patterns; 'text-matched' = no fixed resource-id, use text matching. send_btn has no resource-id; use KEYCODE_ENTER (keyevent 66) to submit.",
+  "elements": [
+    {
+      "element_id": "com.hpbr.bosszhipin:id/et_search",
+      "visual_description": "顶部搜索框，带放大镜图标，显示「搜索职位/公司」",
+      "action": "Click+Type",
+      "page": "home",
+      "note": "verified",
+      "documentation": {
+        "function": "进入职位搜索页，输入关键词",
+        "prerequisites": "在 Boss 首页（职位Tab）",
+        "post_conditions": "跳转至搜索结果页"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_position_name",
+      "visual_description": "职位名称文本，通常显示职位标题，位于搜索结果/推荐列表中",
+      "action": "Click",
+      "page": "job_list",
+      "note": "verified",
+      "documentation": {
+        "function": "进入职位详情页（自动化中通过坐标点击，非 resource-id 定位）",
+        "prerequisites": "在搜索结果页或推荐列表",
+        "post_conditions": "跳转至职位详情"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_company_name",
+      "visual_description": "职位卡片中的公司名称文本",
+      "action": "Read",
+      "page": "job_list",
+      "note": "verified (confirmed in recommend tab dump)",
+      "documentation": {
+        "function": "获取发布该职位的公司名称",
+        "prerequisites": "在搜索结果列表页或推荐页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "用 'company_name' in resource-id 模糊匹配"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_salary_desc",
+      "visual_description": "职位卡片右上角的薪资范围文本（如「20-30K·13薪」）",
+      "action": "Read",
+      "page": "job_list",
+      "note": "inferred (search results page; recommend tab uses tv_salary_statue instead)",
+      "documentation": {
+        "function": "获取职位薪资描述（搜索结果列表页）",
+        "prerequisites": "在搜索结果列表页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "用 'salary' in resource-id 模糊匹配"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_job_area",
+      "visual_description": "职位卡片中的工作地点文本（如「北京·朝阳」）",
+      "action": "Read",
+      "page": "job_list",
+      "note": "inferred; may be tv_area or tv_area_district",
+      "documentation": {
+        "function": "获取职位地理位置",
+        "prerequisites": "在搜索结果列表页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "用 'area' in resource-id 模糊匹配"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_boss_name",
+      "visual_description": "职位卡片右下角的 HR 姓名文本",
+      "action": "Read",
+      "page": "job_list",
+      "note": "inferred",
+      "documentation": {
+        "function": "获取 HR/招聘者姓名",
+        "prerequisites": "在搜索结果列表页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "用 'boss_name' in resource-id 模糊匹配"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_boss_status",
+      "visual_description": "HR 活跃状态文本（如「刚刚活跃」「今天活跃」）",
+      "action": "Read",
+      "page": "job_list",
+      "note": "inferred; recommend tab uses tv_active_status",
+      "documentation": {
+        "function": "判断 HR 近期是否活跃，自动化可优先选择高活跃度 HR",
+        "prerequisites": "在搜索结果列表页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "用 'boss_status' or 'active_time' in resource-id 匹配"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_job_name",
+      "visual_description": "职位详情页顶部的职位名称文本",
+      "action": "Read",
+      "page": "job_detail",
+      "note": "verified",
+      "documentation": {
+        "function": "读取当前职位详情页的职位名称；也是 job_detail 页面的特征元素",
+        "prerequisites": "在职位详情页",
+        "post_conditions": "无（仅读取）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/btn_chat",
+      "visual_description": "橙色「立即沟通」按钮，位于职位详情页底部",
+      "action": "Click",
+      "page": "job_detail",
+      "note": "verified",
+      "documentation": {
+        "function": "与 HR 开始即时对话",
+        "prerequisites": "在职位详情页且已登录",
+        "post_conditions": "跳转至聊天页面；可能触发每日限额弹框或登录弹框"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/editText_with_scrollbar",
+      "visual_description": "底部聊天输入框，显示「和Ta聊一聊~」提示文字",
+      "action": "Click+Type",
+      "page": "chat",
+      "note": "verified",
+      "documentation": {
+        "function": "输入聊天消息内容；也是 chat 页面的特征元素",
+        "prerequisites": "在聊天页面",
+        "post_conditions": "输入框显示输入的文字"
+      }
+    },
+    {
+      "element_id": "send_via_keyevent_66",
+      "visual_description": "发送按钮（ImageView，无 resource-id），位于输入框右侧；使用 adb shell input keyevent 66 发送",
+      "action": "keyevent 66",
+      "page": "chat",
+      "note": "text-matched",
+      "documentation": {
+        "function": "发送聊天消息（KEYCODE_ENTER）",
+        "prerequisites": "输入框已有内容且键盘未关闭",
+        "post_conditions": "消息出现在对话气泡列表中；可通过 verify_message_sent() 验证"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/filterBarRightTabView",
+      "visual_description": "「筛选」按钮或漏斗图标，位于搜索结果页顶部行右侧",
+      "action": "Click",
+      "page": "job_list",
+      "note": "verified",
+      "documentation": {
+        "function": "展开筛选面板，可设置城市/薪资/经验/学历等条件",
+        "prerequisites": "在搜索结果页",
+        "post_conditions": "底部弹出筛选面板（FILTER_PANEL 页面状态）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/btn_apply",
+      "visual_description": "「投递简历」按钮，位于职位详情页底部（仅部分职位显示）",
+      "action": "Click",
+      "page": "job_detail",
+      "note": "inferred (not seen in tested pages; direct-chat jobs only show btn_chat)",
+      "documentation": {
+        "function": "一键投递简历至该职位；通过 can_apply() 检测是否存在",
+        "prerequisites": "在支持简历投递的职位详情页且已登录",
+        "post_conditions": "显示投递成功提示或跳转至投递确认页"
+      }
+    },
+    {
+      "element_id": "dialog_daily_limit",
+      "visual_description": "每日免费沟通名额耗尽弹框，正文含「免费沟通名额已使用完」",
+      "action": "Read+Dismiss",
+      "page": "dialog",
+      "note": "text-matched",
+      "documentation": {
+        "function": "检测是否触发每日沟通限额；检测到后终止当天工作流",
+        "prerequisites": "点击「立即沟通」后可能出现",
+        "post_conditions": "点击「我知道了」关闭弹框；工作流应停止"
+      }
+    },
+    {
+      "element_id": "dialog_job_offline",
+      "visual_description": "职位已下线弹框，正文含「该职位已下线」或「职位已下线」",
+      "action": "Read+Dismiss",
+      "page": "dialog",
+      "note": "text-matched",
+      "documentation": {
+        "function": "检测职位已下线状态，自动跳过该职位",
+        "prerequisites": "进入职位详情页后可能出现",
+        "post_conditions": "press_back() 返回列表；工作流应跳过该职位"
+      }
+    },
+    {
+      "element_id": "dialog_login_required",
+      "visual_description": "登录弹框，含「立即登录」或「请登录后操作」",
+      "action": "Read",
+      "page": "dialog",
+      "note": "text-matched",
+      "documentation": {
+        "function": "检测未登录状态；自动化无法处理登录，应终止并上报错误",
+        "prerequisites": "session 过期或首次启动",
+        "post_conditions": "工作流应终止"
+      }
+    },
+    {
+      "element_id": "dialog_confirm_btn",
+      "visual_description": "弹框中的「我知道了」或「确定」或「知道了」按钮",
+      "action": "Click",
+      "page": "dialog",
+      "note": "text-matched",
+      "documentation": {
+        "function": "关闭各类确认类弹框",
+        "prerequisites": "弹框可见",
+        "post_conditions": "弹框关闭，返回原页面",
+        "implementation": "text 精确匹配（优先'我知道了' → '确定' → '知道了'）"
+      }
+    },
+    {
+      "element_id": "dialog_existing_chat",
+      "visual_description": "「已和对方建立沟通」提示，含「已和对方建立沟通」文字",
+      "action": "Read",
+      "page": "dialog",
+      "note": "text-matched",
+      "documentation": {
+        "function": "检测已有历史对话，自动化可直接继续发送打招呼",
+        "prerequisites": "再次点击同一 HR 的「立即沟通」时可能出现",
+        "post_conditions": "不需要 dismiss，直接继续 send_greeting()"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_tab_1",
+      "visual_description": "底部导航栏第一个 Tab 的容器（可点击区域）",
+      "action": "Click",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "点击导航第一个 Tab（通常为「推荐」）",
+        "prerequisites": "App 已启动，底部导航栏可见",
+        "post_conditions": "切换到第一 Tab；页面状态变为 RECOMMEND",
+        "implementation": "navigate_to_tab('recommend') 自动匹配 tv_tab_1 文本再点击 cl_tab_1"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_tab_2",
+      "visual_description": "底部导航栏第二个 Tab 的容器",
+      "action": "Click",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "点击导航第二个 Tab",
+        "post_conditions": "切换到第二 Tab"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_tab_3",
+      "visual_description": "底部导航栏第三个 Tab 的容器（通常为「消息」）",
+      "action": "Click",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "点击消息 Tab",
+        "post_conditions": "切换到消息页（MESSAGES）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_tab_4",
+      "visual_description": "底部导航栏第四个 Tab 的容器（通常为「我的」）",
+      "action": "Click",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "点击我的 Tab",
+        "post_conditions": "切换到个人中心（PROFILE）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_tab_1",
+      "visual_description": "底部导航栏第一个 Tab 的文字标签",
+      "action": "Read",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "读取 Tab 文字以确定 Tab 顺序（navigate_to_tab 用此匹配）",
+        "implementation": "text 值通常为「推荐」"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_tab_2",
+      "visual_description": "底部导航栏第二个 Tab 的文字标签",
+      "action": "Read",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "读取 Tab 文字（通常为「职位」）",
+        "implementation": "navigate_to_tab 用此匹配 tab 顺序"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_tab_3",
+      "visual_description": "底部导航栏第三个 Tab 的文字标签（通常为「消息」）",
+      "action": "Read",
+      "page": "all",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_tab_4",
+      "visual_description": "底部导航栏第四个 Tab 的文字标签（通常为「我的」）",
+      "action": "Read",
+      "page": "all",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/fl_tab_3_red_dot",
+      "visual_description": "第三个 Tab（消息）的未读消息红点/角标",
+      "action": "Read",
+      "page": "all",
+      "note": "verified",
+      "documentation": {
+        "function": "检测消息 Tab 是否有未读消息",
+        "post_conditions": "可见时表示有未读消息等待处理"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/btn_confirm",
+      "visual_description": "筛选面板底部「确定」按钮",
+      "action": "Click",
+      "page": "filter_panel",
+      "note": "verified",
+      "documentation": {
+        "function": "确认并应用筛选条件，关闭筛选面板返回搜索结果",
+        "prerequisites": "筛选面板已打开（FILTER_PANEL 状态）",
+        "post_conditions": "面板关闭，搜索结果按新条件刷新"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/btn_reset",
+      "visual_description": "筛选面板底部「重置」按钮",
+      "action": "Click",
+      "page": "filter_panel",
+      "note": "verified",
+      "documentation": {
+        "function": "重置所有筛选条件为默认值",
+        "prerequisites": "筛选面板已打开",
+        "post_conditions": "所有选项取消选中"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_option_name",
+      "visual_description": "筛选面板中各选项的文字标签（如「1-3年」「本科」「50-100人」）",
+      "action": "Click",
+      "page": "filter_panel",
+      "note": "verified",
+      "documentation": {
+        "function": "点击具体筛选选项（经验/学历/公司规模等）",
+        "implementation": "用 text 精确匹配目标选项值"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/ll_salary",
+      "visual_description": "筛选面板中薪资范围选项区域",
+      "action": "Read",
+      "page": "filter_panel",
+      "note": "verified",
+      "documentation": {
+        "function": "薪资筛选区域容器；内部选项通过 text 匹配点击"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/img_close",
+      "visual_description": "筛选面板右上角关闭（X）按钮",
+      "action": "Click",
+      "page": "filter_panel",
+      "note": "verified",
+      "documentation": {
+        "function": "关闭筛选面板不保存改动",
+        "post_conditions": "返回搜索结果页"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/contact_vp",
+      "visual_description": "消息 Tab 的聊天列表 ViewPager（页面检测锚点）",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "消息 Tab 页面的特征元素；get_current_page() 用于识别 MESSAGES 状态"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/recyclerView",
+      "visual_description": "消息 Tab 的聊天列表容器",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "包含所有已建立沟通的联系人列表",
+        "implementation": "get_message_list() 遍历此列表解析各联系人条目"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_name",
+      "visual_description": "消息列表中单条聊天项的 HR/招聘者姓名文本",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "获取联系人 HR 姓名；也是 get_message_list() 的遍历锚点"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_position",
+      "visual_description": "消息列表中单条聊天项的职位名称文本",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "获取联系人对应的职位名称"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_msg",
+      "visual_description": "消息列表中最新一条消息的预览文本",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "显示最后一条消息内容摘要"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_time",
+      "visual_description": "消息列表中最新消息的时间文本（如「10:30」「昨天」）",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/iv_msg_status",
+      "visual_description": "消息列表中的已读/未读状态图标",
+      "action": "Read",
+      "page": "messages",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/et_input",
+      "visual_description": "消息 Tab 顶部搜索框（搜索已有联系人/聊天记录）",
+      "action": "Click+Type",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "在消息列表中搜索特定联系人或聊天记录"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/myGeekRoot",
+      "visual_description": "「我的」Tab 的根容器（页面检测锚点）",
+      "action": "Read",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "我的 Tab 页面特征元素；get_current_page() 用于识别 PROFILE 状态"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_my_resume",
+      "visual_description": "「我的」页中「我的简历」入口按钮文字",
+      "action": "Click",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "进入简历编辑/查看页（RESUME 状态）",
+        "post_conditions": "跳转至简历页"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/iv_general_settings",
+      "visual_description": "「我的」页右上角齿轮设置图标",
+      "action": "Click",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "进入账号设置页面"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_interview_container",
+      "visual_description": "「我的」页面试邀请提醒区域",
+      "action": "Read+Click",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示待处理面试邀请数量；点击进入面试管理页"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_geek_contacts_number",
+      "visual_description": "「我的」页已沟通企业数量显示",
+      "action": "Read",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示用户总沟通次数/企业数"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/cl_post_resume_container",
+      "visual_description": "「我的」页投递简历入口区域",
+      "action": "Click",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "进入投递记录页（APPLICATIONS 状态）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/basic_info",
+      "visual_description": "简历页顶部基本信息区域（含头像/姓名/求职意向）",
+      "action": "Read",
+      "page": "resume",
+      "note": "verified",
+      "documentation": {
+        "function": "简历页面的特征元素；get_current_page() 用于识别 RESUME 状态（配合 rv_list）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/rv_list",
+      "visual_description": "简历页各模块列表（工作经历/教育经历/技能等）",
+      "action": "Read",
+      "page": "resume",
+      "note": "verified",
+      "documentation": {
+        "function": "简历内容模块列表；与 basic_info 共同作为 RESUME 页面识别依据"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/sdv_avatar",
+      "visual_description": "简历页头像图片",
+      "action": "Click",
+      "page": "resume",
+      "note": "verified",
+      "documentation": {
+        "function": "点击可修改头像"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tvPosition",
+      "visual_description": "简历页求职意向职位文本",
+      "action": "Read",
+      "page": "resume",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tvSalary",
+      "visual_description": "简历页期望薪资文本",
+      "action": "Read",
+      "page": "resume",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tvCities",
+      "visual_description": "简历页期望城市文本",
+      "action": "Read",
+      "page": "resume",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/job_status",
+      "visual_description": "简历页求职状态标签（如「离职·随时到岗」）",
+      "action": "Read+Click",
+      "page": "resume",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/boss_job_card_view",
+      "visual_description": "推荐 Tab 的职位卡片视图（页面检测锚点）",
+      "action": "Click",
+      "page": "recommend",
+      "note": "verified",
+      "documentation": {
+        "function": "推荐 Tab 特征元素；区分 RECOMMEND 与 JOB_LIST（搜索结果）的关键依据",
+        "implementation": "find_element(resource_id=...boss_job_card_view) 存在则为 RECOMMEND"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_salary_statue",
+      "visual_description": "推荐 Tab 职位卡片中的薪资文本（注：ID 中有 'statue' 非 'status'）",
+      "action": "Read",
+      "page": "recommend",
+      "note": "verified (distinct from tv_salary_desc in search results)",
+      "documentation": {
+        "function": "推荐页职位卡片的薪资显示；拼写为 tv_salary_statue（非 tv_salary_status）"
+      }
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_employer",
+      "visual_description": "推荐 Tab 职位卡片中的公司/雇主名称",
+      "action": "Read",
+      "page": "recommend",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_active_status",
+      "visual_description": "推荐 Tab 职位卡片中 Boss 活跃状态（如「刚刚活跃」）",
+      "action": "Read",
+      "page": "recommend",
+      "note": "verified"
+    },
+    {
+      "element_id": "com.hpbr.bosszhipin:id/tv_distance",
+      "visual_description": "推荐 Tab 职位卡片中距离用户的距离文本",
+      "action": "Read",
+      "page": "recommend",
+      "note": "verified"
+    }
+  ]
+}

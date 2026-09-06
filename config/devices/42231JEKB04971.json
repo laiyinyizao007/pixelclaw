@@ -1,0 +1,15 @@
+{
+  "device_id": "42231JEKB04971",
+  "screen": {
+    "width": 1080,
+    "height": 2400
+  },
+  "probed_at": "2026-09-04T07:09:00Z",
+  "xhs": {
+    "video_post_bar": {
+      "like":    [534, 2286],
+      "collect": [741, 2286],
+      "comment": [928, 2286]
+    }
+  }
+}

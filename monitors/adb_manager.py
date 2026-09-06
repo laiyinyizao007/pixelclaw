@@ -9,15 +9,17 @@ Manages ADB (Android Debug Bridge) connections:
 - Input events (tap, swipe, etc.)
 """
 
-import asyncio
+import io
+import logging
 import subprocess
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-import cv2
-import numpy as np
 from PIL import Image
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -325,8 +327,6 @@ class ADBManager:
             )
 
             if result.returncode == 0 and result.stdout:
-                # Convert binary PNG data to PIL Image
-                import io
                 image = Image.open(io.BytesIO(result.stdout))
                 return image.convert("RGB")
 
@@ -373,14 +373,53 @@ class ADBManager:
         return self.swipe(x, y, x, y, duration, device_id)
 
     def type_text(self, text: str, device_id: Optional[str] = None) -> bool:
-        """Type text on the device."""
-        # Escape special characters
+        """
+        Type text on the device.
+
+        ASCII text uses 'adb shell input text'.
+        Unicode/Chinese text requires ADBKeyboard (com.android.adbkeyboard)
+        installed on the device; returns False with a log warning if unavailable.
+        """
+        if self._is_unicode(text):
+            return self._type_unicode(text, device_id)
+        # ASCII path: escape spaces and single quotes
         escaped = text.replace("'", "'\"'\"'").replace(" ", "%s")
         if " " in text:
             success, _ = self.shell(f"input text '{escaped}'", device_id)
         else:
             success, _ = self.shell(f"input text {escaped}", device_id)
         return success
+
+    @staticmethod
+    def _is_unicode(text: str) -> bool:
+        """Return True if text contains any non-ASCII characters."""
+        return not text.isascii()
+
+    def _has_adbkeyboard(self, device_id: Optional[str] = None) -> bool:
+        """Return True if ADBKeyboard IME is installed on the device."""
+        ok, output = self.shell("ime list -a", device_id)
+        return ok and "com.android.adbkeyboard" in output
+
+    def _type_unicode(self, text: str, device_id: Optional[str] = None) -> bool:
+        """
+        Type Unicode/Chinese text via ADBKeyboard broadcast.
+
+        Requires ADBKeyboard (com.android.adbkeyboard) installed and enabled
+        as the current IME.  Returns False with a warning if unavailable.
+        """
+        if not self._has_adbkeyboard(device_id):
+            logger.warning(
+                "Cannot type Unicode text %r: ADBKeyboard not installed. "
+                "Install com.android.adbkeyboard and enable it as the default IME.",
+                text[:20],
+            )
+            return False
+        ok, _ = self.shell(
+            f'am broadcast -a ADB_INPUT_TEXT --es msg "{text}"', device_id
+        )
+        if not ok:
+            logger.warning("ADBKeyboard broadcast failed for text: %r", text[:20])
+        return ok
 
     def keyevent(self, keycode: int, device_id: Optional[str] = None) -> bool:
         """

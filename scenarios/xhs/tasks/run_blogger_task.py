@@ -3,84 +3,77 @@
 在Pixel 8a上完成小红书AI博主推荐任务
 """
 import sys
+import time
 sys.path.insert(0, str(__import__('pathlib').Path(__file__).parents[3]))
 
 from skills.xhs import XHSAutomationSkill
-import time
+from utils import web_search
+from utils.logging_setup import setup_logger
 
-skill = XHSAutomationSkill()
 
-def search_blogger(blogger_name, filename):
+def search_blogger(blogger_name, filename, skill, logger):
     """搜索博主并截图"""
-    print(f"\n{'='*50}")
-    print(f"搜索博主: {blogger_name}")
-    print('='*50)
+    logger.info("搜索博主: %s", blogger_name)
 
     # 1. 点击搜索框
-    print("\n[1/5] 点击搜索框...")
+    logger.info("[1/5] 点击搜索框")
     skill.tap(540, 90)
     time.sleep(1)
 
     # 2. 输入搜索词（使用拼音）
-    print(f"[2/5] 输入搜索词...")
-    # 清除现有内容
-    skill.tap(780, 90)  # 点击X清除
+    logger.info("[2/5] 清除并输入搜索词")
+    skill.tap(780, 90)
     time.sleep(0.5)
 
-    # 使用拼音输入
-    pinyin = blogger_name.encode('unicode_escape').decode()
     skill._adb_cmd(f"shell input text '{blogger_name}'")
     time.sleep(2)
 
     # 3. 点击搜索按钮
-    print("[3/5] 点击搜索...")
+    logger.info("[3/5] 点击搜索")
     skill.tap(885, 90)
     time.sleep(3)
 
     # 4. 切换到"用户"标签
-    print("[4/5] 切换到用户标签...")
+    logger.info("[4/5] 切换到用户标签")
     skill.tap(250, 165)
     time.sleep(2)
 
     # 5. 截图
-    print(f"[5/5] 截图保存...")
+    logger.info("[5/5] 截图保存")
     filepath = skill.screenshot(filename)
-    print(f"✅ 已保存: {filepath}")
+    logger.info("已保存: %s", filepath)
 
     return True
 
-def publish_post():
+
+def publish_post(skill, logger):
     """发布推荐帖子"""
-    print(f"\n{'='*50}")
-    print("发布推荐帖子")
-    print('='*50)
+    logger.info("发布推荐帖子")
 
     # 1. 点击底部+按钮
-    print("\n[1/8] 点击发布按钮...")
+    logger.info("[1/8] 点击发布按钮")
     skill.tap(540, 1270)
     time.sleep(2)
 
     # 2. 选择图文模式
-    print("[2/8] 选择图文模式...")
+    logger.info("[2/8] 选择图文模式")
     skill.tap(540, 600)
     time.sleep(1)
 
-    # 3. 选择图片（从相册选择三张截图）
-    print("[3/8] 选择图片...")
-    # 这里需要手动选择或从特定路径选择
-    # 暂时跳过，使用默认图库选择
+    # 3. 选择图片
+    logger.info("[3/8] 选择图片")
     time.sleep(2)
 
     # 4. 输入标题
-    print("[4/8] 输入标题...")
-    skill.tap(540, 200)  # 标题输入框
+    logger.info("[4/8] 输入标题")
+    skill.tap(540, 200)
     time.sleep(0.5)
     skill._adb_cmd("shell input text '推荐3个AI干活博主｜效率提升神器'")
     time.sleep(1)
 
     # 5. 输入正文
-    print("[5/8] 输入正文...")
-    skill.tap(540, 400)  # 正文区域
+    logger.info("[5/8] 输入正文")
+    skill.tap(540, 400)
     time.sleep(0.5)
 
     content = """今天给大家推荐3个超实用的AI干活博主！
@@ -96,15 +89,14 @@ def publish_post():
 
 快去关注他们，让AI帮你干活吧！"""
 
-    # 分段输入
     for line in content.split('\n'):
         skill._adb_cmd(f"shell input text '{line}'")
-        skill._adb_cmd("shell input keyevent 66")  # 回车
+        skill._adb_cmd("shell input keyevent 66")
         time.sleep(0.3)
 
     # 6. 添加标签
-    print("[6/8] 添加标签...")
-    skill.tap(540, 800)  # 标签区域
+    logger.info("[6/8] 添加标签")
+    skill.tap(540, 800)
     time.sleep(0.5)
     tags = ["AI工具", "效率提升", "博主推荐", "AI干活", "自动化"]
     for tag in tags:
@@ -113,34 +105,60 @@ def publish_post():
         time.sleep(0.3)
 
     # 7. 截图预览
-    print("[7/8] 截图预览...")
+    logger.info("[7/8] 截图预览")
     skill.screenshot("post_preview.png")
 
     # 8. 点击发布
-    print("[8/8] 点击发布...")
-    skill.tap(980, 90)  # 发布按钮（右上角）
+    logger.info("[8/8] 点击发布")
+    skill.tap(980, 90)
     time.sleep(3)
 
-    print("✅ 帖子发布完成！")
+    logger.info("帖子发布完成")
+
+
+def main():
+    logger = setup_logger("xhs_run_blogger", log_dir="./logs/xhs")
+    skill = XHSAutomationSkill()
+
+    bloggers = [
+        ("程序员三千", "xhs_blogger1_程序员三千.png"),
+        ("大周小王出海笔记", "xhs_blogger2_大周小王.png"),
+        ("Xuan酱", "xhs_blogger3_Xuan酱.png"),
+    ]
+
+    succeeded = []
+    failed = []
+
+    for blogger_name, filename in bloggers:
+        try:
+            search_blogger(blogger_name, filename, skill, logger)
+            succeeded.append(blogger_name)
+        except Exception as exc:
+            logger.error("处理博主 '%s' 时出现未预期异常", blogger_name, exc_info=True)
+            failed.append(blogger_name)
+            hints = web_search.search(f"小红书 自动化 {type(exc).__name__} {str(exc)[:80]}")
+            if hints:
+                logger.info("[WebSearch] 参考结果: %s", hints[0][:200])
+            continue
+        time.sleep(1)
+
+    skill.go_back()
+    skill.go_back()
+
+    try:
+        publish_post(skill, logger)
+    except Exception as exc:
+        logger.error("发布帖子时出现未预期异常", exc_info=True)
+        hints = web_search.search(f"小红书 自动化发布 {type(exc).__name__} {str(exc)[:80]}")
+        if hints:
+            logger.info("[WebSearch] 参考结果: %s", hints[0][:200])
+
+    print("\n" + "=" * 50)
+    print(f"✅ 任务完成！成功: {len(succeeded)} 个  {succeeded}")
+    if failed:
+        print(f"❌ 失败: {len(failed)} 个  {failed}")
+    print("=" * 50)
+
 
 if __name__ == "__main__":
-    # 搜索并截图三个博主
-    search_blogger("程序员三千", "xhs_blogger1_程序员三千.png")
-    time.sleep(1)
-
-    search_blogger("大周小王出海笔记", "xhs_blogger2_大周小王.png")
-    time.sleep(1)
-
-    search_blogger("Xuan酱", "xhs_blogger3_Xuan酱.png")
-    time.sleep(1)
-
-    # 返回首页
-    skill.go_back()
-    skill.go_back()
-
-    # 发布推荐帖子
-    publish_post()
-
-    print("\n" + "="*50)
-    print("✅ 任务完成！")
-    print("="*50)
+    main()

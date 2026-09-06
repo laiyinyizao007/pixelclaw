@@ -233,6 +233,19 @@ memory:
     # Memory usage monitoring
     monitor_memory_usage: true
 
+agent:
+  # SoM (Set-of-Mark) visual annotation
+  som_enabled: false
+  # Reflection mechanism: compare before/after screenshots
+  reflection_enabled: false
+  # Fraction of pixel range below which a screen is "unchanged"
+  reflection_diff_threshold: 0.02
+
+app_knowledge:
+  enabled: true
+  # Directory for AppAgent-format per-app JSON knowledge files
+  knowledge_dir: "config/app_knowledge"
+
 # Environment Variable Overrides (for production deployment)
 # PIXELCLAW_MEMORY_ENABLED: Override memory.enabled
 # OPENVIKING_DB_URL: Override memory.backends.openviking.connection_string
