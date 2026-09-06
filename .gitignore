@@ -71,3 +71,6 @@ scenarios/*/output/*.json
 tmp_dumps/
 tmp_*.py
 tmp_*.xml
+
+# Claude Code personal overrides (settings.json is shared and tracked)
+.claude/settings.local.json
