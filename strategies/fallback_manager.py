@@ -11,6 +11,7 @@ Level 3: OCR + Rule Matching (OpenCV + PaddleOCR)
 Level 4: Human Intervention
 """
 
+import logging
 import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Type
@@ -18,6 +19,9 @@ from typing import Any, Dict, List, Optional, Type
 from PIL import Image
 
 from .base import Action, BaseStrategy, StrategyLevel, StrategyResult
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -100,7 +104,11 @@ class FallbackManager:
     falling back to lower-quality alternatives when higher ones fail.
     """
 
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        som_annotator=None,
+    ):
         self.config = config or {}
         self.strategies: Dict[StrategyLevel, BaseStrategy] = {}
         self.stats = FallbackStats()
@@ -113,6 +121,17 @@ class FallbackManager:
         # Initialize enabled strategies
         self._init_strategies()
 
+        # Wrap Level-1 strategy with SOMStrategy when SoM is enabled
+        if som_annotator is not None and StrategyLevel.STEP1V in self.strategies:
+            try:
+                from .som_strategy import SOMStrategy
+                self.strategies[StrategyLevel.STEP1V] = SOMStrategy(
+                    self.strategies[StrategyLevel.STEP1V]
+                )
+                logger.debug("Step-1V strategy wrapped with SOMStrategy")
+            except ImportError as e:
+                logger.warning("SOMStrategy not available: %s", e)
+
     def _init_strategies(self):
         """Initialize strategy instances based on configuration."""
         # Step-1V
@@ -122,7 +141,7 @@ class FallbackManager:
                 from .step1v_strategy import Step1VStrategy
                 self.strategies[StrategyLevel.STEP1V] = Step1VStrategy(step1v_config)
             except ImportError as e:
-                print(f"Step-1V strategy not available: {e}")
+                logger.warning("Step-1V strategy not available: %s", e)
 
         # MiniCPM
         minicpm_config = self.config.get("minicpm", {})
@@ -131,7 +150,7 @@ class FallbackManager:
                 from .minicpm_strategy import MiniCPMStrategy
                 self.strategies[StrategyLevel.MINICPM] = MiniCPMStrategy(minicpm_config)
             except ImportError as e:
-                print(f"MiniCPM strategy not available: {e}")
+                logger.warning("MiniCPM strategy not available: %s", e)
 
         # OCR
         ocr_config = self.config.get("ocr", {})
@@ -140,7 +159,7 @@ class FallbackManager:
                 from .ocr_strategy import OCRStrategy
                 self.strategies[StrategyLevel.OCR] = OCRStrategy(ocr_config)
             except ImportError as e:
-                print(f"OCR strategy not available: {e}")
+                logger.warning("OCR strategy not available: %s", e)
 
     def register_strategy(self, level: StrategyLevel, strategy: BaseStrategy):
         """Register a custom strategy."""

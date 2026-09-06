@@ -83,26 +83,41 @@ Edit `config/api_keys.json` with your Step-1V API key:
 
 ### 4. Connect and Test
 
+> **Full setup guide (Chinese)**: [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+
 ```bash
-# Activate environment
-source ./activate
+# Install dependencies
+pip install -r requirements.txt
 
-# Connect to device
-python -m pixelclaw --connect --test
+# Connect device (Pixel 8a wireless debugging)
+adb pair <ip:pairing-port> <pairing-code>
+adb connect <ip:port>
+adb devices -l  # Verify: should show "device"
 
-# Or run full test suite
-python scripts/test_connection.py --full
+# Run tests (no device or GPU required)
+python -m pytest tests/ -v --import-mode=importlib
+# Expected: 162 passed
 ```
 
-### 5. Execute Tasks
+> **Raspberry Pi users**: `bash scripts/setup.sh` installs ADB and generates an `activate` script (`source ./activate`).
+
+### 5. Execute Automation Scenarios
 
 ```bash
-# Single task
+# Boss直聘: Phase 1 — search and greet
+python scenarios/boss/tasks/boss_greet_task.py --keyword "Python 工程师"
+
+# Boss直聘: Phase 2 — apply after HR replies (run hours/day later)
+python scenarios/boss/tasks/boss_apply_task.py --max-apply 20
+
+# XHS scenario
+python scenarios/xhs/tasks/xhs_recommend_task_v2.py
+
+# Vision agent (generic task, requires Step-1V API key)
 python -m pixelclaw --task "Open Settings app"
-
-# Interactive mode
-python -m pixelclaw --interactive
 ```
+
+See [docs/GETTING_STARTED.md](docs/GETTING_STARTED.md) for end-to-end walkthrough.
 
 ## Architecture
 
@@ -136,26 +151,37 @@ pixelclaw/
 │   ├── devices.json          # Device configuration
 │   ├── api_keys.json         # API keys (gitignored)
 │   ├── settings.yaml         # Global settings
+│   ├── app_knowledge/        # Per-app UI element knowledge bases (JSON)
 │   └── prompts/              # Agent prompt templates
 ├── core/
 │   ├── device_connector.py   # Device connection management
 │   ├── vision_agent.py       # Main automation agent
-│   ├── screen_analyzer.py    # Screen analysis utilities
+│   ├── som_annotator.py      # SoM screenshot annotation
+│   ├── app_knowledge.py      # AppAgent knowledge loader
 │   └── action_executor.py    # Action execution
 ├── strategies/
 │   ├── base.py               # Strategy base classes
 │   ├── fallback_manager.py   # Fallback orchestration
 │   ├── step1v_strategy.py    # Step-1V cloud VLM
 │   ├── minicpm_strategy.py   # MiniCPM-V local VLM
-│   └── ocr_strategy.py       # OCR + rule matching
+│   ├── ocr_strategy.py       # OCR + rule matching
+│   ├── som_strategy.py       # SoM wrapper strategy
+│   └── reflection_strategy.py# Post-action verification
 ├── monitors/
 │   ├── connection_monitor.py # Health monitoring
 │   ├── adb_manager.py        # ADB operations
 │   └── shizuku_manager.py    # Shizuku integration
+├── skills/
+│   ├── boss/                 # Boss直聘 UIAutomator-based skill
+│   └── xhs/                  # XHS (Little Red Book) skill
+├── scenarios/
+│   ├── boss/tasks/           # Boss job search & apply scripts
+│   └── xhs/tasks/            # XHS automation scripts
+├── tests/                    # Unit tests (162 tests, no device/GPU needed)
 ├── services/
 │   └── keepalive_service.py  # Background service
 ├── scripts/
-│   ├── setup.sh              # Installation script
+│   ├── setup.sh              # Raspberry Pi installation script
 │   ├── test_connection.py    # Connection testing
 │   └── install_minicpm.py    # MiniCPM-V installer
 └── logs/                     # Log files

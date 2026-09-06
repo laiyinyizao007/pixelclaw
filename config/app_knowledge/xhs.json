@@ -1,0 +1,409 @@
+{
+  "app_name": "xhs",
+  "package": "com.xingin.xhs",
+  "launch_activity": "com.xingin.xhs/.index.v2.IndexActivityV2",
+  "note": "resource-id values verified on Pixel 8a (device 42231JEKB04971) via dump_xhs_ui.py. 2026-09-02: 175 IDs (non-logged-in). 2026-09-04: 288 IDs (logged-in). XHS uses mostly semantic resource-ids. Note: 03_post_detail dump still captures home feed due to navigation issue in script — post detail IDs from 04 dump instead.",
+  "elements": [
+    {
+      "element_id": "com.xingin.xhs:id/noteLikeLayout",
+      "visual_description": "帖子底部点赞按钮区域（心形图标 + 点赞数）",
+      "action": "Click",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "点赞当前帖子",
+        "prerequisites": "旧版图文帖详情页（noteDetailRoot 可见）",
+        "post_conditions": "点赞状态切换（心形变红/变灰）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/noteCollectLayout",
+      "visual_description": "帖子底部收藏按钮区域（书签图标 + 收藏数）",
+      "action": "Click",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "收藏当前帖子",
+        "prerequisites": "旧版图文帖详情页",
+        "post_conditions": "收藏状态切换"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/noteCommentLayout",
+      "visual_description": "帖子底部评论按钮区域（气泡图标 + 评论数）",
+      "action": "Click",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "打开评论区",
+        "prerequisites": "旧版图文帖详情页",
+        "post_conditions": "评论输入框展开"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/inputCommentTV",
+      "visual_description": "评论输入文本框（「说点什么...」占位文字）",
+      "action": "Click+Type",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "输入评论内容",
+        "prerequisites": "评论区已展开",
+        "post_conditions": "键盘弹出，可输入文字"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/moreOperateIV",
+      "visual_description": "帖子右上角更多操作按钮（三点图标）",
+      "action": "Click",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "打开更多操作菜单（举报/不感兴趣等）",
+        "prerequisites": "旧版图文帖详情页",
+        "post_conditions": "底部操作面板弹出"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/backIV",
+      "visual_description": "左上角返回箭头按钮",
+      "action": "Click",
+      "page": "post_detail_image",
+      "note": "verified",
+      "documentation": {
+        "function": "返回上一页",
+        "prerequisites": "旧版图文帖详情页",
+        "post_conditions": "退回上一页面",
+        "alternative": "keyevent 4 (Android back key)"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/followBtn",
+      "visual_description": "关注博主按钮",
+      "action": "Click",
+      "page": "post_detail_video,blogger_profile",
+      "note": "verified",
+      "documentation": {
+        "function": "关注当前帖子的博主（新版视频帖 / 博主主页）",
+        "prerequisites": "在新版视频帖详情页或博主主页，未关注该博主",
+        "post_conditions": "关注状态变化，按钮文字从「关注」变为「已关注」",
+        "warning": "仅在登录态可用；旧版图文帖无此元素，用 followBtnLayout 判断是否可见"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/navBarShareBtn",
+      "visual_description": "导航栏右侧分享按钮（箭头/转发图标）",
+      "action": "Click",
+      "page": "post_detail_video",
+      "note": "verified",
+      "documentation": {
+        "function": "分享当前帖子（新版视频帖导航栏）",
+        "prerequisites": "在新版视频帖详情页",
+        "post_conditions": "分享面板弹出",
+        "warning": "旧版图文帖可能使用其他分享入口"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/bottomComment",
+      "visual_description": "新版帖子底部评论区",
+      "action": "Click",
+      "page": "post_detail_video",
+      "note": "verified",
+      "documentation": {
+        "function": "展开评论区（新版视频帖）",
+        "prerequisites": "在新版视频帖详情页",
+        "post_conditions": "评论列表展开"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/index_home",
+      "visual_description": "底部导航「首页」Tab",
+      "action": "Click",
+      "page": "all_main_tabs",
+      "note": "verified",
+      "documentation": {
+        "function": "切换到首页（发现流）",
+        "prerequisites": "在任意主 Tab 页面",
+        "post_conditions": "显示首页推荐/关注内容流"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/index_store",
+      "visual_description": "底部导航「视频」Tab",
+      "action": "Click",
+      "page": "all_main_tabs",
+      "note": "verified",
+      "documentation": {
+        "function": "切换到视频/商城 Tab",
+        "prerequisites": "在任意主 Tab 页面",
+        "post_conditions": "显示视频流"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/index_post",
+      "visual_description": "底部中央「+」发布按钮",
+      "action": "Click",
+      "page": "all_main_tabs",
+      "note": "verified",
+      "documentation": {
+        "function": "打开发布菜单",
+        "prerequisites": "在任意主 Tab 页面，已登录",
+        "post_conditions": "弹出发布选项菜单（rlFirst / rlSecondWithSubtitle）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/index_message",
+      "visual_description": "底部导航「消息」Tab",
+      "action": "Click",
+      "page": "all_main_tabs",
+      "note": "verified",
+      "documentation": {
+        "function": "切换到消息页",
+        "prerequisites": "在任意主 Tab 页面，已登录",
+        "post_conditions": "显示消息列表（msgRecyclerView）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/index_me",
+      "visual_description": "底部导航「我」Tab",
+      "action": "Click",
+      "page": "all_main_tabs",
+      "note": "verified",
+      "documentation": {
+        "function": "切换到个人中心",
+        "prerequisites": "在任意主 Tab 页面，已登录",
+        "post_conditions": "显示个人主页（matrix_profile_new_page_coordinator_layout）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/search",
+      "visual_description": "首页顶部搜索框/按钮",
+      "action": "Click",
+      "page": "home",
+      "note": "verified",
+      "documentation": {
+        "function": "进入搜索输入页",
+        "prerequisites": "在首页",
+        "post_conditions": "跳转至搜索输入页（mSearchToolBarEt 可见）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/mSearchToolBarEt",
+      "visual_description": "搜索输入页文本输入框",
+      "action": "Click+Type",
+      "page": "search_input",
+      "note": "verified",
+      "documentation": {
+        "function": "输入搜索关键词",
+        "prerequisites": "在搜索输入页",
+        "post_conditions": "键盘弹出，可输入关键词"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/mSearchToolBarSearchBtn",
+      "visual_description": "搜索输入页右侧「搜索」按钮",
+      "action": "Click",
+      "page": "search_input",
+      "note": "verified",
+      "documentation": {
+        "function": "执行搜索，跳转到搜索结果页",
+        "prerequisites": "已在搜索输入框输入内容",
+        "post_conditions": "跳转至搜索结果页",
+        "alternative": "keyevent 66 (Enter)"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/mSearchResultTabBar",
+      "visual_description": "搜索结果页顶部 Tab 栏（综合/用户/笔记/视频等）",
+      "action": "Click",
+      "page": "search_results",
+      "note": "verified",
+      "documentation": {
+        "function": "切换搜索结果类型",
+        "prerequisites": "在搜索结果页",
+        "post_conditions": "切换到对应类型结果"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/mSearchResultListContentTRv",
+      "visual_description": "搜索结果列表（RecyclerView）",
+      "action": "Scroll+Click",
+      "page": "search_results",
+      "note": "verified",
+      "documentation": {
+        "function": "显示搜索结果，可滚动浏览并点击进入帖子",
+        "prerequisites": "在搜索结果页",
+        "post_conditions": "点击后进入帖子详情或博主主页"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/msgRecyclerView",
+      "visual_description": "消息页消息列表",
+      "action": "Scroll+Click",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "显示通知消息列表（点赞/评论/关注/私信）",
+        "prerequisites": "在消息页，已登录",
+        "post_conditions": "点击后进入对应消息详情"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/commentAndAt",
+      "visual_description": "消息页「评论和@」入口",
+      "action": "Click",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "查看评论和@我的消息",
+        "prerequisites": "在消息页",
+        "post_conditions": "进入评论消息列表"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/likeAndCollect",
+      "visual_description": "消息页「赞和收藏」入口",
+      "action": "Click",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "查看点赞和收藏消息",
+        "prerequisites": "在消息页",
+        "post_conditions": "进入点赞收藏消息列表"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/fans",
+      "visual_description": "消息页「新增关注者」入口",
+      "action": "Click",
+      "page": "messages",
+      "note": "verified",
+      "documentation": {
+        "function": "查看新增粉丝",
+        "prerequisites": "在消息页",
+        "post_conditions": "进入粉丝列表"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/matrix_profile_user_head_img",
+      "visual_description": "个人中心头像图片",
+      "action": "Detect",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示用户头像",
+        "prerequisites": "在个人中心页",
+        "post_conditions": "无（检测用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/follow_count",
+      "visual_description": "个人中心「关注」数字",
+      "action": "Detect",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示关注人数",
+        "prerequisites": "在个人中心页",
+        "post_conditions": "无（数据读取用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/fans_count",
+      "visual_description": "个人中心「粉丝」数字",
+      "action": "Detect",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示粉丝人数",
+        "prerequisites": "在个人中心页",
+        "post_conditions": "无（数据读取用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/fav_count",
+      "visual_description": "个人中心「获赞与收藏」数字",
+      "action": "Detect",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "显示获赞和收藏总数",
+        "prerequisites": "在个人中心页",
+        "post_conditions": "无（数据读取用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/rlFirst",
+      "visual_description": "发布菜单第一选项（图文）",
+      "action": "Click",
+      "page": "publish_menu",
+      "note": "verified",
+      "documentation": {
+        "function": "进入图文发布流程",
+        "prerequisites": "发布菜单已弹出（点击 index_post 后）",
+        "post_conditions": "跳转至图文编辑页"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/tvCancel",
+      "visual_description": "发布菜单取消按钮",
+      "action": "Click",
+      "page": "publish_menu",
+      "note": "verified",
+      "documentation": {
+        "function": "关闭发布菜单",
+        "prerequisites": "发布菜单已弹出",
+        "post_conditions": "菜单关闭，回到上一页面",
+        "alternative": "keyevent 4 (back)"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/close",
+      "visual_description": "登录弹窗左上角关闭按钮（X图标）",
+      "action": "Click",
+      "page": "login_popup",
+      "note": "verified",
+      "documentation": {
+        "function": "关闭登录弹窗",
+        "prerequisites": "登录弹窗可见（dialog + mWeiChatLoginView 同时出现）",
+        "post_conditions": "弹窗消失，显示后台内容"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/exploreCoordinator",
+      "visual_description": "首页内容流根容器（页面级特征元素）",
+      "action": "Detect",
+      "page": "home",
+      "note": "verified",
+      "documentation": {
+        "function": "检测当前是否在首页",
+        "prerequisites": "在首页",
+        "post_conditions": "无（仅检测用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/matrix_profile_new_page_coordinator_layout",
+      "visual_description": "个人中心页根协调器布局（页面级特征元素）",
+      "action": "Detect",
+      "page": "profile",
+      "note": "verified",
+      "documentation": {
+        "function": "检测当前是否在个人中心页",
+        "prerequisites": "在个人中心页",
+        "post_conditions": "无（仅检测用途）"
+      }
+    },
+    {
+      "element_id": "com.xingin.xhs:id/matrix_video_feed_note_detail_list",
+      "visual_description": "新版视频帖详情 Feed 列表根容器（页面级特征元素）",
+      "action": "Detect",
+      "page": "post_detail_video",
+      "note": "verified",
+      "documentation": {
+        "function": "检测当前是否在新版视频帖/视频 Feed 详情页",
+        "prerequisites": "在新版视频帖详情页",
+        "post_conditions": "无（仅检测用途）"
+      }
+    }
+  ]
+}

@@ -10,10 +10,13 @@ Version: 0.1.0
 __version__ = "0.1.0"
 __author__ = "PixelClaw Team"
 
-from .core.device_connector import DeviceConnector
-from .core.vision_agent import VisionAgent
-from .monitors.connection_monitor import ConnectionMonitor
-from .strategies.fallback_manager import FallbackManager
+try:
+    from .core.device_connector import DeviceConnector
+    from .core.vision_agent import VisionAgent
+    from .monitors.connection_monitor import ConnectionMonitor
+    from .strategies.fallback_manager import FallbackManager
+except ImportError:
+    pass
 
 __all__ = [
     "DeviceConnector",

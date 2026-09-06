@@ -5,5 +5,6 @@ PixelClaw Skills Module
 """
 
 from .xhs import XHSAutomationSkill  # 兼容旧 import
+from .boss import BOSSAutomationSkill
 
-__all__ = ['XHSAutomationSkill']
+__all__ = ['XHSAutomationSkill', 'BOSSAutomationSkill']
