@@ -53,8 +53,14 @@ _FATAL_DIALOGS = {DialogType.DAILY_LIMIT, DialogType.LOGIN_REQUIRED}
 _SKIP_DIALOGS  = {DialogType.JOB_OFFLINE}
 
 # 公司信息块位于详情页底部，描述越长它被推得越远，固定滚一次抓不到。
-# 每次滚动约 800px，1700+ 字的描述实测需要 10 次以上才能触底。
-_MAX_DETAIL_SCROLLS = 14
+# 真正的到底判据是 _MAX_STALE_DUMPS，这里只是防死循环的安全上限：实测 2406 字的
+# 描述会滚穿 14 次仍未到底，故留足余量。
+_MAX_DETAIL_SCROLLS = 30
+
+# 公司信息块由 rv_list 懒加载：未 inflate 前页面滚不动，连续多轮 dump 完全一致，
+# 之后才突然长出整块内容（实测连续 3 轮字节相同，第 4 轮 13880→22315 字符）。
+# 因此单次「XML 未变」不能判定已到底，需连续 N 次不变才退出。
+_MAX_STALE_DUMPS = 4
 
 
 def _merge_detail(dst: dict, src: dict) -> None:
@@ -74,6 +80,33 @@ def _merge_detail(dst: dict, src: dict) -> None:
                 dst[key] = val
         elif key not in dst:
             dst[key] = val
+
+
+def _scroll_for_company_info(skill: BOSSAutomationSkill, detail: dict) -> None:
+    """
+    向下滚动详情页直到抓到公司信息块，或连续 `_MAX_STALE_DUMPS` 轮 XML 不变。
+
+    公司信息块由 rv_list 懒加载，inflate 前页面滚不动，单次「XML 未变」不等于已到底。
+    """
+    prev_xml = ""
+    stale = 0
+    for _ in range(_MAX_DETAIL_SCROLLS):
+        skill.scroll_down(start_y=1600, end_y=800)
+        time.sleep(0.5)
+        xml_bot = skill.get_ui_hierarchy()
+        if not xml_bot:
+            return
+        if xml_bot == prev_xml:
+            stale += 1
+            if stale >= _MAX_STALE_DUMPS:
+                return
+            time.sleep(1.0)   # 给懒加载的公司信息块留出 inflate 时间
+            continue
+        stale = 0
+        prev_xml = xml_bot
+        _merge_detail(detail, skill.get_job_detail(xml=xml_bot))
+        if "company" in detail and "company_info" in detail:
+            return
 
 
 def _return_to_job_list(
@@ -103,10 +136,15 @@ def _return_to_job_list(
 
     # Re-search with the keyword.  The search overlay animation occasionally
     # misses its 5 s window, so give it a couple of attempts before giving up.
+    # A failed attempt can strand us on a page with no bottom nav (the search
+    # overlay, the job-expectation editor), where navigate_to_tab is a no-op —
+    # so back out first.
     for _ in range(3):
         if skill.browse_jobs(keyword):
             break
         time.sleep(1.5)
+        skill.press_back()
+        time.sleep(1.0)
         skill.navigate_to_tab("jobs")
         time.sleep(1.0)
     else:
@@ -330,18 +368,7 @@ def scrape(
                 if not skill.expand_description():
                     logger.warning("  ⚠ [%s] 描述展开失败，可能仍被截断", job.title)
 
-                # 一直向下滚动直到抓到公司信息，或页面不再变化（已到底）。
-                prev_xml = ""
-                for _ in range(_MAX_DETAIL_SCROLLS):
-                    skill.scroll_down(start_y=1600, end_y=800)
-                    time.sleep(0.5)
-                    xml_bot = skill.get_ui_hierarchy()
-                    if not xml_bot or xml_bot == prev_xml:
-                        break
-                    prev_xml = xml_bot
-                    _merge_detail(detail, skill.get_job_detail(xml=xml_bot))
-                    if "company" in detail and "company_info" in detail:
-                        break
+                _scroll_for_company_info(skill, detail)
                 if "company" not in detail:
                     logger.warning("  ⚠ [%s] 滚动到底仍未抓到公司信息", job.title)
 

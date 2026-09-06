@@ -114,6 +114,7 @@ class BOSSAutomationSkill(AndroidSkill):
     # send_btn has no resource-id; send_greeting() uses KEYCODE_ENTER instead.
     ELEMENTS: Dict[str, str] = {
         "search_bar":      f"{BOSS_PACKAGE}:id/et_search",               # home page search field
+        "search_submit":   f"{BOSS_PACKAGE}:id/tv_search",               # 「搜索」 button on the suggestion overlay
         "job_name":        f"{BOSS_PACKAGE}:id/tv_position_name",        # job title in list view
         "job_name_detail": f"{BOSS_PACKAGE}:id/tv_job_name",             # job title in detail view
         "chat_btn":        f"{BOSS_PACKAGE}:id/btn_chat",                # "立即沟通" button
@@ -367,6 +368,52 @@ class BOSSAutomationSkill(AndroidSkill):
         cy = (rightmost_bounds[1] + rightmost_bounds[3]) // 2
         return self.tap(cx, cy)
 
+    def _submit_search(self, keyword: str) -> bool:
+        """
+        Clear the focused search input, type the keyword and submit.
+
+        提交后有两种偶发卡死，都只能靠点击页面上的按钮恢复：
+          ① 回车没能提交，页面停在搜索建议浮层（ASCII 关键词经 `input text`
+             输入时尤其常见）——需点击浮层右下角的「搜索」按钮；
+          ② 结果页返回「网络异常，请点击按钮刷新」占位页，职位列表节点永远
+             不会出现——需点击「重新加载」。
+        故每轮轮询失败后查找恢复按钮并点击，最多 3 轮。
+        """
+        del_chain = " ".join(["67"] * 30)
+        self._adb(f"shell input keyevent 123 {del_chain}")
+        time.sleep(0.2)
+        if not self.type_text(keyword):
+            return False
+        self._adb("shell input keyevent 66")  # Enter
+        time.sleep(self.action_delay)
+
+        for _ in range(3):
+            if self.wait_for_element(self.ELEMENTS["job_name"], timeout=8.0):
+                return True
+            btn = self._find_recovery_button()
+            if btn is None:
+                return False
+            self._logger.info("[browse_jobs] 搜索未出结果，点击恢复按钮重试")
+            cx, cy = btn.center or (0, 0)
+            self.tap(cx, cy)
+            time.sleep(2.0)
+        return False
+
+    def _find_recovery_button(self) -> Optional[UIElement]:
+        """
+        Locate a button that can un-stick a search that produced no job list:
+        the reload button of the network-error placeholder page, or the
+        「搜索」 submit button left over when Enter failed to submit.
+        """
+        xml = self.get_ui_hierarchy()
+        if not xml:
+            return None
+        for label in ("重新加载", "点击重试", "重试"):
+            elem = self.find_element(text=label, xml=xml)
+            if elem:
+                return elem
+        return self.find_element(self.ELEMENTS["search_submit"], xml=xml)
+
     def browse_jobs(self, keyword: str) -> bool:
         """
         Search for jobs with the given keyword.
@@ -393,14 +440,7 @@ class BOSSAutomationSkill(AndroidSkill):
                         return False
                     # search_bar tapped — skip the overlay wait below.
                     time.sleep(0.3)
-                    del_chain = " ".join(["67"] * 30)
-                    self._adb(f"shell input keyevent 123 {del_chain}")
-                    time.sleep(0.2)
-                    if not self.type_text(keyword):
-                        return False
-                    self._adb("shell input keyevent 66")
-                    time.sleep(self.action_delay)
-                    return True
+                    return self._submit_search(keyword)
             # Let the search overlay animation settle before polling.
             time.sleep(1.5)
             # Wait up to 5 s for the search overlay (et_search) to appear.
@@ -416,15 +456,7 @@ class BOSSAutomationSkill(AndroidSkill):
                 return False
 
         time.sleep(0.3)
-        # Clear any pre-existing text (MOVE_END + 30× backspace in one adb call)
-        del_chain = " ".join(["67"] * 30)
-        self._adb(f"shell input keyevent 123 {del_chain}")
-        time.sleep(0.2)
-        if not self.type_text(keyword):
-            return False
-        self._adb("shell input keyevent 66")  # Enter
-        time.sleep(self.action_delay)
-        return True
+        return self._submit_search(keyword)
 
     def get_job_list(self, xml: Optional[str] = None) -> List[JobInfo]:
         """
