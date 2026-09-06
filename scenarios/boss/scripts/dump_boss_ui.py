@@ -9,8 +9,8 @@ Boss直聘 UI 全页面系统性探索脚本
   3. 从所有 dump 中提取所有 resource-id，生成去重、分页报告
 
 运行：
-  python scenarios/boss/scripts/dump_boss_ui.py [--device DEVICE_ID]
-  python scenarios/boss/scripts/dump_boss_ui.py --device 42231JEKB04971
+  python scenarios/boss/scripts/dump_boss_ui.py --keyword "AI产品经理"
+  python scenarios/boss/scripts/dump_boss_ui.py --keyword Python --device 42231JEKB04971
 """
 
 import argparse
@@ -32,7 +32,7 @@ if sys.platform == "win32":
 ROOT = Path(__file__).parents[3]
 DUMP_DIR = ROOT / "tmp_dumps"
 BOSS_PACKAGE = "com.hpbr.bosszhipin"
-DEFAULT_DEVICE = "42231JEKB04971"
+ADBKEYBOARD_IME = "com.android.adbkeyboard/.AdbIME"
 SCREEN_W = 1080  # Pixel 8a
 SCREEN_H = 2400
 
@@ -77,6 +77,52 @@ def tap(x: int, y: int, device: str) -> bool:
 def swipe(x1: int, y1: int, x2: int, y2: int, dur: int, device: str) -> bool:
     ok, _ = shell(f"input swipe {x1} {y1} {x2} {y2} {dur}", device)
     return ok
+
+
+def type_text(text: str, device: str) -> bool:
+    """Type ``text`` into the focused field.
+
+    ``input text`` only handles ASCII, so non-ASCII is sent through the
+    ADBKeyboard IME broadcast (requires com.android.adbkeyboard on the device).
+    Args are passed as a list rather than through ``shell()`` because the latter
+    splits on whitespace, which would mangle multi-word keywords.
+    """
+    base = ["adb", "-s", device, "shell"]
+    if text.isascii():
+        args = base + ["input", "text", text.replace(" ", "%s")]
+        prev_ime = ""
+    else:
+        _, prev_ime = shell("settings get secure default_input_method", device)
+        shell(f"ime enable {ADBKEYBOARD_IME}", device)
+        shell(f"ime set {ADBKEYBOARD_IME}", device)
+        time.sleep(0.3)
+        args = base + ["am", "broadcast", "-a", "ADB_INPUT_TEXT", "--es", "msg", text]
+    try:
+        r = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
+                           errors="replace", timeout=30)
+        ok = r.returncode == 0
+    except subprocess.TimeoutExpired:
+        ok = False
+    if prev_ime.strip():
+        shell(f"ime set {prev_ime.strip()}", device)
+    return ok
+
+
+def resolve_device(explicit: Optional[str]) -> str:
+    """Return the device serial to drive, auto-selecting when unambiguous."""
+    if explicit:
+        return explicit
+    r = subprocess.run(["adb", "devices"], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace", timeout=30)
+    serials = [ln.split()[0] for ln in r.stdout.splitlines()[1:]
+               if ln.strip().endswith("device")]
+    if not serials:
+        print("ERROR: 未检测到已连接的设备，请先 adb connect 或指定 --device")
+        sys.exit(1)
+    if len(serials) > 1:
+        print(f"ERROR: 检测到多台设备 {serials}，请用 --device 指定")
+        sys.exit(1)
+    return serials[0]
 
 
 def back(device: str) -> bool:
@@ -273,8 +319,9 @@ def explore_home(device: str, all_ids: Set[str]) -> str:
     return xml
 
 
-def explore_search_results(device: str, all_ids: Set[str], home_xml: str) -> str:
-    print("\n[2/11] 搜索结果页 (Search Results)")
+def explore_search_results(device: str, all_ids: Set[str], home_xml: str,
+                           keyword: str) -> str:
+    print(f"\n[2/11] 搜索结果页 (Search Results) — 关键词: {keyword}")
     coord = find_by_rid(home_xml, "et_search")
     if not coord:
         print("  [WARN] 找不到搜索框，尝试文本匹配")
@@ -285,8 +332,8 @@ def explore_search_results(device: str, all_ids: Set[str], home_xml: str) -> str
 
     tap(*coord, device)
     time.sleep(1.0)
-    # type search keyword
-    shell("input text Python", device)
+    if not type_text(keyword, device):
+        print("  [WARN] 关键词输入可能失败（中文需设备安装 ADBKeyboard）")
     time.sleep(0.5)
     keyevent(66, device)  # Enter
     time.sleep(2.5)
@@ -547,17 +594,20 @@ def generate_report(all_ids: Set[str], dumps_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="Boss直聘 UI 全页面系统性探索脚本")
-    parser.add_argument("--device", default=DEFAULT_DEVICE, help="ADB 设备 serial")
+    parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
+    parser.add_argument("--device", default=None,
+                        help="ADB 设备 serial（省略时自动选择唯一连接的设备）")
     parser.add_argument("--no-launch", action="store_true",
                         help="跳过启动步骤（App 已在前台）")
     args = parser.parse_args()
 
-    device = args.device
+    device = resolve_device(args.device)
     DUMP_DIR.mkdir(parents=True, exist_ok=True)
     all_ids: Set[str] = set()
 
     print(f"Boss直聘 UI 探索脚本")
     print(f"设备: {device}")
+    print(f"关键词: {args.keyword}")
     print(f"输出目录: {DUMP_DIR}")
     print("=" * 60)
 
@@ -575,7 +625,7 @@ def main():
     home_xml = explore_home(device, all_ids)
 
     # Step 2: Search results
-    job_list_xml = explore_search_results(device, all_ids, home_xml)
+    job_list_xml = explore_search_results(device, all_ids, home_xml, args.keyword)
 
     # Step 3: Filter panel (open and close)
     if job_list_xml:
