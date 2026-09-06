@@ -21,6 +21,7 @@
 - `scenarios/boss/scripts/scrape_job_details.py` — 爬取中途因 `browse_jobs` 单次失败提前终止（实测 10 条只抓到 6 条）：搜索浮层动画偶尔错过 5 秒等待窗口。`_return_to_job_list()` 改为最多重试 3 次，每次失败后回到「职位」Tab 再试
 
 ### Added（新增）
+- `scenarios/boss/config/keywords.yaml` + `scenarios/boss/scripts/scrape_job_details.py` — 关键词改为配置文件管理，支持多关键词批量爬取：`main()` 改为按关键词循环，每个关键词单独调用 `scrape()` 并输出独立 JSON（`job_details_{关键词}_{时间戳}.json`），结束后打印每关键词明细 + 合计汇总，任一关键词有错误则退出码为 1。新增 `load_config()` 读取 YAML（`keywords` 列表 + `defaults.n_jobs`）与 `--config` 参数；`--keyword` 由必填改为可选覆盖项（指定时忽略配置文件只跑该词），`--n-jobs` 默认改为 `None` 以便回落到 `defaults.n_jobs`
 - `tests/test_boss_skill_enhanced.py`：新增 `TestNormalizeCardTitle`（6 个测试，覆盖尾部角标剥离、重复角标、省略号截断标题、标题中间 `&`/`@` 保留、空值）与 `TestScrollJobListDedupAndMerge`（4 个测试，覆盖角标变体去重、标题归一化存储、空字段补齐、已有值不被覆盖）
 - `scenarios/boss/docs/atomic_operations.md`：新增 §4.1 列表卡层级与 resource-id 映射表、§6.2.1 展开「查看更多」折叠描述，含 6 个实测陷阱
 - `skills/boss/boss_automation_skill.py`：新增 `ensure_ready()` 方法及两个私有辅助方法 `_is_screen_on()` / `_wake_screen()`。`ensure_ready()` 在每次迭代前依次检查：ADB 连通性 → 屏幕亮屏状态（熄屏则唤醒）→ App 前台状态（UNKNOWN 则重启）→ 残留弹窗清理（DAILY_LIMIT / LOGIN_REQUIRED 返回 False 停止任务，其余类型 dismiss 后继续）

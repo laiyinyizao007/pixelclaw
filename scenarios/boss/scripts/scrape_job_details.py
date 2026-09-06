@@ -10,6 +10,10 @@ Boss直聘职位详情爬取脚本
   5. 保存到 JSON 文件
 
 使用方式：
+    # 批量：按 scenarios/boss/config/keywords.yaml 中的关键词逐个爬取，每个关键词一个 JSON
+    python scenarios/boss/scripts/scrape_job_details.py
+
+    # 单次：临时覆盖配置文件，只跑一个关键词
     python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" --n-jobs 10
     python scenarios/boss/scripts/scrape_job_details.py --keyword "FDE" --n-jobs 20 --screenshot
 """
@@ -21,7 +25,9 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
+
+import yaml
 
 # Force UTF-8 output on Windows
 if sys.platform == "win32":
@@ -40,6 +46,8 @@ from skills.boss import (
     normalize_card_title,
 )
 from utils.logging_setup import setup_logger
+
+_DEFAULT_CONFIG = ROOT / "scenarios" / "boss" / "config" / "keywords.yaml"
 
 _FATAL_DIALOGS = {DialogType.DAILY_LIMIT, DialogType.LOGIN_REQUIRED}
 _SKIP_DIALOGS  = {DialogType.JOB_OFFLINE}
@@ -366,45 +374,77 @@ def scrape(
     return report
 
 
+def load_config(path: Path) -> Tuple[List[str], dict]:
+    """Read the keywords YAML; returns (keywords, defaults)."""
+    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    keywords = [str(k).strip() for k in (data.get("keywords") or []) if str(k).strip()]
+    return keywords, data.get("defaults") or {}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Boss直聘职位详情爬取脚本")
-    parser.add_argument("--keyword",     required=True,         help="搜索关键词（必需）")
-    parser.add_argument("--n-jobs",      type=int, default=10,  help="抓取职位数（默认 10）")
+    parser.add_argument("--keyword",     default=None,          help="搜索关键词（覆盖配置文件，只跑这一个）")
+    parser.add_argument("--config",      default=None,          help=f"关键词配置文件（默认 {_DEFAULT_CONFIG}）")
+    parser.add_argument("--n-jobs",      type=int, default=None, help="抓取职位数（覆盖配置文件 defaults.n_jobs）")
     parser.add_argument("--output-dir",  default=None,          help="输出目录（默认 scenarios/boss/output/）")
     parser.add_argument("--device",      default=None,          help="ADB 设备 serial")
     parser.add_argument("--screenshot",  action="store_true",   help="是否为每条详情截图")
     args = parser.parse_args()
 
+    config_path = Path(args.config) if args.config else _DEFAULT_CONFIG
+    if args.keyword:
+        keywords, defaults = [args.keyword], {}
+    else:
+        if not config_path.exists():
+            print(f"ERROR: 配置文件不存在：{config_path}（或用 --keyword 直接指定关键词）")
+            return 1
+        keywords, defaults = load_config(config_path)
+        if not keywords:
+            print(f"ERROR: {config_path} 中未配置任何关键词")
+            return 1
+
+    n_jobs = args.n_jobs if args.n_jobs is not None else int(defaults.get("n_jobs", 10))
+
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "scenarios" / "boss" / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    report = scrape(
-        keyword=args.keyword,
-        n_jobs=args.n_jobs,
-        output_dir=output_dir,
-        device_id=args.device,
-        take_screenshot=args.screenshot,
-    )
+    summaries = []
+    for i, keyword in enumerate(keywords, 1):
+        print("\n" + "=" * 60)
+        print(f"[{i}/{len(keywords)}] 关键词：{keyword}（目标 {n_jobs} 条）")
+        print("=" * 60)
 
-    # Save JSON
-    safe_kw  = args.keyword.replace(" ", "_").replace("/", "-")
-    ts_file  = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_file = output_dir / f"job_details_{safe_kw}_{ts_file}.json"
-    out_file.write_text(
-        json.dumps(report, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+        report = scrape(
+            keyword=keyword,
+            n_jobs=n_jobs,
+            output_dir=output_dir,
+            device_id=args.device,
+            take_screenshot=args.screenshot,
+        )
+
+        safe_kw  = keyword.replace(" ", "_").replace("/", "-")
+        ts_file  = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_file = output_dir / f"job_details_{safe_kw}_{ts_file}.json"
+        out_file.write_text(
+            json.dumps(report, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        summaries.append((keyword, len(report["jobs"]), report["errors"], out_file))
 
     print("\n" + "=" * 60)
-    print(f"爬取完成：{len(report['jobs'])} 条职位")
-    print(f"输出文件：{out_file}")
-    if report["errors"]:
-        print(f"错误数：{len(report['errors'])}")
-        for err in report["errors"]:
+    print("批量爬取完成")
+    print("=" * 60)
+    total_jobs = total_errors = 0
+    for keyword, n_found, errors, out_file in summaries:
+        total_jobs += n_found
+        total_errors += len(errors)
+        print(f"\n「{keyword}」：{n_found} 条职位  →  {out_file.name}")
+        for err in errors:
             print(f"  - {err}")
+    print(f"\n合计：{len(summaries)} 个关键词，{total_jobs} 条职位，{total_errors} 个错误")
     print("=" * 60)
 
-    return 0 if not report["errors"] else 1
+    return 0 if total_errors == 0 else 1
 
 
 if __name__ == "__main__":

@@ -1,0 +1,16 @@
+# Boss直聘批量爬取关键词配置
+#
+# 用法：
+#   python scenarios/boss/scripts/scrape_job_details.py
+#     → 依次爬取 keywords 下的每个关键词，每个关键词单独输出一个 JSON 文件
+#
+#   python scenarios/boss/scripts/scrape_job_details.py --keyword "临时关键词"
+#     → 忽略本文件，只跑这一个关键词
+
+defaults:
+  # 每个关键词抓取的职位数（可被 --n-jobs 覆盖）
+  n_jobs: 10
+
+keywords:
+  - AI产品经理
+  - FDE
