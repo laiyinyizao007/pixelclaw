@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(adb devices)",
+      "Bash(python -m pytest tests/ -q --import-mode=importlib 2>&1)",
+      "Bash(python -m pytest tests/ -v 2>&1)",
+      "Bash(python -m pytest tests/test_boss_skill_pages.py -v --import-mode=importlib --tb=short 2>&1)"
+    ]
+  }
+}
