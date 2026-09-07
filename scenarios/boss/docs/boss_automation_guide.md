@@ -24,6 +24,107 @@ for job in jobs:
 skill.send_greeting("您好！对这个职位很感兴趣。")
 ```
 
+## 职位详情批量爬取
+
+`scrape_job_details.py` 是可复用的独立爬取脚本，搜索指定关键词、逐个进入职位详情页提取结构化信息，输出 JSON 文件。
+
+### 快速上手
+
+```bash
+# 单次爬取（临时指定关键词）
+python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" --n-jobs 10
+
+# 批量爬取（读取 scenarios/boss/config/keywords.yaml）
+python scenarios/boss/scripts/scrape_job_details.py
+
+# 同时截图
+python scenarios/boss/scripts/scrape_job_details.py --keyword "FDE" --n-jobs 20 --screenshot
+
+# 指定设备
+python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" --device 42231JEKB04971
+```
+
+### 所有参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `--keyword` | 无（读配置文件） | 临时覆盖关键词，忽略配置文件，只跑这一个 |
+| `--n-jobs` | 10（或配置文件 `defaults.n_jobs`） | 每个关键词抓取的职位数 |
+| `--output-dir` | `scenarios/boss/output/` | JSON 和截图的输出目录 |
+| `--device` | 自动选取 | ADB 设备 serial，多设备时必填 |
+| `--screenshot` | 关闭 | 开启后为每条详情截图 |
+| `--config` | `scenarios/boss/config/keywords.yaml` | 批量关键词配置文件路径 |
+
+### 批量关键词配置（`keywords.yaml`）
+
+```yaml
+defaults:
+  n_jobs: 10          # 每个关键词默认抓取数，可被 --n-jobs 覆盖
+
+keywords:
+  - AI产品经理
+  - FDE
+  - 数据工程师        # 继续追加即可
+```
+
+### 输出 JSON 结构
+
+文件名：`job_details_{关键词}_{时间戳}.json`，保存在 `--output-dir`。
+
+```json
+{
+  "keyword": "AI产品经理",
+  "n_jobs_requested": 10,
+  "scraped_at": "2026-09-07T03:27:44Z",
+  "device_id": "42231JEKB04971",
+  "jobs": [
+    {
+      "index": 1,
+      "list_info": {
+        "title": "AI产品经理",
+        "company": "吉利控股集团",
+        "salary": "25-35K",
+        "location": "上海",
+        "hr_name": "张女士",
+        "hr_title": "招聘经理",
+        "hr_active": ""
+      },
+      "detail": {
+        "title": "AI产品经理",
+        "salary": "25-35K·14薪",
+        "location": "上海·浦东新区",
+        "experience": "3-5年",
+        "education": "本科",
+        "description": "职位描述正文...",
+        "skills": ["产品设计", "AI"],
+        "company": "吉利控股集团",
+        "company_info": "10000人以上·上市公司·汽车",
+        "hr_name": "张女士",
+        "hr_title": "招聘经理",
+        "raw_texts": ["..."]
+      },
+      "screenshot_path": ""
+    }
+  ],
+  "errors": []
+}
+```
+
+`detail` 字段说明：
+- `raw_texts`：所有未能精确映射的文本节点，保底不丢信息
+- `errors`：网络异常无法恢复、弹窗跳过等情况记录在此；`[]` 表示全部成功
+
+### 网络异常自动恢复
+
+脚本内置两层恢复机制，无需人工干预：
+
+1. **初始占位页**：进入详情页后首次 dump 就出现「网络异常」→ 自动点击「重试」，最多 3 次，成功后重新提取
+2. **滚动途中占位页**：滚动加载公司信息时出现「网络异常」→ 提前停止滚动，自动恢复后重新完整提取
+
+两种形态在 `errors` 为空时均已静默处理完毕；恢复失败才会记入 `errors`。
+
+---
+
 ## 命令行使用（两阶段工作流）
 
 > Boss直聘平台规定：双方都发过消息后，聊天页才会出现"投递简历"按钮。
