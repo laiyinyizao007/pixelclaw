@@ -308,22 +308,37 @@ def _is_complete(job: JobInfo) -> bool:
 def _find_next_job(
     skill: BOSSAutomationSkill,
     visited_titles: set,
-    max_scrolls: int = 100,
     max_topups: int = 2,
+    max_stale: int = 5,
 ) -> Optional[JobInfo]:
     """
-    Scroll the current job list (from its current position) to find the first
-    job whose normalized title is not in visited_titles.  Returns None when
+    Scroll the job list until an unvisited job is found or the list is truly
     exhausted.
+
+    "真正到底"的判���：连续 max_stale 轮 dump XML 完全相同（无限滚动没有加载出
+    新内容）。不设硬性滚动次数上限——只要目标数量未满足就一直往下拉。
 
     位于视口边缘的卡片会被 RecyclerView 部分回收，只渲染出 title，其余字段为空。
     遇到这种卡片时小步滚动并重新 dump，让它完整进入视口——必须重新 dump 而非
     复用滚动前的对象，否则 tap_x/tap_y 已失效。
     """
     topups: dict = {}
+    prev_xml = ""
+    stale = 0
 
-    for _ in range(max_scrolls):
+    while True:
         xml = skill.get_ui_hierarchy()
+
+        # 与上一轮比较：XML 未变说明滚动没有加载出新内容
+        if xml == prev_xml:
+            stale += 1
+            if stale >= max_stale:
+                return None   # 连续 max_stale 次无变化 → 真正到底
+            time.sleep(1.0)   # 给无限滚动留出加载时间
+        else:
+            stale = 0
+        prev_xml = xml
+
         candidate = None
         for job in skill.get_job_list(xml=xml):
             key = _job_key(normalize_card_title(job.title), job.company or "", job.hr_name or "")
@@ -343,8 +358,8 @@ def _find_next_job(
         topups[key] = topups.get(key, 0) + 1
         skill.scroll_down(start_y=1500, end_y=1100)
         time.sleep(0.8)
-
-    return None
+        stale = 0   # 找到候选说明页面有内容，重置 stale
+        prev_xml = ""
 
 
 def scrape(
@@ -444,7 +459,7 @@ def scrape(
             break
 
         # Find the next job not yet visited (may scroll the list).
-        job = _find_next_job(skill, visited_titles, max_scrolls=max(100, n_jobs * 3))
+        job = _find_next_job(skill, visited_titles)
         if not job:
             logger.info("  已无更多新职位，采集结束（共找到 %d 条）", idx)
             break
