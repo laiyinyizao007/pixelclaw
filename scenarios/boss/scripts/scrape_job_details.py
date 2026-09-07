@@ -169,9 +169,11 @@ def _return_to_job_list(
     """
     Re-navigate to the search-result job list after visiting a detail page.
 
-    Strategy: navigate to the "职位" tab unconditionally (bottom nav always
-    visible even when toolbar collapses), then re-run the search.  This is
-    slower than a simple back press but completely reliable across all states.
+    Fast path: press Back once — if the list is already on screen (common case
+    when detail page was reached from the list), we're done in ~1 s.
+
+    Fallback: navigate to the "职位" tab and re-run the search.  Used when
+    Back lands somewhere unexpected (chat page, another overlay, etc.).
     """
     # Escape any overlay / dialog first.
     page = skill.get_current_page()
@@ -179,19 +181,21 @@ def _return_to_job_list(
         skill.press_back()
         time.sleep(0.8)
 
-    # Navigate to the jobs tab (bottom nav stays visible regardless of scroll).
+    # Fast path: single Back press + quick check for the job list.
+    skill.press_back()
+    time.sleep(1.2)
+    if skill.wait_for_element(
+        "com.hpbr.bosszhipin:id/tv_position_name", timeout=4.0
+    ):
+        return True
+
+    # Fallback: navigate to the jobs tab, then re-search.
     if not skill.navigate_to_tab("jobs"):
-        # Fallback: try two back presses to reach a known tab.
         skill.press_back(); time.sleep(1.0)
         skill.press_back(); time.sleep(1.0)
 
     time.sleep(1.0)
 
-    # Re-search with the keyword.  The search overlay animation occasionally
-    # misses its 5 s window, so give it a couple of attempts before giving up.
-    # A failed attempt can strand us on a page with no bottom nav (the search
-    # overlay, the job-expectation editor), where navigate_to_tab is a no-op —
-    # so back out first.
     for _ in range(3):
         if skill.browse_jobs(keyword):
             break
@@ -208,6 +212,63 @@ def _return_to_job_list(
         "com.hpbr.bosszhipin:id/tv_position_name", timeout=15.0
     )
     return found is not None
+
+
+def _ai_recover(
+    skill: BOSSAutomationSkill,
+    job_title: str,
+    error_msg: str,
+    logger,
+) -> bool:
+    """
+    调用 Claude Haiku 分析当前 UI 状态，尝试从异常中恢复。
+
+    仅在常规错误处理（ensure_ready）无法自行恢复时调用。
+    返回 True 表示已执行恢复动作（back/tap），False 表示建议跳过该职位。
+    """
+    try:
+        import anthropic
+    except ImportError:
+        logger.warning("AI recovery 不可用：缺少 anthropic 包")
+        return False
+
+    try:
+        xml = (skill.get_ui_hierarchy() or "")[:4000]
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=128,
+            messages=[{
+                "role": "user",
+                "content": (
+                    f"Boss直聘爬虫处理职位「{job_title}」时出现异常。\n"
+                    f"错误信息：{error_msg}\n"
+                    f"当前 UI XML（截断至 4000 字符）：\n{xml}\n\n"
+                    "请分析 UI 状态并返回一个 JSON 恢复动作（仅 JSON，无多余文字）：\n"
+                    '{"action":"back"|"tap"|"skip","x":可选整数,"y":可选整数}'
+                ),
+            }],
+        )
+        import json as _json
+        action = _json.loads(resp.content[0].text)
+        act = action.get("action", "skip")
+        if act == "back":
+            logger.info("  [AI recovery] 执行 Back")
+            skill.press_back()
+            time.sleep(1.0)
+            return True
+        elif act == "tap":
+            x, y = int(action.get("x", 540)), int(action.get("y", 960))
+            logger.info("  [AI recovery] Tap (%d, %d)", x, y)
+            skill._adb(f"shell input tap {x} {y}")
+            time.sleep(1.0)
+            return True
+        else:
+            logger.info("  [AI recovery] 建议跳过此职位")
+            return False
+    except Exception as e:
+        logger.warning("  [AI recovery] 调用失败: %s", e)
+        return False
 
 
 def _job_key(title: str, company: str, hr_name: str = "") -> str:
@@ -459,8 +520,11 @@ def scrape(
 
         except Exception as exc:
             logger.error("处理职位 '%s' 时出现异常", job.title, exc_info=True)
-            report["errors"].append(f"{job.title}: {exc}")
-            skill.ensure_ready()
+            recovered = _ai_recover(skill, job.title, str(exc), logger)
+            if not recovered:
+                report["errors"].append(f"{job.title}: {exc}")
+                skill.ensure_ready()
+            # visited_titles 已记录此职位，下次循环不会无限重试
 
         finally:
             report["jobs"].append(entry)
