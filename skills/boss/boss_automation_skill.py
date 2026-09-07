@@ -414,6 +414,30 @@ class BOSSAutomationSkill(AndroidSkill):
                 return elem
         return self.find_element(self.ELEMENTS["search_submit"], xml=xml)
 
+    def recover_detail_page(self, max_rounds: int = 3) -> bool:
+        """
+        修复详情页偶发的「网络异常，请检查网络后重试」占位页。
+
+        占位页仍会渲染 tv_job_name 与顶部 chips（面议/城市/经验/学历），
+        wait_for_element 判不出异常，只有描述和公司信息块整块缺失，
+        故成功判据必须是 dump 中不再含「网络异常」。
+        页面上的「重试」按钮正好落在 _find_recovery_button() 的匹配列表内。
+        """
+        for _ in range(max_rounds):
+            xml = self.get_ui_hierarchy()
+            if not xml:
+                return False
+            if "网络异常" not in xml:
+                return True
+            btn = self._find_recovery_button()
+            if btn is None:
+                return False
+            self._logger.info("[detail] 网络异常占位页，点击重试")
+            cx, cy = btn.center or (0, 0)
+            self.tap(cx, cy)
+            time.sleep(2.0)
+        return "网络异常" not in (self.get_ui_hierarchy() or "网络异常")
+
     def browse_jobs(self, keyword: str) -> bool:
         """
         Search for jobs with the given keyword.

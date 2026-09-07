@@ -96,6 +96,10 @@ def _scroll_for_company_info(skill: BOSSAutomationSkill, detail: dict) -> None:
         xml_bot = skill.get_ui_hierarchy()
         if not xml_bot:
             return
+        if "网络异常" in xml_bot:
+            # 占位页不可滚动，继续滚只是白等 30 轮；交给调用方去点「重试」。
+            _merge_detail(detail, skill.get_job_detail(xml=xml_bot))
+            return
         if xml_bot == prev_xml:
             stale += 1
             if stale >= _MAX_STALE_DUMPS:
@@ -107,6 +111,55 @@ def _scroll_for_company_info(skill: BOSSAutomationSkill, detail: dict) -> None:
         _merge_detail(detail, skill.get_job_detail(xml=xml_bot))
         if "company" in detail and "company_info" in detail:
             return
+
+
+def _extract_detail(
+    skill: BOSSAutomationSkill,
+    job_title: str,
+    logger,
+    report: dict,
+) -> dict:
+    """
+    详情页完整提取流程，处理两种网络异常形态：
+      1. 首次 dump 即出现占位页（初始加载失败）
+      2. 滚动途中出现占位页（mid-scroll 网络中断）
+    """
+    # ── 1. 首次 dump + 初始占位页检测 ───────────────────────────────────────
+    xml_top = skill.get_ui_hierarchy()
+    if xml_top and "网络异常" in xml_top:
+        if skill.recover_detail_page():
+            xml_top = skill.get_ui_hierarchy()
+        else:
+            err = f"[{job_title}] 详情页网络异常，重试未恢复"
+            logger.warning("  ⚠ %s", err)
+            report["errors"].append(err)
+
+    detail = skill.get_job_detail(xml=xml_top)
+
+    # ── 2. 展开"查看更多"折叠描述 ──────────────────────────────────────────
+    if not skill.expand_description():
+        logger.warning("  ⚠ [%s] 描述展开失败，可能仍被截断", job_title)
+
+    # ── 3. 滚动加载公司信息块 ──────────────────────────────────────────────
+    _scroll_for_company_info(skill, detail)
+
+    # ── 4. 检测 mid-scroll 占位页 ─────────────────────────────────────────
+    #    若滚动途中出现网络异常，_scroll_for_company_info 会提前返回，
+    #    raw_texts 中会留下「网络异常」字样。
+    if "网络异常" in " ".join(detail.get("raw_texts", [])):
+        logger.warning("  ⚠ [%s] 滚动途中出现网络异常，尝试恢复", job_title)
+        if skill.recover_detail_page():
+            xml_retry = skill.get_ui_hierarchy()
+            _merge_detail(detail, skill.get_job_detail(xml=xml_retry))
+            if not skill.expand_description():
+                logger.warning("  ⚠ [%s] 恢复后描述展开失败", job_title)
+            _scroll_for_company_info(skill, detail)
+        else:
+            err = f"[{job_title}] 滚动途中网络异常，重试未恢复"
+            logger.warning("  ⚠ %s", err)
+            report["errors"].append(err)
+
+    return detail
 
 
 def _return_to_job_list(
@@ -359,16 +412,7 @@ def scrape(
                         nav_ok = False
 
             if nav_ok:
-                # Dump before scrolling: title, salary, tags at top of page.
-                xml_top = skill.get_ui_hierarchy()
-                detail  = skill.get_job_detail(xml=xml_top)
-
-                time.sleep(0.5)
-                # Expand the "查看更多" collapsed description (scrolls as needed).
-                if not skill.expand_description():
-                    logger.warning("  ⚠ [%s] 描述展开失败，可能仍被截断", job.title)
-
-                _scroll_for_company_info(skill, detail)
+                detail = _extract_detail(skill, job.title, logger, report)
                 if "company" not in detail:
                     logger.warning("  ⚠ [%s] 滚动到底仍未抓到公司信息", job.title)
 

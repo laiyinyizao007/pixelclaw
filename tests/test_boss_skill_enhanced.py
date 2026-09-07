@@ -762,3 +762,69 @@ class TestSubmitSearchRecovery:
     def test_recovery_button_none_on_empty_dump(self, skill):
         skill.get_ui_hierarchy = MagicMock(return_value="")
         assert skill._find_recovery_button() is None
+
+
+class TestRecoverDetailPage:
+    """
+    详情页占位页仍会渲染 tv_job_name 与顶部 chips，wait_for_element 判不出异常，
+    故成功判据是 dump 中不再含「网络异常」。
+    """
+
+    PLACEHOLDER_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node bounds="[0,0][1080,2400]">
+    <node bounds="[53,300][900,380]" resource-id="{PKG}:id/tv_job_name" text="平台产品经理"/>
+    <node bounds="[53,400][300,450]" text="面议"/>
+    <node bounds="[100,1100][980,1160]" text="网络异常，请检查网络后重试"/>
+    <node bounds="[400,1200][680,1280]" text="重试"/>
+  </node>
+</hierarchy>"""
+
+    OK_XML = f"""<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node bounds="[0,0][1080,2400]">
+    <node bounds="[53,300][900,380]" resource-id="{PKG}:id/tv_job_name" text="平台产品经理"/>
+    <node bounds="[53,500][1027,1500]" resource-id="{PKG}:id/tv_description" text="岗位职责：..."/>
+  </node>
+</hierarchy>"""
+
+    NO_BUTTON_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node bounds="[0,0][1080,2400]">
+    <node bounds="[100,1100][980,1160]" text="网络异常，请检查网络后重试"/>
+  </node>
+</hierarchy>"""
+
+    def test_healthy_page_returns_true_without_tapping(self, skill):
+        skill.get_ui_hierarchy = MagicMock(return_value=self.OK_XML)
+        skill.tap = MagicMock(return_value=True)
+        assert skill.recover_detail_page() is True
+        skill.tap.assert_not_called()
+
+    def test_placeholder_taps_retry_then_succeeds(self, skill):
+        # 每轮消耗 2 次 dump：recover 自身一次 + _find_recovery_button 一次。
+        skill.get_ui_hierarchy = MagicMock(
+            side_effect=[self.PLACEHOLDER_XML, self.PLACEHOLDER_XML, self.OK_XML]
+        )
+        skill.tap = MagicMock(return_value=True)
+        with patch("time.sleep"):
+            assert skill.recover_detail_page() is True
+        skill.tap.assert_called_once_with(540, 1240)
+
+    def test_gives_up_after_max_rounds(self, skill):
+        skill.get_ui_hierarchy = MagicMock(return_value=self.PLACEHOLDER_XML)
+        skill.tap = MagicMock(return_value=True)
+        with patch("time.sleep"):
+            assert skill.recover_detail_page() is False
+        assert skill.tap.call_count == 3
+
+    def test_no_retry_button_returns_false(self, skill):
+        skill.get_ui_hierarchy = MagicMock(return_value=self.NO_BUTTON_XML)
+        skill.tap = MagicMock(return_value=True)
+        with patch("time.sleep"):
+            assert skill.recover_detail_page() is False
+        skill.tap.assert_not_called()
+
+    def test_empty_dump_returns_false(self, skill):
+        skill.get_ui_hierarchy = MagicMock(return_value="")
+        assert skill.recover_detail_page() is False
