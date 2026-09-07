@@ -308,7 +308,7 @@ def _is_complete(job: JobInfo) -> bool:
 def _find_next_job(
     skill: BOSSAutomationSkill,
     visited_titles: set,
-    max_scrolls: int = 15,
+    max_scrolls: int = 100,
     max_topups: int = 2,
 ) -> Optional[JobInfo]:
     """
@@ -444,7 +444,7 @@ def scrape(
             break
 
         # Find the next job not yet visited (may scroll the list).
-        job = _find_next_job(skill, visited_titles)
+        job = _find_next_job(skill, visited_titles, max_scrolls=max(100, n_jobs * 3))
         if not job:
             logger.info("  已无更多新职位，采集结束（共找到 %d 条）", idx)
             break
