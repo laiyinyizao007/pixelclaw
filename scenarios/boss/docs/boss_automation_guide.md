@@ -50,7 +50,7 @@ python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" -
 |------|--------|------|
 | `--keyword` | 无（读配置文件） | 临时覆盖关键词，忽略配置文件，只跑这一个 |
 | `--n-jobs` | 10（或配置文件 `defaults.n_jobs`） | 每个关键词抓取的职位数 |
-| `--output-dir` | `scenarios/boss/output/` | JSON 和截图的输出目录 |
+| `--output-dir` | `scenarios/boss/output/` | JSON 和截图的输出目录；同关键词的历史 JSON 会自动参与去重（key = 职位名 + 公司 + HR） |
 | `--device` | 自动选取 | ADB 设备 serial，多设备时必填 |
 | `--screenshot` | 关闭 | 开启后为每条详情截图 |
 | `--config` | `scenarios/boss/config/keywords.yaml` | 批量关键词配置文件路径 |

@@ -210,6 +210,35 @@ def _return_to_job_list(
     return found is not None
 
 
+def _job_key(title: str, company: str, hr_name: str = "") -> str:
+    """Dedup key: title + company + hr_name (tab-separated, omit empty parts)."""
+    parts = [title]
+    if company:
+        parts.append(company)
+    if hr_name:
+        parts.append(hr_name)
+    return "\t".join(parts)
+
+
+def _load_seen_keys(output_dir: Path, keyword: str) -> set:
+    """从历史 JSON 读取已抓取的 (title, company, hr_name) key，用于跨次去重。"""
+    safe_kw = keyword.replace(" ", "_").replace("/", "-")
+    seen: set = set()
+    for f in output_dir.glob(f"job_details_{safe_kw}_*.json"):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            for job in data.get("jobs", []):
+                li = job.get("list_info", {})
+                title   = li.get("title", "")
+                company = li.get("company", "")
+                hr_name = li.get("hr_name", "")
+                if title:
+                    seen.add(_job_key(title, company, hr_name))
+        except Exception:
+            pass
+    return seen
+
+
 def _is_complete(job: JobInfo) -> bool:
     """列表卡是否已完整渲染（hr_active 在列表卡中永不存在，不参与判断）。"""
     return bool(job.company and job.location and job.hr_name)
@@ -236,7 +265,7 @@ def _find_next_job(
         xml = skill.get_ui_hierarchy()
         candidate = None
         for job in skill.get_job_list(xml=xml):
-            key = normalize_card_title(job.title)
+            key = _job_key(normalize_card_title(job.title), job.company or "", job.hr_name or "")
             if key and key not in visited_titles:
                 candidate = (key, job)
                 break
@@ -341,7 +370,9 @@ def scrape(
     # from the top, so stored tap_y values would be stale.  Instead, find the next
     # unvisited job on the live screen before every navigation.
     logger.info("[3/4] 逐个查找并抓取职位详情（增量模式）…")
-    visited_titles: set = set()
+    visited_titles: set = _load_seen_keys(output_dir, keyword)
+    if visited_titles:
+        logger.info("  跨次去重：已有历史记录 %d 条，相同职位将跳过", len(visited_titles))
     idx = 0
 
     while idx < n_jobs:
@@ -358,7 +389,7 @@ def scrape(
             break
 
         title = normalize_card_title(job.title)
-        visited_titles.add(title)
+        visited_titles.add(_job_key(title, job.company or "", job.hr_name or ""))
         idx += 1
         logger.info("→ [%d/%d] %s  %s", idx, n_jobs, title, job.company)
 
