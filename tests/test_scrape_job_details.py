@@ -91,6 +91,27 @@ class TestScrollForCompanyInfo:
         assert detail["company"] == "C"
         assert skill.scroll_down.call_count == 6
 
+    def test_exits_early_on_midscroll_network_error(self):
+        """滚动途中出现「网络异常」占位页时应立即返回，不再继续滚动。"""
+        PLACEHOLDER = "网络异常，请检查网络后重试"
+        skill = _skill(
+            ["a", PLACEHOLDER, "c"],
+            {
+                "a": {"description": "d"},
+                PLACEHOLDER: {"raw_texts": ["面议", "上海", "网络异常，请检查网络后重试", "重试"]},
+                "c": {"company": "C", "company_info": "I"},
+            },
+        )
+        detail = {}
+        with patch.object(scrape_mod.time, "sleep"):
+            scrape_mod._scroll_for_company_info(skill, detail)
+        # 出现占位页后不应继续滚到 "c"，公司信息不出现
+        assert "company" not in detail
+        # 占位页文本已合并进 raw_texts
+        assert any("网络异常" in t for t in detail.get("raw_texts", []))
+        # 滚动应在第 2 次（拿到占位页 dump 后）就停止，不会到第 3 次
+        assert skill.scroll_down.call_count == 2
+
 
 class TestMergeDetail:
     def test_keeps_longer_description(self):

@@ -266,6 +266,23 @@ detail  = skill.get_job_detail(xml=xml_top)
 # 通常包含: title, hr_name, hr_title, location
 ```
 
+### 6.1.1 处理「网络异常」占位页（首次 dump 后立即检查）
+
+```python
+xml_top = skill.get_ui_hierarchy()
+if xml_top and "网络异常" in xml_top:
+    if skill.recover_detail_page():      # 最多点 3 次「重试」
+        xml_top = skill.get_ui_hierarchy()
+    else:
+        ...  # 记入 errors，别静默通过
+detail = skill.get_job_detail(xml=xml_top)
+```
+
+- **陷阱（锚点存在 ≠ 页面正常）**：占位页照常渲染 `tv_job_name` 与顶部 chips（`面议` / 城市 / 经验 / 学历），只有描述与公司信息块整块缺失，因此 `wait_for_element("tv_job_name")` 会成功，`navigate_to_job()` 也返回 True，整条职位被当成抓取成功记下去，最终 JSON 里只有 `title` 一个字段而 `errors` 为空。
+- **成功判据必须是文本检测**：`"网络异常" not in xml`，不能用锚点节点是否存在。
+- **识别特征**：`raw_texts` 恰好是 `['面议', '上海', '在校/应届', '本科', '网络异常，请检查网络后重试', '重试']` 这类「顶部 chips + 占位文案 + 重试」组合（实测 `AI产品经理` 第 1、3 条逐字节相同）。与 §6.2 的滚动未到底区分：后者 `raw_texts` 中**没有** `网络异常`。
+- **恢复按钮**：占位页底部的「重试」已在 `_find_recovery_button()` 的匹配列表内（`重新加载` / `点击重试` / `重试`），与搜索页共用同一套定位逻辑。
+
 ### 6.2 滚动加载完整描述 + 公司信息
 
 ```python
@@ -513,6 +530,7 @@ def _return_to_job_list(skill, keyword) -> bool:
 | toolbar 折叠 | `browse_jobs()` 找不到搜索框 | `navigate_to_tab("jobs")` 后重试 |
 | 坐标失效 | 点击后进入错误职位 | 重新 `_find_next_job()` 获取坐标 |
 | 职位详情加载超时 | `wait_for_element("tv_job_name")` 返回 None | `press_back()` 跳过 |
+| 详情页网络异常 | 锚点与顶部 chips 正常，但 dump 含 `网络异常`，只抓到 `title` | `recover_detail_page()`（见 §6.1.1） |
 | App 崩溃 | ADB 连接正常但页面 UNKNOWN 且无法恢复 | `launch()` + `ensure_ready()` |
 
 ---
