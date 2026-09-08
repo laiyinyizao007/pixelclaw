@@ -23,7 +23,9 @@
 ## 前置条件
 - `ANTHROPIC_API_KEY` 环境变量已设置
 - `anthropic` Python 包已安装（`pip install anthropic`）
-- `scenarios/boss/output/` 下存在 `job_details_*.json` 文件
+- 数据来源（二选一，优先级从高到低）：
+  1. `scenarios/boss/output/requirements.db` 的 `job_details` 表（运行过 `scrape_job_details.py` 后自动写入）
+  2. `scenarios/boss/output/` 下的 `job_details_*.json` 历史文件（回落路径，不再主动生成）
 
 ## 输出
 - SQLite 数据库：`scenarios/boss/output/requirements.db`（增量，重复运行自动跳过已处理职位）
