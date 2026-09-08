@@ -27,6 +27,10 @@
 - `scenarios/boss/scripts/scrape_job_details.py` — 爬取中途因 `browse_jobs` 单次失败提前终止（实测 10 条只抓到 6 条）：搜索浮层动画偶尔错过 5 秒等待窗口。`_return_to_job_list()` 改为最多重试 3 次，每次失败后回到「职位」Tab 再试
 - `skills/boss/boss_automation_skill.py` + `scenarios/boss/scripts/scrape_job_details.py` — 详情页「网络异常」占位页导致整条职位只剩 `title`：实测 `AI产品经理` 第 1 条（沐瞳科技）与第 3 条（北京蓝标传媒）的 `raw_texts` 逐字节相同——`['面议', '上海', '在校/应届', '本科', '网络异常，请检查网络后重试', '重试']`，描述与公司信息块整块缺失，但脚本仍记为成功（`errors` 为空）。原因是占位页照常渲染 `tv_job_name` 与顶部 chips，`wait_for_element("tv_job_name")` 判不出异常。新增 `recover_detail_page()`：以「dump 中不再含 `网络异常`」为成功判据（而非锚点节点存在），失败则点击页面上的「重试」按钮，最多 3 轮；按钮定位直接复用既有的 `_find_recovery_button()`（其匹配列表已含 `重试`，无需改动）。脚本在首次 dump 后检测到 `网络异常` 即调用恢复，成功则重新 dump 再提取，失败则记入 `report["errors"]` 而非静默通过
 
+### Changed（变更）
+- `scenarios/boss/scripts/scrape_job_details.py` — 爬取结果直写 SQLite，废弃 JSON 中间文件：新增 `job_details` 表（`dedup_key TEXT UNIQUE`，`dedup_key = normalize_card_title(title)\tcompany\thr_name`）；`main()` 打开 DB 连接并在每条职位爬完后调用 `insert_job_detail()`；删除原有 JSON 文件写入及合并逻辑；`visited_titles` 改为从 DB 读取（`load_seen_keys_from_db()`）
+- `scenarios/boss/scripts/analyze_requirements.py` — 数据读取源改为 DB 优先：`run()` 检测 `job_details` 表是否存在，存在则调用 `load_from_db()` 将详情表行转为与 JSON 格式兼容的 entry dict，回落到 JSON 文件；`init_db()` 自动为旧版 `jobs` 表追加 `job_details_id INTEGER` 列（向后兼容）；新增 `job_exists_by_detail_id()` 按 FK 去重
+
 ### Added（新增）
 - `scenarios/boss/scripts/analyze_requirements.py` — 新建职位需求分析引擎：读取爬取 JSON → 调用 Claude Haiku 提取精细需求标签（贴近原文，10-20 字/条）→ 存入 SQLite（`requirements.db`，含 jobs + requirements 两表）→ 聚合频次/薪资/公司质量 → 综合评分（频率40%+薪资30%+公司质量30%）→ 输出分类 Markdown 报告。支持增量处理（已入库 job 默认跳过）与 `--force` 重置。`.claude/skills/analyze-boss-jobs.md` 新增对应 skill 入口
 - `scenarios/boss/scripts/scrape_job_details.py` — `_return_to_job_list()` 新增 Back 键快速通道：先按 Back 并检测列表是否出现（4s），成功则跳过重搜（节省 ~7s/条）；失败才回退为原有 navigate_to_tab + browse_jobs 流程。实测 100 条职位减少约 10–12 分钟耗时

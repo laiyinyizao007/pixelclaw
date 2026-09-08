@@ -81,8 +81,8 @@ flowchart LR
 | `skills/boss/` | Boss直聘自动化 skill（ADBManager 驱动） |
 | `scenarios/xhs/` | XHS 场景：任务脚本、工具脚本、文档 |
 | `scenarios/boss/` | Boss直聘场景：求职工作流、文档 |
-| `scenarios/boss/scripts/merge_jobs.py` | 将同关键词多次爬取结果合并去重，生成 `merged_*.json` |
-| `scenarios/boss/scripts/analyze_requirements.py` | 职位需求分析引擎：LLM提取需求标签 → SQLite存储 → 频次/薪资/公司质量评分 → Markdown报告 |
+| `scenarios/boss/scripts/scrape_job_details.py` | 职位详情爬虫：驱动 Boss直聘 App 滚动列表 → 进入详情 → 提取字段，爬取结果直写 `requirements.db` 的 `job_details` 表（`dedup_key UNIQUE` 全局去重），不再生成 JSON 文件 |
+| `scenarios/boss/scripts/analyze_requirements.py` | 职位需求分析引擎：优先从 `job_details` 表读取（回落 JSON），LLM提取需求标签 → `requirements.db` 存储 → 频次/薪资/公司质量评分 → Markdown报告 |
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
 | `tasks/` | 通用任务脚本（微信、测试等） |
 | `scripts/` | 通用环境安装与连接测试脚本 |
@@ -90,6 +90,14 @@ flowchart LR
 | `docs/` | 通用项目文档 |
 | `pixelclaw/memory/` | 三层记忆系统（capture → store → recall） |
 | `tests/` | 单元测试（pytest，193 tests，无真机依赖） |
+
+### Boss 数据库 Schema（`scenarios/boss/output/requirements.db`）
+
+| 表 | 用途 | 主键 / 唯一约束 |
+|----|------|----------------|
+| `job_details` | 原始爬取数据（详情表） | `dedup_key UNIQUE = normalize_card_title(title)\tcompany\thr_name` |
+| `jobs` | LLM 分析元数据（分析表） | `source_file + job_index`；`job_details_id` FK → `job_details.id` |
+| `requirements` | LLM 提取的需求标签 | `job_id` FK → `jobs.id` |
 
 ### BOSSAutomationSkill 详细说明（`skills/boss/boss_automation_skill.py`）
 

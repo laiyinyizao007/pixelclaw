@@ -29,6 +29,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+import sqlite3
+
 import yaml
 
 # Force UTF-8 output on Windows
@@ -38,6 +40,8 @@ if sys.platform == "win32":
 
 ROOT = Path(__file__).parents[3]
 sys.path.insert(0, str(ROOT))
+
+DB_PATH = ROOT / "scenarios" / "boss" / "output" / "requirements.db"
 
 from skills.android.adb_runner import ADBRunner
 from skills.boss import (
@@ -302,6 +306,84 @@ def _load_seen_keys(output_dir: Path, keyword: str) -> set:
     return seen
 
 
+# ─── SQLite 详情表 ───────────────────────────────────────────────────────────
+
+def init_detail_db(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS job_details (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        keyword        TEXT    NOT NULL,
+        title          TEXT    NOT NULL,
+        company        TEXT,
+        salary_raw     TEXT,
+        location       TEXT,
+        hr_name        TEXT,
+        hr_title       TEXT,
+        hr_active      TEXT,
+        description    TEXT,
+        skills_json    TEXT,
+        benefits_json  TEXT,
+        company_info   TEXT,
+        raw_texts_json TEXT,
+        dedup_key      TEXT    NOT NULL UNIQUE,
+        scraped_at     TEXT    NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_jd_keyword ON job_details(keyword);
+    """)
+    conn.commit()
+
+
+def insert_job_detail(
+    conn: sqlite3.Connection, keyword: str, entry: dict
+) -> "int | None":
+    """Insert a scraped entry into job_details. Returns new id or None on duplicate."""
+    li = entry.get("list_info", {}) or {}
+    dt = entry.get("detail", {}) or {}
+    title   = li.get("title", "") or ""
+    company = li.get("company", "") or ""
+    hr_name = li.get("hr_name", "") or ""
+    dedup_key = _job_key(title, company, hr_name)
+    if not dedup_key:
+        return None
+    try:
+        cur = conn.execute(
+            """INSERT INTO job_details
+               (keyword, title, company, salary_raw, location, hr_name, hr_title, hr_active,
+                description, skills_json, benefits_json, company_info, raw_texts_json,
+                dedup_key, scraped_at)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                keyword,
+                title,
+                company,
+                li.get("salary", "") or "",
+                li.get("location", "") or "",
+                hr_name,
+                li.get("hr_title", "") or "",
+                li.get("hr_active", "") or "",
+                dt.get("description", "") or "",
+                json.dumps(dt.get("skills", []), ensure_ascii=False),
+                json.dumps(dt.get("benefits", []), ensure_ascii=False),
+                dt.get("company_info", "") or "",
+                json.dumps(dt.get("raw_texts", []), ensure_ascii=False),
+                dedup_key,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+        conn.commit()
+        return cur.lastrowid
+    except sqlite3.IntegrityError:
+        return None  # duplicate
+
+
+def load_seen_keys_from_db(conn: sqlite3.Connection, keyword: str) -> set:
+    """Load dedup_keys from job_details table for cross-run dedup."""
+    rows = conn.execute(
+        "SELECT dedup_key FROM job_details WHERE keyword=?", (keyword,)
+    ).fetchall()
+    return {r[0] for r in rows}
+
+
 def _is_complete(job: JobInfo) -> bool:
     """列表卡是否已完整渲染（hr_active 在列表卡中永不存在，不参与判断）。"""
     return bool(job.company and job.location and job.hr_name)
@@ -370,6 +452,7 @@ def scrape(
     output_dir: Path,
     device_id: str,
     take_screenshot: bool,
+    db_conn: "sqlite3.Connection | None" = None,
 ) -> dict:
     logger = setup_logger("scrape_job_details", log_dir="./logs/boss")
     adb    = ADBRunner()
@@ -448,7 +531,10 @@ def scrape(
     # from the top, so stored tap_y values would be stale.  Instead, find the next
     # unvisited job on the live screen before every navigation.
     logger.info("[3/4] 逐个查找并抓取职位详情（增量模式）…")
-    visited_titles: set = _load_seen_keys(output_dir, keyword)
+    if db_conn is not None:
+        visited_titles: set = load_seen_keys_from_db(db_conn, keyword)
+    else:
+        visited_titles = _load_seen_keys(output_dir, keyword)
     if visited_titles:
         logger.info("  跨次去重：已有历史记录 %d 条，相同职位将跳过", len(visited_titles))
     idx = 0
@@ -591,6 +677,9 @@ def main() -> int:
     output_dir = Path(args.output_dir) if args.output_dir else ROOT / "scenarios" / "boss" / "output"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    db_conn = sqlite3.connect(DB_PATH)
+    init_detail_db(db_conn)
+
     summaries = []
     for i, keyword in enumerate(keywords, 1):
         print("\n" + "=" * 60)
@@ -603,51 +692,27 @@ def main() -> int:
             output_dir=output_dir,
             device_id=args.device,
             take_screenshot=args.screenshot,
+            db_conn=db_conn,
         )
 
-        safe_kw  = keyword.replace(" ", "_").replace("/", "-")
-        date_str = datetime.now().strftime("%Y%m%d")
-        out_file = output_dir / f"job_details_{safe_kw}_{date_str}.json"
+        # 写入 DB，统计本次新增条数
+        n_inserted = 0
+        for entry in report["jobs"]:
+            if insert_job_detail(db_conn, keyword, entry) is not None:
+                n_inserted += 1
 
-        # Append to today's file if it already exists (in-run dedup).
-        new_jobs = report["jobs"]
-        if out_file.exists():
-            existing = json.loads(out_file.read_text(encoding="utf-8"))
-            existing_jobs = existing.get("jobs", [])
-            seen_keys = {
-                _job_key(
-                    normalize_card_title(j.get("list_info", {}).get("title", "") or ""),
-                    j.get("list_info", {}).get("company", "") or "",
-                    j.get("list_info", {}).get("hr_name", "") or "",
-                )
-                for j in existing_jobs
-            }
-            new_jobs = [
-                j for j in new_jobs
-                if _job_key(
-                    normalize_card_title(j.get("list_info", {}).get("title", "") or ""),
-                    j.get("list_info", {}).get("company", "") or "",
-                    j.get("list_info", {}).get("hr_name", "") or "",
-                ) not in seen_keys
-            ]
-            report["jobs"] = existing_jobs + new_jobs
-            for i, j in enumerate(report["jobs"], start=1):
-                j["index"] = i
+        summaries.append((keyword, n_inserted, report["errors"]))
 
-        out_file.write_text(
-            json.dumps(report, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
-        summaries.append((keyword, len(new_jobs), report["errors"], out_file))
+    db_conn.close()
 
     print("\n" + "=" * 60)
     print("批量爬取完成")
     print("=" * 60)
     total_jobs = total_errors = 0
-    for keyword, n_found, errors, out_file in summaries:
+    for keyword, n_found, errors in summaries:
         total_jobs += n_found
         total_errors += len(errors)
-        print(f"\n「{keyword}」：本次新增 {n_found} 条  →  {out_file.name}")
+        print(f"\n「{keyword}」：本次新增 {n_found} 条 → DB")
         for err in errors:
             print(f"  - {err}")
     print(f"\n合计：{len(summaries)} 个关键词，本次新增 {total_jobs} 条，{total_errors} 个错误")
