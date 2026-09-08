@@ -137,6 +137,18 @@ def init_db(conn: sqlite3.Connection):
     CREATE INDEX IF NOT EXISTS idx_req_tag ON requirements(tag);
     """)
     conn.commit()
+    # 向后兼容：为老版本 jobs 表追加 job_details_id 列
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+    if "job_details_id" not in cols:
+        conn.execute("ALTER TABLE jobs ADD COLUMN job_details_id INTEGER REFERENCES job_details(id)")
+        conn.commit()
+
+
+def job_exists_by_detail_id(conn: sqlite3.Connection, job_details_id: int) -> int | None:
+    row = conn.execute(
+        "SELECT id FROM jobs WHERE job_details_id=?", (job_details_id,)
+    ).fetchone()
+    return row[0] if row else None
 
 
 def job_exists(conn: sqlite3.Connection, source_file: str, job_index: int) -> int | None:
@@ -147,7 +159,7 @@ def job_exists(conn: sqlite3.Connection, source_file: str, job_index: int) -> in
     return row[0] if row else None
 
 
-def insert_job(conn: sqlite3.Connection, keyword: str, job: dict, source_file: str) -> int:
+def insert_job(conn: sqlite3.Connection, keyword: str, job: dict, source_file: str, job_details_id: int | None = None) -> int:
     li = job.get("list_info", {}) or {}
     dt = job.get("detail", {}) or {}
     salary_raw = li.get("salary", "") or dt.get("salary", "") or ""
@@ -160,8 +172,8 @@ def insert_job(conn: sqlite3.Connection, keyword: str, job: dict, source_file: s
         """INSERT INTO jobs
            (keyword, job_index, title, company, salary_raw, salary_low_k, salary_high_k,
             company_info, company_funding, company_size, company_quality,
-            experience, education, source_file, processed_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            experience, education, source_file, processed_at, job_details_id)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (keyword, job.get("index"),
          dt.get("title") or li.get("title", ""),
          dt.get("company") or li.get("company", ""),
@@ -169,7 +181,8 @@ def insert_job(conn: sqlite3.Connection, keyword: str, job: dict, source_file: s
          company_info, funding, size, quality,
          dt.get("experience", ""), dt.get("education", ""),
          source_file,
-         datetime.now(timezone.utc).isoformat())
+         datetime.now(timezone.utc).isoformat(),
+         job_details_id)
     )
     conn.commit()
     return cur.lastrowid
@@ -242,6 +255,65 @@ def load_json_files(output_dir: Path, keyword: str | None) -> list[tuple[str, di
                 results.append((f.name, json.load(fp)))
         except Exception as e:
             log.warning("读取 %s 失败：%s", f.name, e)
+    return results
+
+
+def _detail_table_exists(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='job_details'"
+    ).fetchone()
+    return row is not None
+
+
+def load_from_db(conn: sqlite3.Connection, keyword: str | None) -> list[tuple[str, dict]]:
+    """从 job_details 表读取，返回与 load_json_files 兼容的格式。"""
+    if keyword:
+        rows = conn.execute(
+            "SELECT * FROM job_details WHERE keyword=? ORDER BY id", (keyword,)
+        ).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM job_details ORDER BY keyword, id").fetchall()
+
+    col_names = [d[0] for d in conn.execute("PRAGMA table_info(job_details)").fetchall()]
+
+    # 按 keyword 分组，模拟 load_json_files 的 (source_name, data) 格式
+    from collections import defaultdict
+    groups: dict[str, list] = defaultdict(list)
+    for row in rows:
+        r = dict(zip(col_names, row))
+        groups[r["keyword"]].append(r)
+
+    results = []
+    for kw, rlist in groups.items():
+        jobs = []
+        for r in rlist:
+            entry = {
+                "index": r["id"],
+                "_job_details_id": r["id"],
+                "list_info": {
+                    "title": r.get("title", ""),
+                    "company": r.get("company", ""),
+                    "salary": r.get("salary_raw", ""),
+                    "location": r.get("location", ""),
+                    "hr_name": r.get("hr_name", ""),
+                    "hr_title": r.get("hr_title", ""),
+                    "hr_active": r.get("hr_active", ""),
+                },
+                "detail": {
+                    "title": r.get("title", ""),
+                    "company": r.get("company", ""),
+                    "salary": r.get("salary_raw", ""),
+                    "description": r.get("description", ""),
+                    "skills": json.loads(r["skills_json"]) if r.get("skills_json") else [],
+                    "benefits": json.loads(r["benefits_json"]) if r.get("benefits_json") else [],
+                    "company_info": r.get("company_info", ""),
+                    "raw_texts": json.loads(r["raw_texts_json"]) if r.get("raw_texts_json") else [],
+                    "experience": "",
+                    "education": "",
+                },
+            }
+            jobs.append(entry)
+        results.append((f"job_details_db:{kw}", {"keyword": kw, "jobs": jobs}))
     return results
 
 
@@ -384,11 +456,19 @@ def run(output_dir: Path, keyword: str | None, force: bool):
     conn = sqlite3.connect(db_path)
     init_db(conn)
 
-    file_data = load_json_files(output_dir, keyword)
+    # 优先从 job_details 表读取；表不存在则回落到 JSON 文件
+    if _detail_table_exists(conn):
+        file_data = load_from_db(conn, keyword)
+        source_label = "DB(job_details)"
+    else:
+        file_data = load_json_files(output_dir, keyword)
+        source_label = "JSON文件"
+
     if not file_data:
-        log.error("未找到任何 job_details_*.json 文件（目录：%s）", output_dir)
+        log.error("未找到任何数据（%s，目录：%s）", source_label, output_dir)
         return
 
+    log.info("数据来源：%s", source_label)
     processed_jobs = 0
     skipped_jobs = 0
     all_keywords: set[str] = set()
@@ -401,14 +481,19 @@ def run(output_dir: Path, keyword: str | None, force: bool):
 
         for job in jobs:
             idx = job.get("index")
+            detail_id = job.get("_job_details_id")
             detail = job.get("detail") or {}
             description = detail.get("description", "")
             if not description:
                 skipped_jobs += 1
                 continue
 
-            # 增量：已处理过则跳过（除非 --force）
-            existing_id = job_exists(conn, source_file, idx)
+            # 增量去重：DB 来源用 job_details_id，JSON 来源用 source_file+index
+            if detail_id is not None:
+                existing_id = job_exists_by_detail_id(conn, detail_id)
+            else:
+                existing_id = job_exists(conn, source_file, idx)
+
             if existing_id and not force:
                 skipped_jobs += 1
                 continue
@@ -418,7 +503,7 @@ def run(output_dir: Path, keyword: str | None, force: bool):
                 conn.execute("DELETE FROM jobs WHERE id=?", (existing_id,))
                 conn.commit()
 
-            job_id = insert_job(conn, kw, job, source_file)
+            job_id = insert_job(conn, kw, job, source_file, job_details_id=detail_id)
             li = job.get("list_info", {}) or {}
             title = detail.get("title") or li.get("title", "")
             company = detail.get("company") or li.get("company", "")
