@@ -5,7 +5,7 @@ Boss直聘职位详情爬取脚本
 工作流：
   1. 启动 Boss直聘 App
   2. 搜索指定关键词
-  3. 滚动加载职位列表（含去重）
+  3. 滚动加载职位列表（含跨次去重；key = normalize 后的职位名+公司+HR）
   4. 逐个进入职位详情页，提取结构化信息
   5. 保存到 JSON 文件
 
@@ -16,6 +16,8 @@ Boss直聘职位详情爬取脚本
     # 单次：临时覆盖配置文件，只跑一个关键词
     python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" --n-jobs 10
     python scenarios/boss/scripts/scrape_job_details.py --keyword "FDE" --n-jobs 20 --screenshot
+
+
 """
 
 import argparse
@@ -290,7 +292,7 @@ def _load_seen_keys(output_dir: Path, keyword: str) -> set:
             data = json.loads(f.read_text(encoding="utf-8"))
             for job in data.get("jobs", []):
                 li = job.get("list_info", {})
-                title   = li.get("title", "")
+                title   = normalize_card_title(li.get("title", ""))
                 company = li.get("company", "")
                 hr_name = li.get("hr_name", "")
                 if title:
@@ -604,13 +606,39 @@ def main() -> int:
         )
 
         safe_kw  = keyword.replace(" ", "_").replace("/", "-")
-        ts_file  = datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_file = output_dir / f"job_details_{safe_kw}_{ts_file}.json"
+        date_str = datetime.now().strftime("%Y%m%d")
+        out_file = output_dir / f"job_details_{safe_kw}_{date_str}.json"
+
+        # Append to today's file if it already exists (in-run dedup).
+        new_jobs = report["jobs"]
+        if out_file.exists():
+            existing = json.loads(out_file.read_text(encoding="utf-8"))
+            existing_jobs = existing.get("jobs", [])
+            seen_keys = {
+                _job_key(
+                    normalize_card_title(j.get("list_info", {}).get("title", "") or ""),
+                    j.get("list_info", {}).get("company", "") or "",
+                    j.get("list_info", {}).get("hr_name", "") or "",
+                )
+                for j in existing_jobs
+            }
+            new_jobs = [
+                j for j in new_jobs
+                if _job_key(
+                    normalize_card_title(j.get("list_info", {}).get("title", "") or ""),
+                    j.get("list_info", {}).get("company", "") or "",
+                    j.get("list_info", {}).get("hr_name", "") or "",
+                ) not in seen_keys
+            ]
+            report["jobs"] = existing_jobs + new_jobs
+            for i, j in enumerate(report["jobs"], start=1):
+                j["index"] = i
+
         out_file.write_text(
             json.dumps(report, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
-        summaries.append((keyword, len(report["jobs"]), report["errors"], out_file))
+        summaries.append((keyword, len(new_jobs), report["errors"], out_file))
 
     print("\n" + "=" * 60)
     print("批量爬取完成")
@@ -619,10 +647,10 @@ def main() -> int:
     for keyword, n_found, errors, out_file in summaries:
         total_jobs += n_found
         total_errors += len(errors)
-        print(f"\n「{keyword}」：{n_found} 条职位  →  {out_file.name}")
+        print(f"\n「{keyword}」：本次新增 {n_found} 条  →  {out_file.name}")
         for err in errors:
             print(f"  - {err}")
-    print(f"\n合计：{len(summaries)} 个关键词，{total_jobs} 条职位，{total_errors} 个错误")
+    print(f"\n合计：{len(summaries)} 个关键词，本次新增 {total_jobs} 条，{total_errors} 个错误")
     print("=" * 60)
 
     return 0 if total_errors == 0 else 1

@@ -81,6 +81,8 @@ flowchart LR
 | `skills/boss/` | Boss直聘自动化 skill（ADBManager 驱动） |
 | `scenarios/xhs/` | XHS 场景：任务脚本、工具脚本、文档 |
 | `scenarios/boss/` | Boss直聘场景：求职工作流、文档 |
+| `scenarios/boss/scripts/merge_jobs.py` | 将同关键词多次爬取结果合并去重，生成 `merged_*.json` |
+| `scenarios/boss/scripts/analyze_requirements.py` | 职位需求分析引擎：LLM提取需求标签 → SQLite存储 → 频次/薪资/公司质量评分 → Markdown报告 |
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
 | `tasks/` | 通用任务脚本（微信、测试等） |
 | `scripts/` | 通用环境安装与连接测试脚本 |
@@ -253,6 +255,37 @@ CLI 入口：`python -m pixelclaw`
 | SoM | Set-of-Mark，在截图上叠加编号标注以帮助 VLM 定位元素 |
 | Reflection | 反思机制，通过像素差比较判断操作是否生效 |
 | AppKnowledge | AppAgent 风格离线知识库，存储 App UI 元素描述与操作说明 |
+
+### analyze_requirements.py 详细说明
+
+**路径**：`scenarios/boss/scripts/analyze_requirements.py`
+
+**功能**：读取 `scenarios/boss/output/` 下的爬取 JSON，调用 Claude Haiku 逐条提取职位需求标签，存入 SQLite 并输出 Markdown 分析报告。
+
+**数据库**：`scenarios/boss/output/requirements.db`
+
+| 表 | 字段 | 说明 |
+|----|------|------|
+| `jobs` | `id, keyword, title, company, salary_raw, salary_low_k, salary_high_k, company_info, company_funding, company_size, company_quality, experience, education, source_file, processed_at` | 每条职位元数据；`salary_*_k` 为月薪等价（K），`company_quality` 为 0-8 分 |
+| `requirements` | `id, job_id, tag, category, is_bonus` | 每条职位的每个需求标签；`category` 枚举：技术技能/产品能力/行业经验/学历要求/软素质 |
+
+**评分公式**（满分 10 分）：
+```
+frequency_score = count / total_jobs * 10       (40% 权重)
+salary_score    = (avg_monthly_k - 10) / 40 * 10  (30% 权重，10K→0, 50K→10)
+quality_score   = avg_company_quality / 8 * 10  (30% 权重)
+final_score     = 0.40 * freq + 0.30 * salary + 0.30 * quality
+加分项          = final_score * 0.7 系数
+```
+
+**公司质量评分**：融资阶段分（D轮/上市=5, C轮=4, B轮=3, A轮=2）+ 规模分（10000+=3, 2000-9999=2, 500-999=1, <100=-1），合计 0-8。
+
+**运行**：
+```bash
+python scenarios/boss/scripts/analyze_requirements.py [--keyword KW] [--force]
+```
+
+**增量处理**：已存入 DB 的 job 默认跳过（按 `source_file + job_index` 去重），`--force` 重置。
 
 ## 12. 变更日志
 

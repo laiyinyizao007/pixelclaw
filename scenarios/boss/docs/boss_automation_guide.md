@@ -50,7 +50,7 @@ python scenarios/boss/scripts/scrape_job_details.py --keyword "AI产品经理" -
 |------|--------|------|
 | `--keyword` | 无（读配置文件） | 临时覆盖关键词，忽略配置文件，只跑这一个 |
 | `--n-jobs` | 10（或配置文件 `defaults.n_jobs`） | 每个关键词抓取的职位数 |
-| `--output-dir` | `scenarios/boss/output/` | JSON 和截图的输出目录；同关键词的历史 JSON 会自动参与去重（key = 职位名 + 公司 + HR） |
+| `--output-dir` | `scenarios/boss/output/` | JSON 和截图的输出目录；同关键词的历史 JSON 会自动参与去重（key = normalize 后的职位名 + 公司 + HR，可正确处理列表卡标题末尾的异步角标占位符 `&@`） |
 | `--device` | 自动选取 | ADB 设备 serial，多设备时必填 |
 | `--screenshot` | 关闭 | 开启后为每条详情截图 |
 | `--config` | `scenarios/boss/config/keywords.yaml` | 批量关键词配置文件路径 |
@@ -69,7 +69,7 @@ keywords:
 
 ### 输出 JSON 结构
 
-文件名：`job_details_{关键词}_{时间戳}.json`，保存在 `--output-dir`。
+文件名：`job_details_{关键词}_{YYYYMMDD}.json`（每日一个文件），保存在 `--output-dir`。同一天多次运行会自动追加新记录到同一文件，不产生重复。
 
 ```json
 {
