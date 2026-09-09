@@ -79,7 +79,10 @@ class ADBRunner:
         # `adb shell input text` only handles ASCII.
         # For non-ASCII (e.g. Chinese) switch to ADBKeyboard and send via broadcast.
         if text.isascii():
-            ok, _ = self.shell(f"shell input text {text}", device_id)
+            # Spaces must be encoded as %s; otherwise shlex.split splits them into
+            # separate arguments and only the first word gets typed.
+            encoded = text.replace(" ", "%s")
+            ok, _ = self.shell(f"shell input text {encoded}", device_id)
             return ok
         # Save current IME, switch to ADBKeyboard, broadcast text, restore IME.
         _, prev_ime = self.shell("shell settings get secure default_input_method", device_id)
