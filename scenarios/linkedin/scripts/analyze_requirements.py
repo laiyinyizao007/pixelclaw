@@ -118,9 +118,9 @@ def extract_requirements(title: str, company: str, description: str) -> list[dic
     import os
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
     if not api_key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set")
+        raise RuntimeError("ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN not set")
 
     client  = anthropic.Anthropic(api_key=api_key)
     prompt  = EXTRACT_PROMPT.format(title=title, company=company or "", description=description)

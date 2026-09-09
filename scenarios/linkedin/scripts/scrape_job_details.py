@@ -279,9 +279,9 @@ def _ai_recover(
     import os
     import anthropic
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")
     if not api_key:
-        logger.warning("  [ai_recover] ANTHROPIC_API_KEY 未设置，跳过")
+        logger.warning("  [ai_recover] ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN 未设置，跳过")
         return None
 
     xml = skill.get_ui_hierarchy(force_refresh=True)
