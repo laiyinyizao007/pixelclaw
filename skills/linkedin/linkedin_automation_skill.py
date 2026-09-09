@@ -158,7 +158,19 @@ class LinkedInAutomationSkill(AndroidSkill):
     # App lifecycle
     # ------------------------------------------------------------------
 
+    def _lock_portrait(self) -> None:
+        """Lock screen rotation to portrait (0°).
+
+        LinkedIn's Compose UI renders fine in landscape, but the
+        accessibility-tree bounds shift to a 2400-wide coordinate space,
+        which breaks all tap-coordinate calculations.  Locking portrait
+        before every navigation sequence prevents this silently.
+        """
+        self._adb("shell settings put system accelerometer_rotation 0")
+        self._adb("shell settings put system user_rotation 0")
+
     def launch(self) -> bool:
+        self._lock_portrait()
         ok, _ = self._adb(
             f"shell monkey -p {LINKEDIN_PACKAGE} -c android.intent.category.LAUNCHER 1"
         )
@@ -337,6 +349,7 @@ class LinkedInAutomationSkill(AndroidSkill):
         # first so the URL intent actually launches a fresh Search Results
         # activity.
         self._adb("shell am force-stop com.linkedin.android")
+        self._lock_portrait()
         time.sleep(1.0)
 
         self._logger.debug("[browse_jobs] HTTPS App Link: %s", https_url)
