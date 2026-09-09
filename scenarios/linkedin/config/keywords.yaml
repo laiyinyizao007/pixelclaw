@@ -1,0 +1,9 @@
+# LinkedIn 职位爬取关键词配置
+# 运行: python scenarios/linkedin/scripts/scrape_job_details.py
+defaults:
+  n_jobs: 20  # 每个关键词抓取的最大职位数
+
+keywords:
+  - "AI Product Manager"
+  - "Product Manager AI"
+  - "Product Manager"
