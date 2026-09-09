@@ -191,6 +191,7 @@ def analyze_keyword(conn: sqlite3.Connection, keyword: str, force: bool) -> dict
     tag_categories: dict[str, str] = {}
     tag_bonus: dict[str, bool]     = {}
     job_id_map: dict[str, int]     = {}
+    reqs_cache: dict[str, list]    = {}
 
     for row in rows:
         title, company, location, desc, easy_apply, seniority, employment, applicants, dkey = row
@@ -223,6 +224,7 @@ def analyze_keyword(conn: sqlite3.Connection, keyword: str, force: bool) -> dict
             continue
 
         job_id_map[dkey] = job_id
+        reqs_cache[dkey] = reqs
 
         for req in reqs:
             tag  = (req.get("tag") or "").strip()
@@ -240,23 +242,10 @@ def analyze_keyword(conn: sqlite3.Connection, keyword: str, force: bool) -> dict
 
     scores = compute_scores(tag_counts, tag_categories, n_jobs)
 
-    # Re-insert requirements with scores
+    # Write requirements with computed scores (reuse cached LLM results)
     for dkey, job_id in job_id_map.items():
         conn.execute("DELETE FROM requirements WHERE job_id = ?", (job_id,))
-        # Re-extract for this job (from DB) to associate tags → job_id
-        row = conn.execute(
-            "SELECT title, company, description FROM jobs WHERE id = ?", (job_id,)
-        ).fetchone()
-        if not row:
-            continue
-        title, company, desc = row
-        if not desc or len(desc.strip()) < 50:
-            continue
-        try:
-            reqs = extract_requirements(title, company, desc)
-        except Exception:
-            continue
-        for req in reqs:
+        for req in reqs_cache.get(dkey, []):
             tag  = (req.get("tag") or "").strip()
             cat  = req.get("category", "")
             bonu = 1 if req.get("is_bonus") else 0
