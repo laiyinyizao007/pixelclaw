@@ -139,6 +139,26 @@ Deep link 搜索暂时仍正常工作。
 
 两者共存于同一 XML dump，代码优先使用 Button 格式解析（含更多结构化信息）。
 
+### 屏幕旋转导致坐标偏移 `[实测/严重]`
+
+`am force-stop` + `am start` 重新启动 LinkedIn 后，如果设备开启了自动旋转（`accelerometer_rotation=1`），
+手机平放时可能触发横屏模式。此时 u2 `dump_hierarchy()` 返回的 accessibility tree 使用 **2400×1080** 坐标系
+（横屏），而非正常的 **1080×2400**（竖屏）。
+
+**表现**：`displayWidth=2400, displayHeight=1080`，Button 节点 bounds 为 `[0,739][2279,997]`，
+中心 x = (0+2279)//2 = 1139 超出屏幕宽度。
+
+**影响**：`input tap 1139 868` 点击的是屏幕右侧边缘（关闭按钮区域），而非卡片主体，导致：
+- 详情页无法打开（description 全部为空）
+- `navigate_back` 失败触发 recovery
+- `_find_next_job` 立即报 "列表已到底"
+
+**解决方案**：在 `launch()` 和 `browse_jobs()` 中强制锁定竖屏：
+```
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 0
+```
+
 ---
 
 ## 账号权限差异（免费 vs Premium）
