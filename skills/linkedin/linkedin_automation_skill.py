@@ -31,6 +31,7 @@ from skills.android.ui_types import UIElement, parse_bounds
 
 
 LINKEDIN_PACKAGE = "com.linkedin.android"
+_SAFE_TAP_MAX_Y  = 2000  # cards below this y get scrolled into view before tap
 
 _TRAILING_WHITESPACE = re.compile(r"\s+$")
 # Matches combined info field, e.g.:
@@ -570,6 +571,31 @@ class LinkedInAutomationSkill(AndroidSkill):
             return False
 
         self._nav_depth = 1  # default: bottom sheet only
+
+        # If card is near screen bottom, scroll it into mid-viewport first.
+        # Tapping at y > 2000 on Pixel 8a often hits the gesture-nav area
+        # instead of the card, preventing the bottom sheet from opening.
+        if job.tap_y > _SAFE_TAP_MAX_Y:
+            offset = min(job.tap_y - 1200, 1200)
+            self._logger.debug(
+                "[navigate_to_job] tap_y=%d 超出安全区，向上滚动 %dpx",
+                job.tap_y, offset,
+            )
+            self._adb(
+                f"shell input swipe 540 1800 540 {1800 - offset} 500"
+            )
+            time.sleep(1.0)
+            xml = self.get_ui_hierarchy(force_refresh=True)
+            target = normalize_job_title(job.title)
+            for refreshed in self.get_job_list(xml=xml):
+                if normalize_job_title(refreshed.title) == target:
+                    job.tap_x = refreshed.tap_x
+                    job.tap_y = refreshed.tap_y
+                    self._logger.debug(
+                        "[navigate_to_job] 滚动后新坐标 (%d, %d)",
+                        job.tap_x, job.tap_y,
+                    )
+                    break
 
         # Step 1: tap job card row → opens bottom sheet
         self._logger.info("[navigate_to_job] 点击坐标 (%d, %d)  job='%s'",

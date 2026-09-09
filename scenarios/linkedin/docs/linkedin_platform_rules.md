@@ -159,6 +159,14 @@ adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 0
 ```
 
+### 屏幕底部卡片点击失败 `[实测]`
+
+`tap_y > 2000` 的职位卡片（接近 2400 屏幕底部边缘），`input tap` 可能落在 Android 手势导航区域而非卡片本身，
+导致底部弹出层无法打开。`get_job_detail()` 只能获取到背景列表的 content-desc 文本，description 为空。
+
+**解决方案**：`navigate_to_job()` 在点击前检查 `tap_y > _SAFE_TAP_MAX_Y(2000)`，
+如果超出则先执行 `input swipe` 将卡片滚动到屏幕中部（~y=1200），再重新解析坐标并点击。
+
 ---
 
 ## 账号权限差异（免费 vs Premium）
