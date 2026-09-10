@@ -130,6 +130,8 @@ class LinkedInAutomationSkill(AndroidSkill):
         "jobs":    ["职位", "Jobs"],
     }
 
+    APP_PACKAGE = LINKEDIN_PACKAGE
+
     def __init__(
         self,
         adb_manager,
@@ -141,8 +143,8 @@ class LinkedInAutomationSkill(AndroidSkill):
             device_id=device_id,
             adb=adb_manager,
             output_dir=output_dir or str(Path(tempfile.gettempdir()) / "pixelclaw_output"),
+            action_delay=action_delay,
         )
-        self.action_delay = action_delay
         self._u2 = None  # lazy uiautomator2 connection
 
     def _get_u2(self):
@@ -170,14 +172,8 @@ class LinkedInAutomationSkill(AndroidSkill):
         self._adb("shell settings put system accelerometer_rotation 0")
         self._adb("shell settings put system user_rotation 0")
 
-    def launch(self) -> bool:
+    def _pre_launch(self) -> None:
         self._lock_portrait()
-        ok, _ = self._adb(
-            f"shell monkey -p {LINKEDIN_PACKAGE} -c android.intent.category.LAUNCHER 1"
-        )
-        if ok:
-            time.sleep(4)
-        return ok
 
     # ------------------------------------------------------------------
     # UI hierarchy
@@ -214,19 +210,6 @@ class LinkedInAutomationSkill(AndroidSkill):
             return ET.fromstring(xml)
         except ET.ParseError:
             return None
-
-    # ------------------------------------------------------------------
-    # Screenshot
-    # ------------------------------------------------------------------
-
-    def screenshot(self, filename: str = "linkedin_screenshot.png") -> str:
-        img = self.adb.screenshot(self.device_id)
-        if img is None:
-            self._logger.warning("screenshot 失败")
-            return ""
-        local_path = str(Path(self.output_dir) / filename)
-        img.save(local_path)
-        return local_path
 
     # ------------------------------------------------------------------
     # Dialog detection and handling

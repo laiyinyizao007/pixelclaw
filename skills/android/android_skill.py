@@ -25,19 +25,22 @@ class AndroidSkill:
     Android 自动化 Skill 基类。
 
     Args:
-        device_id:  ADB 设备序列号；None 表示使用默认设备。
-        adb:        注入的 ADB 接口对象（ADBRunner 或 ADBManager）；
-                    None 时自动创建 ADBRunner 实例。
-        output_dir: 截图等文件的本地存储目录；None 时使用系统临时目录。
+        device_id:    ADB 设备序列号；None 表示使用默认设备。
+        adb:          注入的 ADB 接口对象（ADBRunner 或 ADBManager）；
+                      None 时自动创建 ADBRunner 实例。
+        output_dir:   截图等文件的本地存储目录；None 时使用系统临时目录。
+        action_delay: 操作间隔秒数，子类可覆盖默认值。
     """
 
     ELEMENTS: Dict[str, str] = {}
+    APP_PACKAGE: Optional[str] = None
 
     def __init__(
         self,
         device_id: Optional[str] = None,
         adb=None,
         output_dir: Optional[str] = None,
+        action_delay: float = 1.0,
     ):
         self.device_id = device_id
         self.adb = adb if adb is not None else ADBRunner()
@@ -46,6 +49,7 @@ class AndroidSkill:
         )
         Path(self.output_dir).mkdir(parents=True, exist_ok=True)
         self.last_ui_dump: Optional[str] = None
+        self.action_delay = action_delay
         self._logger = logging.getLogger(type(self).__name__)
 
     # ── 内部 ADB 包装 ─────────────────────────────────────────────────────────
@@ -175,11 +179,36 @@ class AndroidSkill:
         self._adb(f"shell input swipe 540 {start_y} 540 {end_y} 300")
         time.sleep(0.5)
 
+    # ── App 生命周期 ────────────────────────────────────────────────────────
+
+    def launch(self, wait: float = 4.0) -> bool:
+        """通过 monkey 命令启动 App。子类可重写 ``_pre_launch()`` 添加前置操作。"""
+        if not self.APP_PACKAGE:
+            raise NotImplementedError("子类必须设置 APP_PACKAGE")
+        self._pre_launch()
+        ok, _ = self._adb(
+            f"shell monkey -p {self.APP_PACKAGE} "
+            f"-c android.intent.category.LAUNCHER 1"
+        )
+        if ok:
+            time.sleep(wait)
+        return ok
+
+    def _pre_launch(self) -> None:
+        """启动前置 hook，子类可重写（如锁定屏幕方向）。"""
+
     # ── 截图 ──────────────────────────────────────────────────────────────────
 
-    def screenshot(self, filename: str) -> str:
+    def screenshot(self, filename: str = "screenshot.png") -> str:
         """截图并保存到 output_dir，返回本地路径；失败时返回空字符串。"""
         local_path = str(Path(self.output_dir) / filename)
+        if hasattr(self.adb, "screenshot") and callable(self.adb.screenshot):
+            img = self.adb.screenshot(self.device_id)
+            if img is not None:
+                img.save(local_path)
+                return local_path
+            self._logger.warning("screenshot via adb.screenshot() 返回 None")
+            return ""
         ok1, _ = self._adb(f"shell screencap -p /sdcard/{filename}")
         if not ok1:
             self._logger.warning("screencap 失败: %s", filename)

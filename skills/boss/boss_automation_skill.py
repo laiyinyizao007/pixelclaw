@@ -153,6 +153,8 @@ class BOSSAutomationSkill(AndroidSkill):
         "profile":   ["我的"],
     }
 
+    APP_PACKAGE = BOSS_PACKAGE
+
     def __init__(
         self,
         adb_manager,
@@ -164,46 +166,15 @@ class BOSSAutomationSkill(AndroidSkill):
             device_id=device_id,
             adb=adb_manager,
             output_dir=output_dir or str(Path(tempfile.gettempdir()) / "pixelclaw_output"),
+            action_delay=action_delay,
         )
-        self.action_delay = action_delay
-
-    # ------------------------------------------------------------------
-    # App lifecycle
-    # ------------------------------------------------------------------
-
-    def launch(self) -> bool:
-        """Launch Boss直聘 app."""
-        ok, _ = self._adb(
-            f"shell monkey -p {BOSS_PACKAGE} -c android.intent.category.LAUNCHER 1"
-        )
-        if ok:
-            time.sleep(4)  # allow app to fully restore its activity state
-        return ok
 
     # ------------------------------------------------------------------
     # UI hierarchy (Boss always fetches fresh — no caching needed)
     # ------------------------------------------------------------------
 
     def get_ui_hierarchy(self, force_refresh: bool = False) -> str:  # noqa: ARG002
-        """Dump current UI hierarchy XML via UIAutomator (always fresh, no caching)."""
-        self._adb("shell uiautomator dump /sdcard/window_dump.xml")
-        ok, content = self._adb("shell cat /sdcard/window_dump.xml")
-        self.last_ui_dump = content if ok else ""
-        return self.last_ui_dump
-
-    # ------------------------------------------------------------------
-    # Screenshot (saves to disk and returns path, matching base class contract)
-    # ------------------------------------------------------------------
-
-    def screenshot(self, filename: str = "boss_screenshot.png") -> str:
-        """Capture screenshot, save to output_dir, return local path."""
-        img = self.adb.screenshot(self.device_id)
-        if img is None:
-            self._logger.warning("screenshot 失败: adb 返回 None")
-            return ""
-        local_path = str(Path(self.output_dir) / filename)
-        img.save(local_path)
-        return local_path
+        return super().get_ui_hierarchy(force_refresh=True)
 
     # ------------------------------------------------------------------
     # Page state detection
