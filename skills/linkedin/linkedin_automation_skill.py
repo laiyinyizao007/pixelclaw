@@ -131,6 +131,7 @@ class LinkedInAutomationSkill(AndroidSkill):
     }
 
     APP_PACKAGE = LINKEDIN_PACKAGE
+    _DIALOG_SIGNATURES = DialogType._SIGNATURES
 
     def __init__(
         self,
@@ -203,31 +204,12 @@ class LinkedInAutomationSkill(AndroidSkill):
         self.last_ui_dump = content if ok else ""
         return self.last_ui_dump
 
-    def _parse_xml(self, xml: Optional[str]) -> Optional[ET.Element]:
-        if not xml:
-            return None
-        try:
-            return ET.fromstring(xml)
-        except ET.ParseError:
-            return None
-
     # ------------------------------------------------------------------
     # Dialog detection and handling
     # ------------------------------------------------------------------
 
     def detect_dialog(self, xml: Optional[str] = None) -> str:
-        if xml is None:
-            xml = self.get_ui_hierarchy()
-        root = self._parse_xml(xml)
-        if root is None:
-            return DialogType.NONE
-        for node in root.iter("node"):
-            t = node.attrib.get("text", "") + node.attrib.get("content-desc", "")
-            for kw, dtype in DialogType._SIGNATURES.items():
-                if kw in t:
-                    self._logger.info("[detect_dialog] %s (触发词: %s)", dtype, kw)
-                    return dtype
-        return DialogType.NONE
+        return self._scan_for_dialog(xml)
 
     def dismiss_dialog(self, dialog_type: str) -> bool:
         self.press_back()
