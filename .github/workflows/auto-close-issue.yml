@@ -1,0 +1,77 @@
+name: Issue Closed → Done
+
+on:
+  issues:
+    types: [closed]
+
+jobs:
+  set-done:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const issueNodeId = context.payload.issue.node_id;
+            const projectNum = parseInt(process.env.PROJECT_NUMBER);
+
+            // Query project Status field and issue's project item in one call
+            const data = await github.graphql(`
+              query($login: String!, $num: Int!, $issueId: ID!) {
+                user(login: $login) {
+                  projectV2(number: $num) {
+                    id
+                    fields(first: 20) {
+                      nodes {
+                        __typename
+                        ... on ProjectV2SingleSelectField {
+                          id name options { id name }
+                        }
+                      }
+                    }
+                  }
+                }
+                node(id: $issueId) {
+                  ... on Issue {
+                    projectItems(first: 10) {
+                      nodes { id project { id } }
+                    }
+                  }
+                }
+              }`, { login: owner, num: projectNum, issueId: issueNodeId });
+
+            const project = data.user?.projectV2;
+            if (!project) return console.log('Project not found');
+
+            const statusField = project.fields.nodes.find(
+              f => f.__typename === 'ProjectV2SingleSelectField' && f.name === 'Status'
+            );
+            if (!statusField) return console.log('Status field not found');
+
+            const doneOption = statusField.options.find(o => o.name === 'Done');
+            if (!doneOption) return console.log('Done option not found');
+
+            const projectItem = data.node?.projectItems?.nodes?.find(
+              item => item.project.id === project.id
+            );
+            if (!projectItem) return console.log(`Issue #${context.payload.issue.number} not in project, skipping`);
+
+            await github.graphql(`
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) { projectV2Item { id } }
+              }`, {
+                projectId: project.id,
+                itemId: projectItem.id,
+                fieldId: statusField.id,
+                optionId: doneOption.id
+              });
+
+            console.log(`✅ Issue #${context.payload.issue.number} → Done`);
