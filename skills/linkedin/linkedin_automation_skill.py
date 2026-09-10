@@ -900,6 +900,3 @@ class LinkedInAutomationSkill(AndroidSkill):
         if center is None:
             return
         self._adb(f"shell input tap {center[0]} {center[1]}")
-
-    def _type_text(self, text: str) -> bool:
-        return self.type_text(text)

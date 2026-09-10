@@ -788,41 +788,11 @@ class BOSSAutomationSkill(AndroidSkill):
         salary: Optional[str] = None,
         experience: Optional[str] = None,
     ) -> bool:
-        """
-        Open the filter panel and apply criteria via text matching.
-
-        The filter panel's internal resource-ids are not yet verified on a
-        real device; this implementation falls back to text-based element
-        lookup which tolerates version differences.
-        """
+        """Open the filter panel and apply criteria via ``set_filter()``."""
         if not self.tap_element("filter_btn"):
             return False
         time.sleep(0.8)
-
-        changed = False
-        for value in (city, salary, experience):
-            if not value:
-                continue
-            elem = self.find_element(text=value)
-            if elem and elem.center:
-                self.tap(*elem.center)
-                time.sleep(0.3)
-                changed = True
-
-        confirm_elem = self.find_element(resource_id=self.ELEMENTS["filter_confirm"])
-        if confirm_elem and confirm_elem.center:
-            self.tap(*confirm_elem.center)
-            time.sleep(self.action_delay)
-            return True
-        for txt in ("确定", "完成"):
-            elem = self.find_element(text=txt)
-            if elem and elem.center:
-                self.tap(*elem.center)
-                time.sleep(self.action_delay)
-                return True
-
-        self.press_back()
-        return changed
+        return self.set_filter(salary=salary, experience=experience, city=city)
 
     def navigate_to_tab(self, tab: str) -> bool:
         """
