@@ -1,0 +1,33 @@
+# LinkedIn AI 搜索定位功能配置
+# 运行: python scenarios/linkedin/scripts/ai_search_positioning.py
+
+# 用户简介描述 — 用于 ALL 搜索（可以较长）
+profile_description: |
+  FDE型产品经理 AI Agent产品化 工业SaaS 流程引擎
+  React TypeScript 全栈交付 多租户架构
+
+# 搜索查询列表 — 每种 result_type 使用不同查询
+# ALL 搜索用较长描述，People/Companies 用短关键词
+search_queries:
+  all:
+    - "FDE产品经理 AI Agent 工业SaaS 流程引擎"
+    - "AI Product Manager LLM"
+  people:
+    - "AI产品经理"
+    - "FDE产品经理"
+    - "AI Product Manager"
+  companies:
+    - "AI SaaS 上海"
+    - "工业互联网 上海"
+  content:
+    - "AI产品经理 求职"
+    - "FDE engineer"
+
+# 每个查询最多收集的结果数
+max_results_per_query: 20
+
+# 操作间隔（秒），遵循反检测规则
+action_delay: 3.0
+
+# 简历路径（用于 AI 分析时参考）
+resume_path: "C:/Dev/projects/resume-renew/resume/current.md"
