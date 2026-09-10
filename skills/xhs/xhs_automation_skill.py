@@ -18,12 +18,17 @@ from typing import Dict, Optional, Tuple
 from skills.android.android_skill import AndroidSkill
 
 
+XHS_PACKAGE = "com.xingin.xhs"
+
+
 class XHSAutomationSkill(AndroidSkill):
     """
     小红书自动化 Skill
 
     继承 AndroidSkill，只保留 XHS 特有的 ELEMENTS 映射和业务方法。
     """
+
+    APP_PACKAGE = XHS_PACKAGE
 
     # 小红书 UI 元素 resource-id 映射表
     # 标注来源: [verified] = dump_xhs_ui.py 真机确认(登录态); [inferred] = 推测, 未确认
@@ -92,8 +97,19 @@ class XHSAutomationSkill(AndroidSkill):
         'login_popup_wechat':  'com.xingin.xhs:id/mWeiChatLoginView',
     }
 
-    def __init__(self, device_id: Optional[str] = None, output_dir: Optional[str] = None):
-        super().__init__(device_id=device_id, output_dir=output_dir)
+    def __init__(
+        self,
+        adb_manager=None,
+        device_id: Optional[str] = None,
+        output_dir: Optional[str] = None,
+        action_delay: float = 1.0,
+    ):
+        super().__init__(
+            device_id=device_id,
+            adb=adb_manager,
+            output_dir=output_dir,
+            action_delay=action_delay,
+        )
         # Canvas 按钮坐标（从 config/devices/<device_id>.json 加载，若存在）
         self._video_bar_coords: Dict[str, Tuple[int, int]] = {}
         if device_id:
