@@ -148,12 +148,11 @@ def save_results(conn: sqlite3.Connection, session_id: int, results: list) -> in
     return saved
 
 
-def load_results_for_analysis(conn: sqlite3.Connection, query: str) -> list[dict]:
+def load_results_for_analysis(conn: sqlite3.Connection) -> list[dict]:
     """Load all collected results for AI analysis.
 
-    Results are stored per sub-query (e.g. "AI产品经理") not per parent query
-    (e.g. "FDE产品经理 AI Agent..."), so we load everything and let the AI
-    analyze the full picture across all result types.
+    Not filtered by query: results are stored per sub-query (e.g. "AI产品经理")
+    while analysis uses the parent query key, so filtering would miss everything.
     """
     rows = conn.execute(
         "SELECT r.category, r.title, r.subtitle, r.detail, r.meta_json "
@@ -214,6 +213,19 @@ def get_skill(device_id: str, action_delay: float):
 RESULT_TYPE_ORDER = ["all", "people", "companies", "content"]
 
 
+def _create_search_session(
+    conn: sqlite3.Connection, query: str, result_type: str, result_count: int
+) -> int:
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cur = conn.execute(
+        "INSERT INTO search_sessions (query, result_type, timestamp, result_count) "
+        "VALUES (?,?,?,?)",
+        (query, result_type, now, result_count),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
 def collect_for_query(
     skill,
     conn: sqlite3.Connection,
@@ -262,15 +274,7 @@ def collect_for_query(
             if not results:
                 continue
 
-            # Save session
-            cur = conn.execute(
-                "INSERT INTO search_sessions (query, result_type, timestamp, result_count) "
-                "VALUES (?,?,?,?)",
-                (q, result_type, now, len(results)),
-            )
-            conn.commit()
-            session_id = cur.lastrowid
-
+            session_id = _create_search_session(conn, q, result_type, len(results))
             saved = save_results(conn, session_id, results)
             total_saved += saved
             log.info("  新增 %d 条入库 (共 %d 条去重结果)", saved, len(results))
@@ -296,10 +300,10 @@ def analyze_positioning(
 
     import anthropic
 
-    results = load_results_for_analysis(conn, query)
+    results = load_results_for_analysis(conn)
     if not results:
         log.warning("[analyze] 无数据可分析 (query='%s')", query)
-        return {}
+        return {}, []
 
     log.info("[analyze] 分析 %d 条结果 (query='%s')", len(results), query)
 
@@ -332,7 +336,7 @@ def analyze_positioning(
         analysis = json.loads(m.group(0))
     except json.JSONDecodeError as e:
         log.warning("[analyze] JSON 解析失败: %s", e)
-        return {"raw_response": raw}
+        return {"raw_response": raw}, results
 
     # Persist analysis
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -342,7 +346,89 @@ def analyze_positioning(
     )
     conn.commit()
 
-    return analysis
+    return analysis, results
+
+
+# ─── Report section helpers ───────────────────────────────────────────────────
+
+def _report_header(query: str, analysis: dict, n_results: int) -> list[str]:
+    fit_score = analysis.get("market_fit_score", "N/A")
+    return [
+        "# LinkedIn 市场定位分析报告",
+        "",
+        f"**搜索关键词**: {query}  |  **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"**综合匹配分**: {fit_score}/100  |  **分析样本**: {n_results} 条结果",
+        "",
+        "---",
+        "",
+        "## 执行摘要",
+        "",
+        analysis.get("summary", ""),
+        "",
+        "---",
+        "",
+        "## 职位匹配 TOP 10",
+        "",
+        "| # | 职位名称 | 出现频次 | 匹配度 |",
+        "|---|---------|---------|-------|",
+    ] + [
+        f"| {i} | {item.get('title', '')} | {item.get('frequency', '')} "
+        f"| {item.get('match_level', '')} |"
+        for i, item in enumerate(analysis.get("matched_job_titles", [])[:10], 1)
+    ]
+
+
+def _report_company_table(analysis: dict) -> list[str]:
+    rows = [
+        f"| {item.get('name', '')} | {item.get('industry', '')} "
+        f"| {item.get('why_relevant', '')} |"
+        for item in analysis.get("target_companies", [])
+    ]
+    return ["", "---", "", "## 目标公司", "", "| 公司 | 行业 | 为什么相关 |",
+            "|-----|------|----------|"] + rows
+
+
+def _report_skills_table(analysis: dict) -> list[str]:
+    rows = [
+        f"| {item.get('skill', '')} | {item.get('frequency', '')} "
+        f"| {'✓' if item.get('candidate_has') else '✗'} |"
+        for item in analysis.get("key_skills_in_demand", [])
+    ]
+    return ["", "---", "", "## 市场高频技能", "",
+            "| 技能 | 频次 | 候选人是否具备 |", "|-----|------|-------------|"] + rows
+
+
+def _report_seniority_section(analysis: dict) -> list[str]:
+    s = analysis.get("seniority_match", {})
+    strengths = ["- " + x for x in analysis.get("positioning_strengths", [])]
+    gaps      = ["- " + x for x in analysis.get("positioning_gaps", [])]
+    keywords  = [f"- `{kw}`" for kw in analysis.get("resume_keyword_suggestions", [])]
+    return [
+        "", "---", "", "## 资历定位", "",
+        f"- **当前水平**: {s.get('current_level', '')}",
+        f"- **市场需求水平**: {s.get('market_demand_level', '')}",
+        f"- **差距**: {s.get('gap', '')}",
+        "", "---", "", "## 人脉市场画像", "",
+        analysis.get("peer_landscape", ""),
+        "", "---", "", "## 定位优势", "",
+    ] + strengths + [
+        "", "## 定位差距", "",
+    ] + gaps + [
+        "", "---", "", "## 简历关键词建议", "",
+    ] + keywords
+
+
+def _report_raw_data(results: list[dict]) -> list[str]:
+    jobs   = [r for r in results if r["category"] == "job"]
+    people = [r for r in results if r["category"] == "person"]
+    posts  = [r for r in results if r["category"] == "post"]
+    lines = ["", "---", "", "## 搜索结果原始数据", "", f"**职位 ({len(jobs)} 条)**", ""]
+    lines += [f"- {j['title']} @ {j['subtitle']} | {j['detail']}" for j in jobs[:15]]
+    lines += ["", f"**人脉 ({len(people)} 条)**", ""]
+    lines += [f"- {p['title']}: {p['subtitle']}" for p in people[:10]]
+    lines += ["", f"**帖子/动态 ({len(posts)} 条)**", ""]
+    lines += [f"- [{po['title']}] {po['subtitle']}" for po in posts[:5]]
+    return lines
 
 
 # ─── Report generation ────────────────────────────────────────────────────────
@@ -351,140 +437,21 @@ def generate_report(
     conn: sqlite3.Connection,
     query: str,
     analysis: dict,
+    results: list[dict],
     resume_summary: str,
 ) -> Path:
     now_str = datetime.now().strftime("%Y%m%d_%H%M")
     safe_query = re.sub(r"[^\w一-鿿]+", "_", query)[:30]
     report_path = OUTPUT_DIR / f"positioning_report_{safe_query}_{now_str}.md"
 
-    results = load_results_for_analysis(conn, query)
-    jobs    = [r for r in results if r["category"] == "job"]
-    people  = [r for r in results if r["category"] == "person"]
-    posts   = [r for r in results if r["category"] == "post"]
-
-    fit_score = analysis.get("market_fit_score", "N/A")
-    summary   = analysis.get("summary", "")
-
-    lines = [
-        f"# LinkedIn 市场定位分析报告",
-        f"",
-        f"**搜索关键词**: {query}  |  **生成时间**: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"**综合匹配分**: {fit_score}/100  |  **分析样本**: {len(results)} 条结果",
-        f"",
-        f"---",
-        f"",
-        f"## 执行摘要",
-        f"",
-        summary,
-        f"",
-        f"---",
-        f"",
-        f"## 职位匹配 TOP 10",
-        f"",
-        f"| # | 职位名称 | 出现频次 | 匹配度 |",
-        f"|---|---------|---------|-------|",
-    ]
-
-    for i, item in enumerate(analysis.get("matched_job_titles", [])[:10], 1):
-        lines.append(
-            f"| {i} | {item.get('title', '')} | {item.get('frequency', '')} "
-            f"| {item.get('match_level', '')} |"
-        )
-
-    lines += [
-        f"",
-        f"---",
-        f"",
-        f"## 目标公司",
-        f"",
-        f"| 公司 | 行业 | 为什么相关 |",
-        f"|-----|------|----------|",
-    ]
-    for item in analysis.get("target_companies", []):
-        lines.append(
-            f"| {item.get('name', '')} | {item.get('industry', '')} "
-            f"| {item.get('why_relevant', '')} |"
-        )
-
-    lines += [
-        f"",
-        f"---",
-        f"",
-        f"## 市场高频技能",
-        f"",
-        f"| 技能 | 频次 | 候选人是否具备 |",
-        f"|-----|------|-------------|",
-    ]
-    for item in analysis.get("key_skills_in_demand", []):
-        has = "✓" if item.get("candidate_has") else "✗"
-        lines.append(
-            f"| {item.get('skill', '')} | {item.get('frequency', '')} | {has} |"
-        )
-
-    seniority = analysis.get("seniority_match", {})
-    lines += [
-        f"",
-        f"---",
-        f"",
-        f"## 资历定位",
-        f"",
-        f"- **当前水平**: {seniority.get('current_level', '')}",
-        f"- **市场需求水平**: {seniority.get('market_demand_level', '')}",
-        f"- **差距**: {seniority.get('gap', '')}",
-        f"",
-        f"---",
-        f"",
-        f"## 人脉市场画像",
-        f"",
-        analysis.get("peer_landscape", ""),
-        f"",
-        f"---",
-        f"",
-        f"## 定位优势",
-        f"",
-    ]
-    for s in analysis.get("positioning_strengths", []):
-        lines.append(f"- {s}")
-
-    lines += [
-        f"",
-        f"## 定位差距",
-        f"",
-    ]
-    for g in analysis.get("positioning_gaps", []):
-        lines.append(f"- {g}")
-
-    lines += [
-        f"",
-        f"---",
-        f"",
-        f"## 简历关键词建议",
-        f"",
-    ]
-    for kw in analysis.get("resume_keyword_suggestions", []):
-        lines.append(f"- `{kw}`")
-
-    lines += [
-        f"",
-        f"---",
-        f"",
-        f"## 搜索结果原始数据",
-        f"",
-        f"**职位 ({len(jobs)} 条)**",
-        f"",
-    ]
-    for j in jobs[:15]:
-        lines.append(f"- {j['title']} @ {j['subtitle']} | {j['detail']}")
-
-    lines += [f"", f"**人脉 ({len(people)} 条)**", f""]
-    for p in people[:10]:
-        lines.append(f"- {p['title']}: {p['subtitle']}")
-
-    lines += [f"", f"**帖子/动态 ({len(posts)} 条)**", f""]
-    for po in posts[:5]:
-        lines.append(f"- [{po['title']}] {po['subtitle']}")
-
-    lines += ["", "---", "", f"*生成工具: pixelclaw ai-search-positioning*"]
+    lines = (
+        _report_header(query, analysis, len(results))
+        + _report_company_table(analysis)
+        + _report_skills_table(analysis)
+        + _report_seniority_section(analysis)
+        + _report_raw_data(results)
+        + ["", "---", "", "*生成工具: pixelclaw ai-search-positioning*"]
+    )
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text("\n".join(lines), encoding="utf-8")
@@ -558,9 +525,9 @@ def main():
         for q in all_queries:
             log.info("═══ 开始分析: %s ═══", q)
             try:
-                analysis = analyze_positioning(conn, q, resume_summary)
+                analysis, results = analyze_positioning(conn, q, resume_summary)
                 if analysis:
-                    generate_report(conn, q, analysis, resume_summary)
+                    generate_report(conn, q, analysis, results, resume_summary)
             except Exception as e:
                 log.error("分析失败 (%s): %s", q, e)
 

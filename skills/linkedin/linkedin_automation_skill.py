@@ -21,6 +21,7 @@ import logging
 import re
 import tempfile
 import time
+import urllib.parse
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,18 +32,8 @@ from skills.android.ui_types import UIElement, parse_bounds
 
 
 LINKEDIN_PACKAGE = "com.linkedin.android"
-_SAFE_TAP_MAX_Y  = 2000  # cards below this y get scrolled into view before tap
 
 _TRAILING_WHITESPACE = re.compile(r"\s+$")
-# Matches combined info field, e.g.:
-#   "中国 上海市 · 的时间: 5 天前 · 23 位申请者"
-#   "上海市 · 已转发的时间: 1 周前 · 30 位会员点击了申请"
-_INFO_PATTERN = re.compile(
-    r"^(?P<location>.+?)\s*·\s*"
-    r"(?:已转发的时间:\s*|的时间:\s*)?(?P<posted>.+?)\s*·\s*"
-    r"(?P<applicants>\d+\s*位[^·]+)",
-    re.DOTALL,
-)
 
 
 def normalize_job_title(title: str) -> str:
@@ -121,6 +112,22 @@ class LinkedInAutomationSkill(AndroidSkill):
     Real device confirmed resource-ids (only home-tab pages have IDs;
     job list / detail use Compose SDUI with only sdui_compose_view).
     """
+
+    # Easy Apply keyword variants (used by multiple parsers)
+    _EASY_KEYWORDS = ("快速申请", "抢先申请", "Easy Apply", "快速申请按钮")
+
+    # Tapping cards at y > this threshold hits the gesture nav bar; scroll first.
+    _SAFE_TAP_MAX_Y = 2000
+
+    # Matches combined info field, e.g.:
+    #   "中国 上海市 · 的时间: 5 天前 · 23 位申请者"
+    #   "上海市 · 已转发的时间: 1 周前 · 30 位会员点击了申请"
+    _INFO_PATTERN = re.compile(
+        r"^(?P<location>.+?)\s*·\s*"
+        r"(?:已转发的时间:\s*|的时间:\s*)?(?P<posted>.+?)\s*·\s*"
+        r"(?P<applicants>\d+\s*位[^·]+)",
+        re.DOTALL,
+    )
 
     # Confirmed resource-ids from real device (2026-09-09)
     ELEMENTS: Dict[str, str] = {
@@ -213,6 +220,11 @@ class LinkedInAutomationSkill(AndroidSkill):
         ok, content = self._adb("shell cat /sdcard/window_dump.xml")
         self.last_ui_dump = content if ok else ""
         return self.last_ui_dump
+
+    @staticmethod
+    def _parse_bounds(bounds_str: str) -> Optional[tuple]:
+        """Parse '[x1,y1][x2,y2]' bounds string into (x1, y1, x2, y2)."""
+        return parse_bounds(bounds_str)
 
     # ------------------------------------------------------------------
     # Dialog detection and handling
@@ -312,7 +324,6 @@ class LinkedInAutomationSkill(AndroidSkill):
         `pm set-app-links --package com.linkedin.android 2 all` enables it.
         This avoids the "Open with" chooser dialog.
         """
-        import urllib.parse
         encoded = urllib.parse.quote(keyword)
         https_url = f"https://www.linkedin.com/jobs/search/?keywords={encoded}"
 
@@ -383,10 +394,10 @@ class LinkedInAutomationSkill(AndroidSkill):
             # The close button is at the right edge; job card tap target
             # is the main content at left, same y band
             bounds = node.attrib.get("bounds", "")
-            bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-            if not bm:
+            parsed = self._parse_bounds(bounds)
+            if not parsed:
                 continue
-            x1, y1, x2, y2 = int(bm.group(1)), int(bm.group(2)), int(bm.group(3)), int(bm.group(4))
+            x1, y1, x2, y2 = parsed
             card_center_y = (y1 + y2) // 2
 
             # Tap target: left side of card row (avoid close button at right)
@@ -394,15 +405,11 @@ class LinkedInAutomationSkill(AndroidSkill):
             tap_y = card_center_y
 
             # Extract company, location, easy_apply from sibling text nodes
-            company = location = posted = ""
-            easy_apply = False
-            self._extract_card_metadata(root, title, raw_title, y1, y2,
-                                         company, location, posted, easy_apply,
-                                         out_dict := {})
-            company    = out_dict.get("company", "")
-            location   = out_dict.get("location", "")
-            posted     = out_dict.get("posted", "")
-            easy_apply = out_dict.get("easy_apply", False)
+            meta = self._extract_card_metadata(root, title, raw_title, y1, y2)
+            company    = meta.get("company", "")
+            location   = meta.get("location", "")
+            posted     = meta.get("posted", "")
+            easy_apply = meta.get("easy_apply", False)
 
             jobs.append(JobInfo(
                 title=title,
@@ -419,14 +426,11 @@ class LinkedInAutomationSkill(AndroidSkill):
         self, root: ET.Element,
         title: str, raw_title: str,
         y1: int, y2: int,
-        company: str, location: str, posted: str, easy_apply: bool,
-        out_dict: dict,
-    ) -> None:
+    ) -> dict:
         """
         Scan sibling nodes in the same y-band as the job card to extract metadata.
         Expected order: [title node] [company node] [location node] [time node] ...
         """
-        easy_keywords = ("快速申请", "抢先申请", "Easy Apply")
         found = {"title": False, "company": "", "location": "", "posted": "", "easy": False}
         margin = (y2 - y1) * 2
 
@@ -434,10 +438,10 @@ class LinkedInAutomationSkill(AndroidSkill):
             t = node.attrib.get("text", "").strip()
             d = node.attrib.get("content-desc", "").strip()
             b = node.attrib.get("bounds", "")
-            bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", b)
-            if not bm:
+            parsed = self._parse_bounds(b)
+            if not parsed:
                 continue
-            ny1, ny2 = int(bm.group(2)), int(bm.group(4))
+            _, ny1, _, ny2 = parsed
             # Must be in same vertical band as the card (within margin)
             if not (y1 - margin <= ny1 and ny2 <= y2 + margin):
                 continue
@@ -455,7 +459,7 @@ class LinkedInAutomationSkill(AndroidSkill):
                 found["title"] = True
                 continue
 
-            if any(k in content for k in easy_keywords):
+            if any(k in content for k in self._EASY_KEYWORDS):
                 found["easy"] = True
                 continue
 
@@ -468,12 +472,36 @@ class LinkedInAutomationSkill(AndroidSkill):
                 elif not found["posted"] and re.search(r"\d+\s*(天|周|月|小时|day|week|hour|month)", content):
                     found["posted"] = content
 
-        out_dict.update({
+        return {
             "company":    found["company"],
             "location":   found["location"],
             "posted":     found["posted"],
             "easy_apply": found["easy"],
-        })
+        }
+
+    @staticmethod
+    def _extract_verified_button_job(node: ET.Element) -> Optional[dict]:
+        """Parse a '已验证' clickable button node into field dict.
+
+        Returns {title, company, location, desc} or None if the node doesn't
+        match the expected "{title}, 已验证, {company}, {location}[, …], Button" format.
+        """
+        desc = node.attrib.get("content-desc", "").strip()
+        if desc.endswith(", Button"):
+            desc = desc[: -len(", Button")]
+        parts = desc.split(", 已验证, ", 1)
+        if len(parts) != 2:
+            return None
+        title = normalize_job_title(parts[0])
+        if not title:
+            return None
+        rest = [p.strip() for p in parts[1].split(", ")]
+        return {
+            "title": title,
+            "company": rest[0] if rest else "",
+            "location": rest[1] if len(rest) > 1 else "",
+            "desc": desc,
+        }
 
     def _parse_jobs_by_button_format(self, root: ET.Element) -> List[JobInfo]:
         """Parse job cards from the search results page.
@@ -482,51 +510,33 @@ class LinkedInAutomationSkill(AndroidSkill):
         the form: "{title}, 已验证, {company}, {location}[, other info], Button"
         """
         jobs: List[JobInfo] = []
-        easy_keywords = ("快速申请", "抢先申请", "Easy Apply")
         seen_titles: set = set()
 
         for node in root.iter("node"):
-            desc = node.attrib.get("content-desc", "").strip()
-            if "已验证" not in desc:
+            if "已验证" not in node.attrib.get("content-desc", ""):
                 continue
             if node.attrib.get("clickable", "false") != "true":
                 continue
 
-            # Strip trailing ", Button" (role appended by Compose accessibility)
-            if desc.endswith(", Button"):
-                desc = desc[: -len(", Button")]
-
-            # Split on first ", 已验证, " to separate title from the rest
-            parts = desc.split(", 已验证, ", 1)
-            if len(parts) != 2:
+            info = self._extract_verified_button_job(node)
+            if not info or info["title"] in seen_titles:
                 continue
-            raw_title = parts[0].strip()
-            title = normalize_job_title(raw_title)
-            if not title or title in seen_titles:
-                continue
-            seen_titles.add(title)
+            seen_titles.add(info["title"])
 
-            rest = parts[1]  # "Company, Location[, other]"
-            rest_parts = [p.strip() for p in rest.split(", ")]
-            company = rest_parts[0] if rest_parts else ""
-            location = rest_parts[1] if len(rest_parts) > 1 else ""
-            easy_apply = any(k in desc for k in easy_keywords)
+            easy_apply = any(k in info["desc"] for k in self._EASY_KEYWORDS)
 
-            bounds = node.attrib.get("bounds", "")
-            bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-            if not bm:
+            parsed = self._parse_bounds(node.attrib.get("bounds", ""))
+            if not parsed:
                 continue
-            x1, y1, x2, y2 = int(bm.group(1)), int(bm.group(2)), int(bm.group(3)), int(bm.group(4))
-            tap_x = (x1 + x2) // 2
-            tap_y = (y1 + y2) // 2
+            x1, y1, x2, y2 = parsed
 
             jobs.append(JobInfo(
-                title=title,
-                company=company,
-                location=location,
+                title=info["title"],
+                company=info["company"],
+                location=info["location"],
                 easy_apply=easy_apply,
-                tap_x=tap_x,
-                tap_y=tap_y,
+                tap_x=(x1 + x2) // 2,
+                tap_y=(y1 + y2) // 2,
             ))
         return jobs
 
@@ -550,7 +560,7 @@ class LinkedInAutomationSkill(AndroidSkill):
         # If card is near screen bottom, scroll it into mid-viewport first.
         # Tapping at y > 2000 on Pixel 8a often hits the gesture-nav area
         # instead of the card, preventing the bottom sheet from opening.
-        if job.tap_y > _SAFE_TAP_MAX_Y:
+        if job.tap_y > self._SAFE_TAP_MAX_Y:
             offset = min(job.tap_y - 1200, 1200)
             self._logger.debug(
                 "[navigate_to_job] tap_y=%d 超出安全区，向上滚动 %dpx",
@@ -639,6 +649,44 @@ class LinkedInAutomationSkill(AndroidSkill):
                              nav_depth + 1)
         return False
 
+    @staticmethod
+    def _in_sheet(info: dict, sheet_min_top: int) -> bool:
+        """True iff the element's top edge sits inside the bottom sheet."""
+        b = info.get("bounds") or {}
+        top = b.get("top") if isinstance(b, dict) else None
+        if top is None:
+            try:
+                top = int(b[1]) if isinstance(b, (list, tuple)) and len(b) >= 2 else None
+            except Exception:
+                top = None
+        return (top is not None) and (top >= sheet_min_top)
+
+    @staticmethod
+    def _is_skip_text(t: str) -> bool:
+        return (len(t) < 3
+                or any(t.startswith(s) for s in
+                       {"领英会员", "这些结果有用吗", "您的反馈", "摘要"}))
+
+    def _headline_after(self, idx: int, text_nodes: list) -> tuple:
+        """Return (headline, job_info) from the next few text nodes after idx."""
+        item = text_nodes[idx]
+        headline = job = ""
+        for j in range(idx + 1, min(idx + 6, len(text_nodes))):
+            cand = text_nodes[j]
+            if cand["y1"] > item["y2"] + 260:
+                break
+            if abs(cand["x1"] - item["x1"]) > 120:
+                continue
+            t2 = cand["t"]
+            if self._is_skip_text(t2):
+                continue
+            if not headline:
+                headline = t2
+            elif t2.startswith("目前就职:"):
+                job = t2[5:].strip()
+                break
+        return headline, job
+
     def expand_description(self) -> bool:
         """
         Expand the truncated job description by performing an accessibility
@@ -662,11 +710,10 @@ class LinkedInAutomationSkill(AndroidSkill):
         # every time.  Compute a screen-height-aware cutoff via `wm size`.
         try:
             _, size_out = self._adb("shell wm size")
-            import re as _re
-            m = _re.search(r"(\d+)x(\d+)", size_out)
+            m = re.search(r"(\d+)x(\d+)", size_out)
             screen_h = int(m.group(1)) * int(m.group(2)) if m else 2400
             # Hmm — wm size returns "WxH", parse correctly:
-            m = _re.search(r"Physical size:\s*(\d+)x(\d+)", size_out) or _re.search(r"(\d+)x(\d+)", size_out)
+            m = re.search(r"Physical size:\s*(\d+)x(\d+)", size_out) or re.search(r"(\d+)x(\d+)", size_out)
             if m:
                 screen_h = int(m.group(2))
             else:
@@ -674,18 +721,6 @@ class LinkedInAutomationSkill(AndroidSkill):
             sheet_min_top = int(screen_h * 0.35)   # ≈840 on Pixel 8a
         except Exception:
             sheet_min_top = 840
-
-        def _in_sheet(info: dict) -> bool:
-            """True iff the element's top edge sits inside the bottom sheet."""
-            b = info.get("bounds") or {}
-            top = b.get("top") if isinstance(b, dict) else None
-            if top is None:
-                # Some u2 builds return bounds as a 4-tuple-like list
-                try:
-                    top = int(b[1]) if isinstance(b, (list, tuple)) and len(b) >= 2 else None
-                except Exception:
-                    top = None
-            return (top is not None) and (top >= sheet_min_top)
 
         try:
             el = None
@@ -699,7 +734,7 @@ class LinkedInAutomationSkill(AndroidSkill):
                 for node in selector:
                     info = node.info
                     txt = info.get("text", "") or info.get("contentDescription", "")
-                    if len(txt) > 80 and _in_sheet(info):
+                    if len(txt) > 80 and self._in_sheet(info, sheet_min_top):
                         el = node
                         break
                 if el is not None:
@@ -710,7 +745,7 @@ class LinkedInAutomationSkill(AndroidSkill):
                 for txt in ("See more", "Show more"):
                     c = d(text=txt)
                     for node in c:
-                        if _in_sheet(node.info):
+                        if self._in_sheet(node.info, sheet_min_top):
                             el = node
                             break
                     if el is not None:
@@ -772,7 +807,6 @@ class LinkedInAutomationSkill(AndroidSkill):
                         background_texts.add(ct)
 
         all_texts: List[str] = []
-        easy_keywords = ("快速申请", "抢先申请", "Easy Apply", "快速申请按钮")
         ui_noise = ("逐步淘汰", "职位订阅已开启", "尝试用 AI 进行职位搜索")
 
         for node in root.iter("node"):
@@ -787,7 +821,7 @@ class LinkedInAutomationSkill(AndroidSkill):
                 all_texts.append(content)
 
             # Easy apply
-            if any(k in content for k in easy_keywords):
+            if any(k in content for k in self._EASY_KEYWORDS):
                 detail["easy_apply"] = True
 
             # Company: "公司: Autodesk。" pattern
@@ -797,7 +831,7 @@ class LinkedInAutomationSkill(AndroidSkill):
             # Combined location/time/applicants: "城市 · 的时间: X · N 位申请者" or similar
             _COMBINED_MARKERS = ("位申请者", "位会员点击了申请", "applicants")
             if not detail["location"] and any(m in content for m in _COMBINED_MARKERS):
-                m = _INFO_PATTERN.match(content)
+                m = self._INFO_PATTERN.match(content)
                 if m:
                     detail["location"]       = m.group("location").strip()
                     detail["posted_time"]    = m.group("posted").strip()
@@ -909,7 +943,6 @@ class LinkedInAutomationSkill(AndroidSkill):
         Uses the same force-stop → deep link → poll pattern as browse_jobs().
         result_type: "all", "people", "companies", "content" (posts), "jobs"
         """
-        import urllib.parse
         encoded = urllib.parse.quote(query)
         path = self._SEARCH_URL_MAP.get(result_type, "search/results/all")
         url = f"https://www.linkedin.com/{path}/?keywords={encoded}"
@@ -959,10 +992,10 @@ class LinkedInAutomationSkill(AndroidSkill):
             desc = node.attrib.get("content-desc", "").strip()
             if desc == target_desc:
                 bounds = node.attrib.get("bounds", "")
-                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-                if bm:
-                    cx = (int(bm.group(1)) + int(bm.group(3))) // 2
-                    cy = (int(bm.group(2)) + int(bm.group(4))) // 2
+                parsed = self._parse_bounds(bounds)
+                if parsed:
+                    x1, y1, x2, y2 = parsed
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                     self._adb(f"shell input tap {cx} {cy}")
                     time.sleep(self.action_delay)
                     self._logger.info("[switch_search_tab] 切换到 %s", tab_name)
@@ -1036,23 +1069,17 @@ class LinkedInAutomationSkill(AndroidSkill):
                 continue
 
             # Method 3: clickable button with "已验证" (search results page)
-            if ("已验证" in desc and node.attrib.get("clickable") == "true"
-                    and desc not in seen_titles):
-                if desc.endswith(", Button"):
-                    desc = desc[:-len(", Button")]
-                parts = desc.split(", 已验证, ", 1)
-                if len(parts) == 2:
-                    title = normalize_job_title(parts[0])
-                    if title and title not in seen_titles:
-                        seen_titles.add(title)
-                        rest = [p.strip() for p in parts[1].split(", ")]
-                        results.append(SearchResult(
-                            category="job", title=title,
-                            subtitle=rest[0] if rest else "",
-                            detail=rest[1] if len(rest) > 1 else "",
-                            meta={"company": rest[0] if rest else "",
-                                  "location": rest[1] if len(rest) > 1 else ""},
-                        ))
+            if "已验证" in desc and node.attrib.get("clickable") == "true":
+                info = self._extract_verified_button_job(node)
+                if info and info["title"] not in seen_titles:
+                    seen_titles.add(info["title"])
+                    results.append(SearchResult(
+                        category="job", title=info["title"],
+                        subtitle=info["company"],
+                        detail=info["location"],
+                        meta={"company": info["company"],
+                              "location": info["location"]},
+                    ))
 
         return results
 
@@ -1061,11 +1088,11 @@ class LinkedInAutomationSkill(AndroidSkill):
         """Extract company/location from text nodes near a job card anchor."""
         meta: Dict[str, str] = {}
         bounds = anchor.attrib.get("bounds", "")
-        bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-        if not bm:
+        aparsed = self._parse_bounds(bounds)
+        if not aparsed:
             return meta
 
-        ay1, ay2 = int(bm.group(2)), int(bm.group(4))
+        _, ay1, _, ay2 = aparsed
         margin = (ay2 - ay1) * 3
         skip_words = ("保存", "关闭", "已通过", "筛选", "显示全部")
 
@@ -1075,10 +1102,10 @@ class LinkedInAutomationSkill(AndroidSkill):
             if not t or len(t) < 2 or any(w in t for w in skip_words):
                 continue
             nb = node.attrib.get("bounds", "")
-            nbm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", nb)
-            if not nbm:
+            nparsed = self._parse_bounds(nb)
+            if not nparsed:
                 continue
-            ny1 = int(nbm.group(2))
+            ny1 = nparsed[1]
             if ay1 - margin <= ny1 <= ay2 + margin:
                 if title not in t and "(已通过验证的职位)" not in t:
                     texts_in_band.append(t)
@@ -1110,44 +1137,19 @@ class LinkedInAutomationSkill(AndroidSkill):
             t = node.attrib.get("text", "").strip()
             if not t or len(t) < 2:
                 continue
-            bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
-                          node.attrib.get("bounds", ""))
-            if bm:
+            parsed = self._parse_bounds(node.attrib.get("bounds", ""))
+            if parsed:
+                x1, y1, x2, y2 = parsed
                 text_nodes.append({
                     "t": t,
-                    "x1": int(bm.group(1)), "y1": int(bm.group(2)),
-                    "x2": int(bm.group(3)), "y2": int(bm.group(4)),
+                    "x1": x1, "y1": y1,
+                    "x2": x2, "y2": y2,
                 })
         text_nodes.sort(key=lambda n: n["y1"])
 
         results: list = []
         seen: set = set()
         degree_re = re.compile(r"^(.+?) • (\d+)\s*度\+?$")
-
-        _SKIP = {"领英会员", "这些结果有用吗", "您的反馈", "摘要"}
-
-        def _is_skip(t: str) -> bool:
-            return any(t.startswith(s) for s in _SKIP) or len(t) < 3
-
-        def _headline_after(idx: int) -> tuple:
-            """Return (headline, job_info) from the next few text nodes."""
-            item = text_nodes[idx]
-            headline = job = ""
-            for j in range(idx + 1, min(idx + 6, len(text_nodes))):
-                cand = text_nodes[j]
-                if cand["y1"] > item["y2"] + 260:
-                    break
-                if abs(cand["x1"] - item["x1"]) > 120:
-                    continue
-                t2 = cand["t"]
-                if _is_skip(t2):
-                    continue
-                if not headline:
-                    headline = t2
-                elif t2.startswith("目前就职:"):
-                    job = t2[5:].strip()
-                    break
-            return headline, job
 
         # Pattern 1: Named persons — text = "{Name} • N 度+"
         for i, item in enumerate(text_nodes):
@@ -1158,7 +1160,7 @@ class LinkedInAutomationSkill(AndroidSkill):
             if name in seen:
                 continue
             seen.add(name)
-            headline, job = _headline_after(i)
+            headline, job = self._headline_after(i, text_nodes)
             results.append(SearchResult(
                 category="person", title=name,
                 subtitle=headline,
@@ -1170,7 +1172,7 @@ class LinkedInAutomationSkill(AndroidSkill):
         for i, item in enumerate(text_nodes):
             if item["t"] != "领英会员":
                 continue
-            headline, job = _headline_after(i)
+            headline, job = self._headline_after(i, text_nodes)
             if not headline:
                 continue
             key = f"anon:{headline}"
@@ -1199,10 +1201,10 @@ class LinkedInAutomationSkill(AndroidSkill):
         for node in root.iter("node"):
             t = node.attrib.get("text", "").strip()
             if t and len(t) > 80:
-                bounds = node.attrib.get("bounds", "")
-                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-                if bm:
-                    cy = (int(bm.group(2)) + int(bm.group(4))) // 2
+                parsed = self._parse_bounds(node.attrib.get("bounds", ""))
+                if parsed:
+                    _, py1, _, py2 = parsed
+                    cy = (py1 + py2) // 2
                     # Skip known non-post content
                     if ("位会员" not in t and "筛选" not in t
                             and "已验证" not in t):
@@ -1223,11 +1225,10 @@ class LinkedInAutomationSkill(AndroidSkill):
                 desc = node.attrib.get("content-desc", "").strip()
                 if "度+" not in desc and "的职业档案" not in desc:
                     continue
-                bounds = node.attrib.get("bounds", "")
-                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
-                if not bm:
+                nparsed = self._parse_bounds(node.attrib.get("bounds", ""))
+                if not nparsed:
                     continue
-                ny = (int(bm.group(2)) + int(bm.group(4))) // 2
+                ny = (nparsed[1] + nparsed[3]) // 2
                 # Author should be above or near the post text
                 if ty - 500 < ny < ty:
                     # Extract name from desc
@@ -1299,11 +1300,10 @@ class LinkedInAutomationSkill(AndroidSkill):
         for node in root.iter("node"):
             t = node.attrib.get("text", "")
             if t in ("Retry", "Try again", "重试"):
-                b = node.attrib.get("bounds", "")
-                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", b)
-                if bm:
-                    cx = (int(bm.group(1)) + int(bm.group(3))) // 2
-                    cy = (int(bm.group(2)) + int(bm.group(4))) // 2
+                parsed = self._parse_bounds(node.attrib.get("bounds", ""))
+                if parsed:
+                    x1, y1, x2, y2 = parsed
+                    cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
                     self._adb(f"shell input tap {cx} {cy}")
                     time.sleep(2.0)
                     return True
