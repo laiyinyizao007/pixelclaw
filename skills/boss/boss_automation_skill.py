@@ -154,6 +154,7 @@ class BOSSAutomationSkill(AndroidSkill):
     }
 
     APP_PACKAGE = BOSS_PACKAGE
+    _DIALOG_SIGNATURES = DialogType._SIGNATURES
 
     def __init__(
         self,
@@ -227,46 +228,15 @@ class BOSSAutomationSkill(AndroidSkill):
 
     def _has_dialog(self, xml: str) -> bool:
         """Return True if xml contains any known dialog keyword."""
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
-            return False
-        for node in root.iter("node"):
-            t = node.attrib.get("text", "")
-            for kw in DialogType._SIGNATURES:
-                if kw in t:
-                    return True
-        return False
+        return self._scan_for_dialog(xml) != "none"
 
     # ------------------------------------------------------------------
     # Dialog detection and handling
     # ------------------------------------------------------------------
 
     def detect_dialog(self, xml: Optional[str] = None) -> str:
-        """
-        Identify the type of any blocking dialog on screen.
-
-        Args:
-            xml: Pre-fetched XML; fetches fresh dump if None.
-        Returns:
-            One of the DialogType constants.
-        """
-        if xml is None:
-            xml = self.get_ui_hierarchy()
-        if not xml:
-            return DialogType.NONE
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
-            return DialogType.NONE
-
-        for node in root.iter("node"):
-            t = node.attrib.get("text", "")
-            for kw, dtype in DialogType._SIGNATURES.items():
-                if kw in t:
-                    self._logger.info("[detect_dialog] ← %s (触发词: %s)", dtype, kw)
-                    return dtype
-        return DialogType.NONE
+        """Identify the type of any blocking dialog on screen."""
+        return self._scan_for_dialog(xml)
 
     def dismiss_dialog(
         self,
@@ -308,11 +278,8 @@ class BOSSAutomationSkill(AndroidSkill):
         to open the search input overlay.
         """
         xml = self.get_ui_hierarchy()
-        if not xml:
-            return False
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return False
 
         # Find the ly_menu container, then pick the rightmost img_icon child.
@@ -467,11 +434,8 @@ class BOSSAutomationSkill(AndroidSkill):
         """
         if xml is None:
             xml = self.get_ui_hierarchy()
-        if not xml:
-            return []
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return []
 
         parent_map = self._build_parent_map(root)
@@ -689,11 +653,8 @@ class BOSSAutomationSkill(AndroidSkill):
         """Return (text, bounds, list_bottom) of the detail-page description node."""
         if xml is None:
             xml = self.get_ui_hierarchy()
-        if not xml:
-            return None, None, 0
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return None, None, 0
 
         list_bottom = 0
@@ -757,11 +718,8 @@ class BOSSAutomationSkill(AndroidSkill):
         """
         if xml is None:
             xml = self.get_ui_hierarchy()
-        if not xml:
-            return {}
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return {}
 
         field_map = {
@@ -876,11 +834,8 @@ class BOSSAutomationSkill(AndroidSkill):
             True if the tab was tapped successfully.
         """
         xml = self.get_ui_hierarchy()
-        if not xml:
-            return False
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return False
 
         labels = self._TAB_TEXTS.get(tab, [tab])
@@ -917,11 +872,8 @@ class BOSSAutomationSkill(AndroidSkill):
         """
         if xml is None:
             xml = self.get_ui_hierarchy()
-        if not xml:
-            return []
-        try:
-            root = ET.fromstring(xml)
-        except ET.ParseError:
+        root = self._parse_xml(xml)
+        if root is None:
             return []
 
         parent_map = self._build_parent_map(root)

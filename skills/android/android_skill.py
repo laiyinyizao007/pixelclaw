@@ -284,6 +284,39 @@ class AndroidSkill:
     # ── XML 工具 ──────────────────────────────────────────────────────────────
 
     @staticmethod
+    def _parse_xml(xml: Optional[str]) -> Optional[ET.Element]:
+        """ET.fromstring 的安全封装，解析失败返回 None。"""
+        if not xml:
+            return None
+        try:
+            return ET.fromstring(xml)
+        except ET.ParseError:
+            return None
+
+    # ── 弹窗扫描 ──────────────────────────────────────────────────────────────
+
+    _DIALOG_SIGNATURES: Dict[str, str] = {}
+
+    def _scan_for_dialog(self, xml: Optional[str] = None) -> str:
+        """遍历 UI XML，按 _DIALOG_SIGNATURES 匹配弹窗类型。
+
+        Returns:
+            匹配到的弹窗类型字符串，未命中返回 ``"none"``。
+        """
+        if xml is None:
+            xml = self.get_ui_hierarchy()
+        root = self._parse_xml(xml)
+        if root is None:
+            return "none"
+        for node in root.iter("node"):
+            t = node.attrib.get("text", "") + node.attrib.get("content-desc", "")
+            for kw, dtype in self._DIALOG_SIGNATURES.items():
+                if kw in t:
+                    self._logger.info("[dialog] %s (触发词: %s)", dtype, kw)
+                    return dtype
+        return "none"
+
+    @staticmethod
     def _build_parent_map(root: ET.Element) -> Dict[ET.Element, ET.Element]:
         """构建整棵元素树的 child → parent 映射（用于向上遍历父容器）。"""
         return {child: parent for parent in root.iter() for child in parent}
