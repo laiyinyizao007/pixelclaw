@@ -66,6 +66,9 @@ OpenViking/
 
 # Scrape artifacts (runtime output, not source)
 scenarios/*/output/*.json
+scenarios/*/output/*.db
+scenarios/*/output/*.md
+scenarios/*/output/screenshots/
 
 # Debug scratch
 tmp_dumps/

@@ -6,10 +6,21 @@ LinkedIn UI 全页面系统性探索脚本
   1. 逐一导航到 LinkedIn 的主要页面（首页/Jobs搜索/职位列表/职位详情/个人主页/消息）
   2. 在每个页面保存 UIAutomator XML dump 到 tmp_dumps/linkedin/
   3. 从所有 dump 中提取所有 resource-id，生成去重报告
+  4. 探索通用搜索结果（全品类：职位/人脉/公司/帖子）
+  5. 探索 AI 职位搜索功能
 
 运行：
+  # 原有全页面探索
   python scenarios/linkedin/scripts/dump_linkedin_ui.py --keyword "Product Manager"
-  python scenarios/linkedin/scripts/dump_linkedin_ui.py --keyword "PM" --device 42231JEKB04971
+
+  # 仅探索通用搜索 + AI 搜索（定位功能 UI 探索）
+  python scenarios/linkedin/scripts/dump_linkedin_ui.py --mode positioning --query "5年AI产品经理"
+
+  # 仅探索通用搜索
+  python scenarios/linkedin/scripts/dump_linkedin_ui.py --mode general-search --query "AI Product Manager"
+
+  # 指定设备
+  python scenarios/linkedin/scripts/dump_linkedin_ui.py --mode positioning --query "PM" --device 42231JEKB04971
 """
 
 import argparse
@@ -410,6 +421,277 @@ def explore_notifications(device: str, all_ids: Set[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Positioning exploration: general search + AI job search
+# ---------------------------------------------------------------------------
+
+def _back_to_home(device: str, max_retries: int = 5) -> str:
+    """Press Back until the bottom navigation bar is visible (home screen)."""
+    for i in range(max_retries):
+        xml = dump_xml(device)
+        if "tab_jobs" in xml or "tab_feed" in xml:
+            return xml
+        back(device)
+        time.sleep(1.0)
+    return dump_xml(device)
+
+
+def _find_search_tab(xml: str, label: str) -> Optional[Tuple[int, int]]:
+    """Find a search result tab (People, Companies, Posts, Jobs, All) by text or content-desc."""
+    coord = find_by_text(xml, label)
+    if not coord:
+        coord = find_by_text_contains(xml, label)
+    if not coord:
+        coord = find_by_content_desc_contains(xml, label)
+    return coord
+
+
+def explore_general_search(device: str, all_ids: Set[str], query: str) -> str:
+    """Explore LinkedIn's general search bar with a descriptive query.
+
+    Dumps XML for each search result tab: All, People, Companies, Posts, Jobs.
+    """
+    print("\n" + "=" * 60)
+    print("[通用搜索探索] General Search Exploration")
+    print(f"  搜索词: {query}")
+    print("=" * 60)
+
+    # Step 1: Return to home screen
+    print("\n  [1] 返回首页...")
+    xml = _back_to_home(device)
+
+    # Step 2: Tap the search bar
+    print("  [2] 点击搜索栏...")
+    coord = find_by_rid(xml, "search_bar")
+    if not coord:
+        coord = find_by_rid(xml, "search")
+    if not coord:
+        coord = find_by_text_contains(xml, "Search")
+    if not coord:
+        coord = find_by_content_desc_contains(xml, "Search")
+    if not coord:
+        print("  [ERROR] 找不到搜索栏，尝试坐标点击 (540, 120)")
+        coord = (540, 120)
+
+    tap(*coord, device)
+    time.sleep(1.5)
+
+    # Dump the search input/suggestions page
+    xml_input = dump_xml(device)
+    save_dump(xml_input, "20_search_input_page")
+    all_ids.update(extract_resource_ids(xml_input))
+
+    # Step 3: Type query and submit
+    print(f"  [3] 输入搜索词: {query[:50]}{'...' if len(query) > 50 else ''}")
+    type_text(query, device)
+    time.sleep(0.5)
+    keyevent(66, device)  # Enter
+    time.sleep(4.0)
+
+    # Step 4: Dump "All" results tab (default)
+    print("  [4] Dump 全部结果 (All Results)...")
+    xml_all = dump_xml(device)
+    save_dump(xml_all, "21_general_search_all")
+    all_ids.update(extract_resource_ids(xml_all))
+
+    # Step 5: Scroll down once to see more results
+    print("  [5] 向下滚动查看更多结果...")
+    swipe(SCREEN_W // 2, 1600, SCREEN_W // 2, 600, 600, device)
+    time.sleep(2.0)
+    xml_scrolled = dump_xml(device)
+    save_dump(xml_scrolled, "21b_general_search_all_scrolled")
+    all_ids.update(extract_resource_ids(xml_scrolled))
+
+    # Step 6: Switch to each tab and dump
+    tabs_to_explore = [
+        ("People",    "人脉",  "22_general_search_people"),
+        ("Jobs",      "职位",  "23_general_search_jobs"),
+        ("Companies", "公司",  "24_general_search_companies"),
+        ("Posts",     "帖子",  "25_general_search_posts"),
+        ("Services",  "服务",  "26_general_search_services"),
+    ]
+
+    for en_label, zh_label, dump_name in tabs_to_explore:
+        print(f"  [6] 切换到 {en_label} ({zh_label}) tab...")
+        xml_curr = dump_xml(device)
+        coord = (_find_search_tab(xml_curr, en_label) or
+                 _find_search_tab(xml_curr, zh_label))
+        if coord:
+            tap(*coord, device)
+            time.sleep(3.0)
+            xml_tab = dump_xml(device)
+            save_dump(xml_tab, dump_name)
+            all_ids.update(extract_resource_ids(xml_tab))
+
+            # Scroll once for more results
+            swipe(SCREEN_W // 2, 1600, SCREEN_W // 2, 600, 600, device)
+            time.sleep(2.0)
+            xml_tab_scrolled = dump_xml(device)
+            save_dump(xml_tab_scrolled, f"{dump_name}_scrolled")
+            all_ids.update(extract_resource_ids(xml_tab_scrolled))
+        else:
+            print(f"    [WARN] 未找到 {en_label}/{zh_label} tab，跳过")
+
+    print("\n  [通用搜索探索完成]")
+    return xml_all
+
+
+def explore_ai_job_search(device: str, all_ids: Set[str], query: str) -> str:
+    """Explore LinkedIn's AI-powered job search feature.
+
+    Looks for the "尝试用 AI 进行职位搜索" prompt on the Jobs tab,
+    then inputs a description and dumps the AI search results.
+    """
+    print("\n" + "=" * 60)
+    print("[AI 职位搜索探索] AI Job Search Exploration")
+    print(f"  描述: {query}")
+    print("=" * 60)
+
+    # Step 1: Navigate to Jobs tab
+    print("\n  [1] 返回首页并导航到 Jobs tab...")
+    xml = _back_to_home(device)
+    tapped = tap_bottom_tab(xml, ["Jobs", "职位"], device, tab_index=2)
+    if not tapped:
+        print("  [ERROR] 找不到 Jobs tab")
+        return ""
+    time.sleep(2.5)
+    xml = dump_xml(device)
+
+    # Step 2: Look for AI search prompt
+    print("  [2] 查找 AI 搜索入口...")
+    ai_prompts = [
+        "尝试用 AI 进行职位搜索",
+        "Try AI job search",
+        "AI job search",
+        "尝试用AI进行职位搜索",
+        "AI 搜索",
+    ]
+
+    coord = None
+    for prompt in ai_prompts:
+        coord = find_by_text_contains(xml, prompt)
+        if coord:
+            print(f"    找到 AI 搜索入口: '{prompt}' at {coord}")
+            break
+        coord = find_by_content_desc_contains(xml, prompt)
+        if coord:
+            print(f"    找到 AI 搜索入口 (content-desc): '{prompt}' at {coord}")
+            break
+
+    if not coord:
+        print("  [WARN] 未在 Jobs tab 首页找到 AI 搜索入口")
+        print("  [INFO] 尝试向下滚动查找...")
+        swipe(SCREEN_W // 2, 1600, SCREEN_W // 2, 800, 600, device)
+        time.sleep(2.0)
+        xml = dump_xml(device)
+        save_dump(xml, "30_jobs_tab_scrolled_for_ai")
+        all_ids.update(extract_resource_ids(xml))
+
+        for prompt in ai_prompts:
+            coord = find_by_text_contains(xml, prompt)
+            if not coord:
+                coord = find_by_content_desc_contains(xml, prompt)
+            if coord:
+                print(f"    找到 AI 搜索入口: '{prompt}' at {coord}")
+                break
+
+    if not coord:
+        print("  [ERROR] 未找到 AI 搜索入口，dump 当前页面供人工检查")
+        save_dump(xml, "30_jobs_tab_no_ai_entry")
+        all_ids.update(extract_resource_ids(xml))
+        return xml
+
+    # Step 3: Tap AI search entry point
+    print("  [3] 点击 AI 搜索入口...")
+    tap(*coord, device)
+    time.sleep(2.5)
+
+    xml_ai_input = dump_xml(device)
+    save_dump(xml_ai_input, "31_ai_search_input_page")
+    all_ids.update(extract_resource_ids(xml_ai_input))
+
+    # Step 4: Type description
+    print(f"  [4] 输入描述: {query[:50]}{'...' if len(query) > 50 else ''}")
+    type_text(query, device)
+    time.sleep(0.5)
+
+    # Dump after typing (to see autocomplete/suggestions)
+    xml_typing = dump_xml(device)
+    save_dump(xml_typing, "32_ai_search_typing")
+    all_ids.update(extract_resource_ids(xml_typing))
+
+    # Press Enter / Submit
+    keyevent(66, device)
+    time.sleep(5.0)
+
+    # Step 5: Dump AI search results
+    print("  [5] Dump AI 搜索结果...")
+    xml_results = dump_xml(device)
+    save_dump(xml_results, "33_ai_search_results")
+    all_ids.update(extract_resource_ids(xml_results))
+
+    # Scroll for more results
+    print("  [6] 向下滚动查看更多 AI 结果...")
+    swipe(SCREEN_W // 2, 1600, SCREEN_W // 2, 600, 600, device)
+    time.sleep(2.0)
+    xml_scrolled = dump_xml(device)
+    save_dump(xml_scrolled, "33b_ai_search_results_scrolled")
+    all_ids.update(extract_resource_ids(xml_scrolled))
+
+    print("\n  [AI 搜索探索完成]")
+    return xml_results
+
+
+def explore_deep_link_search(device: str, all_ids: Set[str], query: str) -> str:
+    """Test if general search deep links work on LinkedIn Android app.
+
+    Tries: https://www.linkedin.com/search/results/all/?keywords={query}
+    """
+    import urllib.parse
+
+    print("\n" + "=" * 60)
+    print("[Deep Link 搜索测试] Deep Link Search Test")
+    print(f"  搜索词: {query}")
+    print("=" * 60)
+
+    encoded = urllib.parse.quote(query)
+
+    # Enable app links
+    shell("pm set-app-links --package com.linkedin.android 2 all", device)
+
+    # Force-stop to ensure clean state
+    shell(f"am force-stop {LINKEDIN_PACKAGE}", device)
+    time.sleep(1.0)
+
+    urls_to_test = [
+        ("all",       f"https://www.linkedin.com/search/results/all/?keywords={encoded}"),
+        ("people",    f"https://www.linkedin.com/search/results/people/?keywords={encoded}"),
+        ("companies", f"https://www.linkedin.com/search/results/companies/?keywords={encoded}"),
+    ]
+
+    last_xml = ""
+    for category, url in urls_to_test:
+        print(f"\n  [测试] {category}: {url}")
+        shell(f"am force-stop {LINKEDIN_PACKAGE}", device)
+        time.sleep(1.0)
+        shell(f'am start -a android.intent.action.VIEW -d "{url}"', device)
+        time.sleep(5.0)
+
+        xml = dump_xml(device)
+        dump_name = f"40_deeplink_{category}"
+        save_dump(xml, dump_name)
+        all_ids.update(extract_resource_ids(xml))
+
+        # Check if it landed on a search results page or just opened LinkedIn home
+        has_bottom_nav = "tab_jobs" in xml or "tab_feed" in xml
+        print(f"    底部导航栏: {'可见' if has_bottom_nav else '不可见'}")
+        print(f"    XML 大小: {len(xml):,} bytes")
+        last_xml = xml
+
+    print("\n  [Deep Link 测试完成]")
+    return last_xml
+
+
+# ---------------------------------------------------------------------------
 # Report generation
 # ---------------------------------------------------------------------------
 
@@ -459,20 +741,40 @@ def generate_report(all_ids: Set[str], dumps_dir: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="LinkedIn UI 全页面系统性探索脚本")
-    parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
+    parser.add_argument("--keyword", default=None,
+                        help="搜索关键词（原有全页面探索模式必需）")
+    parser.add_argument("--query", default=None,
+                        help="通用搜索/AI搜索的描述文字（positioning 模式必需）")
     parser.add_argument("--device", default=None,
                         help="ADB 设备 serial（省略时自动选择）")
     parser.add_argument("--no-launch", action="store_true",
                         help="跳过启动步骤（App 已在前台）")
+    parser.add_argument("--mode", default="all",
+                        choices=["all", "general-search", "ai-search", "deeplink-test", "positioning"],
+                        help="探索模式: all=全页面(默认), general-search=通用搜索, "
+                             "ai-search=AI职位搜索, deeplink-test=深链测试, "
+                             "positioning=通用+AI+深链(定位功能全套)")
     args = parser.parse_args()
 
+    # Validate args based on mode
+    if args.mode == "all" and not args.keyword:
+        parser.error("--keyword is required for mode 'all'")
+    if args.mode in ("general-search", "ai-search", "deeplink-test", "positioning"):
+        if not args.query and not args.keyword:
+            parser.error("--query (or --keyword) is required for this mode")
+
+    query = args.query or args.keyword or ""
     device = resolve_device(args.device)
     DUMP_DIR.mkdir(parents=True, exist_ok=True)
     all_ids: Set[str] = set()
 
     print("LinkedIn UI 探索脚本")
     print(f"设备: {device}")
-    print(f"关键词: {args.keyword}")
+    print(f"模式: {args.mode}")
+    if args.keyword:
+        print(f"关键词: {args.keyword}")
+    if args.query:
+        print(f"搜索描述: {args.query}")
     print(f"输出目录: {DUMP_DIR}")
     print("=" * 60)
     print("[重要] 探索前请确认：")
@@ -481,30 +783,58 @@ def main():
     print("=" * 60)
 
     if not args.no_launch:
-        print("\n[0] 启动 LinkedIn App…")
+        print("\n[0] 启动 LinkedIn App...")
         if not launch_linkedin(device):
             print("  [ERROR] 启动失败")
             sys.exit(1)
-        print("  ✓ App 已启动")
+        print("  App 已启动")
     else:
         time.sleep(1.0)
 
-    home_xml = explore_home(device, all_ids)
-    jobs_xml = explore_jobs_tab(device, all_ids)
-    search_xml = explore_job_search(device, all_ids, jobs_xml or home_xml, args.keyword)
-    explore_job_detail(device, all_ids, search_xml)
+    if args.mode == "all":
+        # Original full-page exploration
+        home_xml = explore_home(device, all_ids)
+        jobs_xml = explore_jobs_tab(device, all_ids)
+        search_xml = explore_job_search(device, all_ids, jobs_xml or home_xml, args.keyword)
+        explore_job_detail(device, all_ids, search_xml)
 
-    launch_linkedin(device)
-    time.sleep(2.0)
+        launch_linkedin(device)
+        time.sleep(2.0)
 
-    explore_messaging_tab(device, all_ids)
-    explore_profile_tab(device, all_ids)
+        explore_messaging_tab(device, all_ids)
+        explore_profile_tab(device, all_ids)
 
-    launch_linkedin(device)
-    time.sleep(2.0)
+        launch_linkedin(device)
+        time.sleep(2.0)
 
-    explore_network_tab(device, all_ids)
-    explore_notifications(device, all_ids)
+        explore_network_tab(device, all_ids)
+        explore_notifications(device, all_ids)
+
+    elif args.mode == "general-search":
+        explore_general_search(device, all_ids, query)
+
+    elif args.mode == "ai-search":
+        explore_ai_job_search(device, all_ids, query)
+
+    elif args.mode == "deeplink-test":
+        explore_deep_link_search(device, all_ids, query)
+
+    elif args.mode == "positioning":
+        # Full positioning exploration: deep link test + general search + AI search
+        print("\n>>> 定位功能 UI 全套探索 <<<")
+
+        print("\n--- Phase 1/3: Deep Link 可行性测试 ---")
+        explore_deep_link_search(device, all_ids, query)
+
+        print("\n--- Phase 2/3: 通用搜索栏探索 ---")
+        launch_linkedin(device)
+        time.sleep(2.0)
+        explore_general_search(device, all_ids, query)
+
+        print("\n--- Phase 3/3: AI 职位搜索探索 ---")
+        launch_linkedin(device)
+        time.sleep(2.0)
+        explore_ai_job_search(device, all_ids, query)
 
     generate_report(all_ids, DUMP_DIR)
     print("\n探索完成！")

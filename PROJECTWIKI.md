@@ -79,10 +79,13 @@ flowchart LR
 | `services/` | 保活服务 |
 | `skills/xhs/` | 小红书（XHS）自动化 skill（UIAutomator 坐标驱动） |
 | `skills/boss/` | Boss直聘自动化 skill（ADBManager 驱动） |
+| `skills/linkedin/` | LinkedIn 自动化 skill（ADBRunner 驱动，Jetpack Compose SDUI） |
 | `scenarios/xhs/` | XHS 场景：任务脚本、工具脚本、文档 |
 | `scenarios/boss/` | Boss直聘场景：求职工作流、文档 |
 | `scenarios/boss/scripts/scrape_job_details.py` | 职位详情爬虫：驱动 Boss直聘 App 滚动列表 → 进入详情 → 提取字段，爬取结果直写 `requirements.db` 的 `job_details` 表（`dedup_key UNIQUE` 全局去重），不再生成 JSON 文件 |
 | `scenarios/boss/scripts/analyze_requirements.py` | 职位需求分析引擎：优先从 `job_details` 表读取（回落 JSON），LLM提取需求标签 → `requirements.db` 存储 → 频次/薪资/公司质量评分 → Markdown报告 |
+| `scenarios/linkedin/scripts/ai_search_positioning.py` | LinkedIn AI 市场定位分析：deep link 搜索 → 多 result_type 滚动采集 → SQLite 去重 → Claude Haiku 分析 → Markdown 报告 |
+| `scenarios/linkedin/config/positioning.yaml` | 定位分析配置：搜索查询列表（all/people/companies/content）、简历路径、采集参数 |
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
 | `tasks/` | 通用任务脚本（微信、测试等） |
 | `scripts/` | 通用环境安装与连接测试脚本 |
@@ -294,6 +297,39 @@ python scenarios/boss/scripts/analyze_requirements.py [--keyword KW] [--force]
 ```
 
 **增量处理**：已存入 DB 的 job 默认跳过（按 `source_file + job_index` 去重），`--force` 重置。
+
+### LinkedIn AI 搜索定位（`scenarios/linkedin/`）
+
+**功能**：输入简历/职位描述，驱动 LinkedIn App 搜索，收集多维度结果（职位/人脉/公司/帖子），调用 Claude Haiku 分析市场定位，生成 Markdown 报告。
+
+**运行**：
+```powershell
+$env:PYTHONIOENCODING="utf-8"
+python scenarios/linkedin/scripts/ai_search_positioning.py [--skip-collect] [--skip-analyze] [--dry-run] [--dump-xml]
+```
+
+**数据库 Schema**（`scenarios/linkedin/output/positioning.db`）：
+
+| 表 | 字段 | 说明 |
+|----|------|------|
+| `search_sessions` | `id, query, result_type, timestamp, result_count` | 每次子查询的搜索记录；`query` 存储实际搜索词（子查询），非父查询 |
+| `results` | `id, session_id, category, title, subtitle, detail, meta_json, dedup_key UNIQUE` | 采集结果；`dedup_key = f"{category}:{title}:{subtitle}"[:200]` |
+| `analyses` | `id, query, timestamp, result_json, report_path` | Claude Haiku 分析输出（JSON）及报告路径 |
+
+**关键设计决策**：
+- `search_sessions.query` 存子查询（如 "AI产品经理"），分析时不按 query 过滤，直接全量加载 `results`（避免父/子查询不匹配的 JOIN 问题）
+- `dedup_key UNIQUE` 在跨 session 的多次搜索中去重
+- People 解析器：Compose SDUI 中 person 数据在 `text` 节点（`"{Name} • N 度+"`），`content-desc` 仅在操作按钮上（详见 `project_linkedin_lessons.md` §9）
+
+**LinkedInAutomationSkill 新增 API**（`skills/linkedin/linkedin_automation_skill.py`）：
+
+| 方法 | 说明 |
+|------|------|
+| `search_via_deeplink(query, result_type)` | force-stop → deep link → poll 等待页面加载；result_type: all/people/companies/content |
+| `collect_search_results_with_scroll(max_results, max_scrolls)` | 滚动采集当前搜索页结果，调用各 category 解析器 |
+| `_parse_search_people(root)` | text 节点近邻匹配解析人脉卡片 |
+| `_parse_search_companies(root)` | 解析公司搜索结果 |
+| `_parse_search_posts(root)` | 解析内容/帖子结果 |
 
 ## 12. 变更日志
 

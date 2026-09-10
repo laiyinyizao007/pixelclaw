@@ -104,6 +104,16 @@ class JobInfo:
     raw:         Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class SearchResult:
+    """A single result from LinkedIn general search (any category)."""
+    category: str = ""      # "job", "person", "company", "post"
+    title: str = ""
+    subtitle: str = ""
+    detail: str = ""
+    meta: Dict[str, str] = field(default_factory=dict)
+
+
 class LinkedInAutomationSkill(AndroidSkill):
     """
     High-level automation skill for LinkedIn.
@@ -865,6 +875,414 @@ class LinkedInAutomationSkill(AndroidSkill):
                         and not t.startswith("按")):
                     detail["company"] = t
                     break
+
+    # ------------------------------------------------------------------
+    # General search (deep link based)
+    # ------------------------------------------------------------------
+
+    # Tab content-desc labels used on the search results page.
+    # Format: content-desc="按{label}筛选"
+    _SEARCH_TAB_MAP: Dict[str, str] = {
+        "all":       "",               # default tab, no switch needed
+        "jobs":      "按职位筛选",
+        "people":    "按会员筛选",
+        "companies": "按公司筛选",
+        "posts":     "按动态筛选",
+        "groups":    "按群组筛选",
+        "schools":   "按学校筛选",
+        "courses":   "按课程筛选",
+        "events":    "按活动筛选",
+    }
+
+    # Deep link URL path for each result type
+    _SEARCH_URL_MAP: Dict[str, str] = {
+        "all":       "search/results/all",
+        "people":    "search/results/people",
+        "companies": "search/results/companies",
+        "content":   "search/results/content",   # posts
+        "jobs":      "jobs/search",
+    }
+
+    def search_via_deeplink(self, query: str, result_type: str = "all") -> bool:
+        """Navigate to LinkedIn search results via HTTPS deep link.
+
+        Uses the same force-stop → deep link → poll pattern as browse_jobs().
+        result_type: "all", "people", "companies", "content" (posts), "jobs"
+        """
+        import urllib.parse
+        encoded = urllib.parse.quote(query)
+        path = self._SEARCH_URL_MAP.get(result_type, "search/results/all")
+        url = f"https://www.linkedin.com/{path}/?keywords={encoded}"
+
+        self._adb("shell pm set-app-links --package com.linkedin.android 2 all")
+        self._adb("shell am force-stop com.linkedin.android")
+        self._lock_portrait()
+        time.sleep(1.0)
+
+        self._logger.info("[search_via_deeplink] %s → %s", result_type, url)
+        self._adb(f'shell am start -a android.intent.action.VIEW -d "{url}"')
+
+        for _ in range(15):
+            time.sleep(1.5)
+            xml = self.get_ui_hierarchy(force_refresh=True)
+            if self._is_search_page_loaded(xml):
+                self._logger.debug("[search_via_deeplink] 搜索页已加载")
+                return True
+
+        self._logger.warning("[search_via_deeplink] 等待超时，尝试继续")
+        return True
+
+    @staticmethod
+    def _is_search_page_loaded(xml: str) -> bool:
+        """True when a search results page is loaded (any type)."""
+        return ("sdui:lazyColumn" in xml or "sdui:lazyRow" in xml) and "tab_jobs" not in xml
+
+    def switch_search_tab(self, tab_name: str, xml: Optional[str] = None) -> bool:
+        """Switch to a specific tab on the search results page.
+
+        Uses content-desc="按{X}筛选" pattern discovered from XML exploration.
+        """
+        target_desc = self._SEARCH_TAB_MAP.get(tab_name)
+        if target_desc is None:
+            self._logger.warning("[switch_search_tab] 未知 tab: %s", tab_name)
+            return False
+        if not target_desc:
+            return True  # "all" is default
+
+        if xml is None:
+            xml = self.get_ui_hierarchy()
+        root = self._parse_xml(xml)
+        if root is None:
+            return False
+
+        for node in root.iter("node"):
+            desc = node.attrib.get("content-desc", "").strip()
+            if desc == target_desc:
+                bounds = node.attrib.get("bounds", "")
+                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+                if bm:
+                    cx = (int(bm.group(1)) + int(bm.group(3))) // 2
+                    cy = (int(bm.group(2)) + int(bm.group(4))) // 2
+                    self._adb(f"shell input tap {cx} {cy}")
+                    time.sleep(self.action_delay)
+                    self._logger.info("[switch_search_tab] 切换到 %s", tab_name)
+                    return True
+
+        self._logger.warning("[switch_search_tab] 未找到 tab '%s' (content-desc='%s')",
+                             tab_name, target_desc)
+        return False
+
+    def parse_search_results(self, xml: Optional[str] = None) -> List[SearchResult]:
+        """Parse all search results from the current page.
+
+        Auto-detects result types from content-desc patterns.
+        Works on both ALL results page (mixed sections) and category-specific pages.
+        """
+        if xml is None:
+            xml = self.get_ui_hierarchy()
+        root = self._parse_xml(xml)
+        if root is None:
+            return []
+
+        results: List[SearchResult] = []
+        results.extend(self._parse_search_jobs(root))
+        results.extend(self._parse_search_people(root))
+        results.extend(self._parse_search_posts(root))
+        return results
+
+    def _parse_search_jobs(self, root: ET.Element) -> List[SearchResult]:
+        """Extract job results from search page.
+
+        Pattern: content-desc="保存此{Title}职位" (save button on each job card)
+        OR content-desc="{Title} (已通过验证的职位)" (verified title node)
+        """
+        results: List[SearchResult] = []
+        save_re = re.compile(r"^保存此(.+?)职位$")
+        verified_re = re.compile(r"^(.+?)\s*\(已通过验证的职位\)$")
+        seen_titles: set = set()
+
+        # Also try the button format from search results pages
+        for node in root.iter("node"):
+            desc = node.attrib.get("content-desc", "").strip()
+
+            # Method 1: "保存此{Title}职位" save button
+            m = save_re.match(desc)
+            if m:
+                title = normalize_job_title(m.group(1))
+                if title and title not in seen_titles:
+                    seen_titles.add(title)
+                    meta = self._extract_job_context(root, node, title)
+                    results.append(SearchResult(
+                        category="job", title=title,
+                        subtitle=meta.get("company", ""),
+                        detail=meta.get("location", ""),
+                        meta=meta,
+                    ))
+                continue
+
+            # Method 2: "{Title} (已通过验证的职位)" verified title
+            m = verified_re.match(desc)
+            if m:
+                title = normalize_job_title(m.group(1))
+                if title and title not in seen_titles:
+                    seen_titles.add(title)
+                    meta = self._extract_job_context(root, node, title)
+                    results.append(SearchResult(
+                        category="job", title=title,
+                        subtitle=meta.get("company", ""),
+                        detail=meta.get("location", ""),
+                        meta=meta,
+                    ))
+                continue
+
+            # Method 3: clickable button with "已验证" (search results page)
+            if ("已验证" in desc and node.attrib.get("clickable") == "true"
+                    and desc not in seen_titles):
+                if desc.endswith(", Button"):
+                    desc = desc[:-len(", Button")]
+                parts = desc.split(", 已验证, ", 1)
+                if len(parts) == 2:
+                    title = normalize_job_title(parts[0])
+                    if title and title not in seen_titles:
+                        seen_titles.add(title)
+                        rest = [p.strip() for p in parts[1].split(", ")]
+                        results.append(SearchResult(
+                            category="job", title=title,
+                            subtitle=rest[0] if rest else "",
+                            detail=rest[1] if len(rest) > 1 else "",
+                            meta={"company": rest[0] if rest else "",
+                                  "location": rest[1] if len(rest) > 1 else ""},
+                        ))
+
+        return results
+
+    def _extract_job_context(self, root: ET.Element, anchor: ET.Element,
+                             title: str) -> Dict[str, str]:
+        """Extract company/location from text nodes near a job card anchor."""
+        meta: Dict[str, str] = {}
+        bounds = anchor.attrib.get("bounds", "")
+        bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+        if not bm:
+            return meta
+
+        ay1, ay2 = int(bm.group(2)), int(bm.group(4))
+        margin = (ay2 - ay1) * 3
+        skip_words = ("保存", "关闭", "已通过", "筛选", "显示全部")
+
+        texts_in_band: List[str] = []
+        for node in root.iter("node"):
+            t = node.attrib.get("text", "").strip()
+            if not t or len(t) < 2 or any(w in t for w in skip_words):
+                continue
+            nb = node.attrib.get("bounds", "")
+            nbm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", nb)
+            if not nbm:
+                continue
+            ny1 = int(nbm.group(2))
+            if ay1 - margin <= ny1 <= ay2 + margin:
+                if title not in t and "(已通过验证的职位)" not in t:
+                    texts_in_band.append(t)
+
+        if texts_in_band:
+            meta["company"] = texts_in_band[0]
+        if len(texts_in_band) > 1:
+            meta["location"] = texts_in_band[1]
+        if len(texts_in_band) > 2:
+            time_match = re.search(r"\d+\s*(天|周|月|小时)", texts_in_band[2])
+            if time_match:
+                meta["posted_time"] = texts_in_band[2]
+
+        return meta
+
+    def _parse_search_people(self, root: ET.Element) -> List[SearchResult]:
+        """Extract people results from search page (text-node based).
+
+        Actual XML structure (from live dump):
+          Named person:    TextView text="{Name} • N 度+"
+                           TextView text="{headline}"
+          Anonymous member: TextView text="领英会员"
+                             TextView text="{headline}"
+        All data is in text nodes; content-desc is only on action buttons.
+        """
+        # Collect all text nodes sorted top-to-bottom
+        text_nodes: list = []
+        for node in root.iter("node"):
+            t = node.attrib.get("text", "").strip()
+            if not t or len(t) < 2:
+                continue
+            bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+                          node.attrib.get("bounds", ""))
+            if bm:
+                text_nodes.append({
+                    "t": t,
+                    "x1": int(bm.group(1)), "y1": int(bm.group(2)),
+                    "x2": int(bm.group(3)), "y2": int(bm.group(4)),
+                })
+        text_nodes.sort(key=lambda n: n["y1"])
+
+        results: list = []
+        seen: set = set()
+        degree_re = re.compile(r"^(.+?) • (\d+)\s*度\+?$")
+
+        _SKIP = {"领英会员", "这些结果有用吗", "您的反馈", "摘要"}
+
+        def _is_skip(t: str) -> bool:
+            return any(t.startswith(s) for s in _SKIP) or len(t) < 3
+
+        def _headline_after(idx: int) -> tuple:
+            """Return (headline, job_info) from the next few text nodes."""
+            item = text_nodes[idx]
+            headline = job = ""
+            for j in range(idx + 1, min(idx + 6, len(text_nodes))):
+                cand = text_nodes[j]
+                if cand["y1"] > item["y2"] + 260:
+                    break
+                if abs(cand["x1"] - item["x1"]) > 120:
+                    continue
+                t2 = cand["t"]
+                if _is_skip(t2):
+                    continue
+                if not headline:
+                    headline = t2
+                elif t2.startswith("目前就职:"):
+                    job = t2[5:].strip()
+                    break
+            return headline, job
+
+        # Pattern 1: Named persons — text = "{Name} • N 度+"
+        for i, item in enumerate(text_nodes):
+            m = degree_re.match(item["t"])
+            if not m:
+                continue
+            name = m.group(1).strip()
+            if name in seen:
+                continue
+            seen.add(name)
+            headline, job = _headline_after(i)
+            results.append(SearchResult(
+                category="person", title=name,
+                subtitle=headline,
+                detail=job,
+                meta={"degree": m.group(2)},
+            ))
+
+        # Pattern 2: Anonymous LinkedIn Members — text = "领英会员"
+        for i, item in enumerate(text_nodes):
+            if item["t"] != "领英会员":
+                continue
+            headline, job = _headline_after(i)
+            if not headline:
+                continue
+            key = f"anon:{headline}"
+            if key in seen:
+                continue
+            seen.add(key)
+            results.append(SearchResult(
+                category="person", title=headline,
+                subtitle=job,
+                meta={"anonymous": True},
+            ))
+
+        return results
+
+    def _parse_search_posts(self, root: ET.Element) -> List[SearchResult]:
+        """Extract post results from search page.
+
+        Posts are identified by:
+        - Author info: content-desc containing "度+" (connection degree)
+        - Post body: long text nodes (>50 chars) near the author
+        - Time info: content-desc matching "N 天 • 可见范围:" pattern
+        """
+        results: List[SearchResult] = []
+        # Collect long text nodes as potential post bodies
+        long_texts: List[tuple] = []  # (y_center, text)
+        for node in root.iter("node"):
+            t = node.attrib.get("text", "").strip()
+            if t and len(t) > 80:
+                bounds = node.attrib.get("bounds", "")
+                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+                if bm:
+                    cy = (int(bm.group(2)) + int(bm.group(4))) // 2
+                    # Skip known non-post content
+                    if ("位会员" not in t and "筛选" not in t
+                            and "已验证" not in t):
+                        long_texts.append((cy, t))
+
+        # For each long text, look for a nearby author node
+        time_re = re.compile(r"(\d+)\s*(天|周|月|小时|分钟)\s*[·•]")
+        seen_texts: set = set()
+
+        for ty, text in long_texts:
+            if text in seen_texts:
+                continue
+            seen_texts.add(text)
+
+            # Look for author name in nearby nodes (above the post text)
+            author = ""
+            for node in root.iter("node"):
+                desc = node.attrib.get("content-desc", "").strip()
+                if "度+" not in desc and "的职业档案" not in desc:
+                    continue
+                bounds = node.attrib.get("bounds", "")
+                bm = re.match(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", bounds)
+                if not bm:
+                    continue
+                ny = (int(bm.group(2)) + int(bm.group(4))) // 2
+                # Author should be above or near the post text
+                if ty - 500 < ny < ty:
+                    # Extract name from desc
+                    if "的职业档案" in desc:
+                        m = re.match(r"查看(.+?)的职业档案", desc)
+                        if m:
+                            author = m.group(1).strip()
+                    elif "度+" in desc:
+                        m = re.match(r"^(.+?)[，,]", desc)
+                        if m:
+                            author = m.group(1).strip()
+                    break
+
+            results.append(SearchResult(
+                category="post",
+                title=author or "(unknown)",
+                subtitle=text[:100],
+                detail=text,
+                meta={"author": author, "full_text": text},
+            ))
+
+        return results
+
+    def collect_search_results_with_scroll(
+        self, max_results: int = 20, max_scrolls: int = 8,
+    ) -> List[SearchResult]:
+        """Collect search results by scrolling down the page.
+
+        Returns deduplicated results up to max_results.
+        """
+        all_results: List[SearchResult] = []
+        seen_keys: set = set()
+
+        for scroll_i in range(max_scrolls + 1):
+            xml = self.get_ui_hierarchy(force_refresh=True)
+            page_results = self.parse_search_results(xml)
+
+            for r in page_results:
+                key = f"{r.category}:{r.title}:{r.subtitle}"
+                if key not in seen_keys:
+                    seen_keys.add(key)
+                    all_results.append(r)
+
+            if len(all_results) >= max_results:
+                break
+
+            if scroll_i < max_scrolls:
+                self.scroll_down(start_y=1800, end_y=600)
+                time.sleep(self.action_delay)
+
+        self._logger.info(
+            "[collect_search_results] 收集 %d 条结果 (%d 次滚动)",
+            len(all_results), scroll_i + 1,
+        )
+        return all_results[:max_results]
 
     # ------------------------------------------------------------------
     # Scroll helpers
