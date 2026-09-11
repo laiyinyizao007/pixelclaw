@@ -1,0 +1,114 @@
+name: Claude Issue Handler
+
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: '手动测试提示词'
+        required: true
+        default: '你好，请介绍一下你自己。'
+
+jobs:
+  claude:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.actor == github.repository_owner &&
+      github.event_name == 'issue_comment' &&
+      contains(github.event.comment.body, '@claude')) ||
+      (github.actor == github.repository_owner &&
+      github.event_name == 'issues' &&
+      (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Extract trigger content
+        id: extract
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let content, issueNumber, issueTitle;
+            if (context.eventName === 'workflow_dispatch') {
+              content = context.payload.inputs.prompt;
+              issueNumber = '';
+              issueTitle = '手动测试';
+            } else if (context.eventName === 'issue_comment') {
+              content = context.payload.comment.body.replace(/@claude\s*/gi, '').trim();
+              issueNumber = String(context.payload.issue.number);
+              issueTitle = context.payload.issue.title;
+            } else {
+              const body = context.payload.issue.body || '';
+              const title = context.payload.issue.title || '';
+              content = (title + '\n\n' + body).replace(/@claude\s*/gi, '').trim();
+              issueNumber = String(context.payload.issue.number);
+              issueTitle = title;
+            }
+            core.setOutput('content', content);
+            core.setOutput('issue_number', issueNumber);
+            core.setOutput('issue_title', issueTitle);
+
+      - name: Run Claude Code
+        id: claude
+        env:
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+          PROMPT_CONTENT: ${{ steps.extract.outputs.content }}
+          ISSUE_TITLE: ${{ steps.extract.outputs.issue_title }}
+          ISSUE_NUMBER: ${{ steps.extract.outputs.issue_number }}
+        run: |
+          # 将 prompt 写入临时文件，避免多行字符串破坏 YAML
+          PROMPT_FILE=$(mktemp)
+          printf 'Issue #%s: %s\n\n%s' "$ISSUE_NUMBER" "$ISSUE_TITLE" "$PROMPT_CONTENT" > "$PROMPT_FILE"
+
+          {
+            echo 'result<<CLAUDE_EOF'
+            claude --print "$(cat "$PROMPT_FILE")" 2>/dev/null \
+              || echo "Claude CLI 执行失败，请检查 Action 日志。"
+            echo 'CLAUDE_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          rm -f "$PROMPT_FILE"
+
+      - name: Post comment to Issue
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          CLAUDE_RESULT: ${{ steps.claude.outputs.result }}
+          ISSUE_NUMBER: ${{ steps.extract.outputs.issue_number }}
+        with:
+          script: |
+            const issueNumber = parseInt(process.env.ISSUE_NUMBER || '');
+            if (!issueNumber) return;
+            const result = process.env.CLAUDE_RESULT || '';
+            const body = result.trim() || 'Claude 处理完毕，但无文字输出。';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: body
+            });
+
+      - name: Print result (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CLAUDE_RESULT: ${{ steps.claude.outputs.result }}
+        run: echo "$CLAUDE_RESULT"
