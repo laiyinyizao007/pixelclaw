@@ -45,15 +45,38 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            let content, issueNumber, issueTitle;
+            let content, issueNumber, issueTitle, history = '';
             if (context.eventName === 'workflow_dispatch') {
               content = context.payload.inputs.prompt;
               issueNumber = '';
               issueTitle = '手动测试';
             } else if (context.eventName === 'issue_comment') {
+              const triggerCommentId = context.payload.comment.id;
               content = context.payload.comment.body.replace(/@claude\s*/gi, '').trim();
               issueNumber = String(context.payload.issue.number);
               issueTitle = context.payload.issue.title;
+
+              // 拉取 Issue 正文 + 所有历史评论（不含当前触发的评论）
+              const issue = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number
+              });
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number
+              });
+
+              const parts = [];
+              if (issue.data.body && issue.data.body.trim()) {
+                parts.push(`**${issue.data.user.login}** (Issue 正文):\n${issue.data.body.trim()}`);
+              }
+              for (const c of comments) {
+                if (c.id === triggerCommentId) break;
+                parts.push(`**${c.user.login}**:\n${c.body}`);
+              }
+              history = parts.join('\n\n---\n\n');
             } else {
               const body = context.payload.issue.body || '';
               const title = context.payload.issue.title || '';
@@ -64,6 +87,7 @@ jobs:
             core.setOutput('content', content);
             core.setOutput('issue_number', issueNumber);
             core.setOutput('issue_title', issueTitle);
+            core.setOutput('history', history);
 
       - name: Run Claude Code
         id: claude
@@ -74,10 +98,15 @@ jobs:
           PROMPT_CONTENT: ${{ steps.extract.outputs.content }}
           ISSUE_TITLE: ${{ steps.extract.outputs.issue_title }}
           ISSUE_NUMBER: ${{ steps.extract.outputs.issue_number }}
+          HISTORY: ${{ steps.extract.outputs.history }}
         run: |
-          # 将 prompt 写入临时文件，避免多行字符串破坏 YAML
           PROMPT_FILE=$(mktemp)
-          printf 'Issue #%s: %s\n\n%s' "$ISSUE_NUMBER" "$ISSUE_TITLE" "$PROMPT_CONTENT" > "$PROMPT_FILE"
+          if [[ -n "$HISTORY" ]]; then
+            printf 'Issue #%s: %s\n\n--- 对话历史 ---\n%s\n\n--- 当前问题 ---\n%s' \
+              "$ISSUE_NUMBER" "$ISSUE_TITLE" "$HISTORY" "$PROMPT_CONTENT" > "$PROMPT_FILE"
+          else
+            printf 'Issue #%s: %s\n\n%s' "$ISSUE_NUMBER" "$ISSUE_TITLE" "$PROMPT_CONTENT" > "$PROMPT_FILE"
+          fi
 
           {
             echo 'result<<CLAUDE_EOF'
