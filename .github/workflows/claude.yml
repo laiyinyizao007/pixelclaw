@@ -12,6 +12,10 @@ on:
         required: true
         default: '你好，请介绍一下你自己。'
 
+concurrency:
+  group: claude-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   claude:
     if: >-
@@ -108,14 +112,30 @@ jobs:
             printf 'Issue #%s: %s\n\n%s' "$ISSUE_NUMBER" "$ISSUE_TITLE" "$PROMPT_CONTENT" > "$PROMPT_FILE"
           fi
 
+          set +e
+          claude --print --permission-mode acceptEdits \
+            --allowedTools "Read,Edit,Write,Bash(git:*),Bash(gh pr:*)" \
+            "$(cat "$PROMPT_FILE")" >/tmp/claude.out 2>/tmp/claude.err
+          STATUS=$?
+          set -e
+
+          echo "--- claude stderr (exit=$STATUS) ---"
+          cat /tmp/claude.err
+
           {
             echo 'result<<CLAUDE_EOF'
-            claude --print "$(cat "$PROMPT_FILE")" 2>/dev/null \
-              || echo "Claude CLI 执行失败，请检查 Action 日志。"
+            if [[ $STATUS -eq 0 && -s /tmp/claude.out ]]; then
+              cat /tmp/claude.out
+            else
+              echo "Claude CLI 执行失败（exit=$STATUS），错误摘要："
+              echo '```'
+              tail -n 20 /tmp/claude.err
+              echo '```'
+            fi
             echo 'CLAUDE_EOF'
           } >> "$GITHUB_OUTPUT"
 
-          rm -f "$PROMPT_FILE"
+          rm -f "$PROMPT_FILE" /tmp/claude.out /tmp/claude.err
 
       - name: Post comment to Issue
         if: always()
