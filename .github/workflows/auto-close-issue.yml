@@ -14,64 +14,95 @@ jobs:
         with:
           github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
-            const owner = context.repo.owner;
-            const issueNodeId = context.payload.issue.node_id;
-            const projectNum = parseInt(process.env.PROJECT_NUMBER);
+            // Retry wrapper: exponential backoff, skip on auth errors.
+            async function graphqlWithRetry(query, vars, max = 3) {
+              let lastErr;
+              for (let i = 1; i <= max; i++) {
+                try { return await github.graphql(query, vars); }
+                catch (e) {
+                  if ([401, 403].includes(e.status)) throw e;
+                  lastErr = e;
+                  if (i < max) await new Promise(r => setTimeout(r, 1000 * 2 ** (i - 1)));
+                }
+              }
+              throw lastErr;
+            }
 
-            // Query project Status field and issue's project item in one call
-            const data = await github.graphql(`
-              query($login: String!, $num: Int!, $issueId: ID!) {
-                user(login: $login) {
-                  projectV2(number: $num) {
-                    id
-                    fields(first: 20) {
-                      nodes {
-                        __typename
-                        ... on ProjectV2SingleSelectField {
-                          id name options { id name }
-                        }
+            try {
+              const owner = context.repo.owner;
+              const issueNodeId = context.payload.issue.node_id;
+              const issueNum = context.payload.issue.number;
+              const projectNum = parseInt(process.env.PROJECT_NUMBER);
+
+              // Query project Status field and issue's project item in one call.
+              // repositoryOwner is used instead of user() to support both User and Org accounts.
+              const data = await graphqlWithRetry(`
+                fragment proj on ProjectV2 {
+                  id
+                  fields(first: 20) {
+                    nodes {
+                      __typename
+                      ... on ProjectV2SingleSelectField {
+                        id name options { id name }
                       }
                     }
                   }
                 }
-                node(id: $issueId) {
-                  ... on Issue {
-                    projectItems(first: 10) {
-                      nodes { id project { id } }
+                query($login: String!, $num: Int!, $issueId: ID!) {
+                  repositoryOwner(login: $login) {
+                    ... on User         { projectV2(number: $num) { ...proj } }
+                    ... on Organization { projectV2(number: $num) { ...proj } }
+                  }
+                  node(id: $issueId) {
+                    ... on Issue {
+                      projectItems(first: 10) {
+                        nodes { id project { id } }
+                      }
                     }
                   }
-                }
-              }`, { login: owner, num: projectNum, issueId: issueNodeId });
+                }`, { login: owner, num: projectNum, issueId: issueNodeId });
 
-            const project = data.user?.projectV2;
-            if (!project) return console.log('Project not found');
+              const project = data.repositoryOwner?.projectV2;
+              if (!project) {
+                console.log(`Project #${projectNum} not found for ${owner}, skipping.`);
+                return;
+              }
 
-            const statusField = project.fields.nodes.find(
-              f => f.__typename === 'ProjectV2SingleSelectField' && f.name === 'Status'
-            );
-            if (!statusField) return console.log('Status field not found');
+              const statusField = project.fields.nodes.find(
+                f => f.__typename === 'ProjectV2SingleSelectField' && f.name === 'Status'
+              );
+              if (!statusField) { console.log('Status field not found, skipping.'); return; }
 
-            const doneOption = statusField.options.find(o => o.name === 'Done');
-            if (!doneOption) return console.log('Done option not found');
+              const doneOption = statusField.options.find(o => o.name === 'Done');
+              if (!doneOption) { console.log('Done option not found, skipping.'); return; }
 
-            const projectItem = data.node?.projectItems?.nodes?.find(
-              item => item.project.id === project.id
-            );
-            if (!projectItem) return console.log(`Issue #${context.payload.issue.number} not in project, skipping`);
+              const projectItem = data.node?.projectItems?.nodes?.find(
+                item => item.project.id === project.id
+              );
+              // Issue not in project is a normal case — skip silently.
+              if (!projectItem) {
+                console.log(`Issue #${issueNum} not in project #${projectNum}, skipping.`);
+                return;
+              }
 
-            await github.graphql(`
-              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: $projectId
-                  itemId: $itemId
-                  fieldId: $fieldId
-                  value: { singleSelectOptionId: $optionId }
-                }) { projectV2Item { id } }
-              }`, {
-                projectId: project.id,
-                itemId: projectItem.id,
-                fieldId: statusField.id,
-                optionId: doneOption.id
-              });
+              await graphqlWithRetry(`
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: { singleSelectOptionId: $optionId }
+                  }) { projectV2Item { id } }
+                }`, {
+                  projectId: project.id,
+                  itemId: projectItem.id,
+                  fieldId: statusField.id,
+                  optionId: doneOption.id
+                });
 
-            console.log(`✅ Issue #${context.payload.issue.number} → Done`);
+              console.log(`✅ Issue #${issueNum} → Done`);
+
+            } catch (e) {
+              // Closing an issue is not critical enough to fail the workflow.
+              core.warning(`Failed to set Status=Done for issue #${context.payload.issue?.number ?? '?'}: ${e.message}`);
+            }
