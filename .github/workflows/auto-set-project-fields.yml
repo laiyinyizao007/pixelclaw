@@ -14,113 +14,162 @@ jobs:
         with:
           github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
-            const label = context.payload.label.name;
-            const issueNodeId = context.payload.issue.node_id;
-            const projectNum = parseInt(process.env.PROJECT_NUMBER);
-            const owner = context.repo.owner;
-
-            // 标签 → (字段名, 选项名) 映射
-            let targetField = null, targetOption = null;
-
-            if (label.startsWith('priority: ')) {
-              targetField = 'Priority';
-              const map = { P0: '🔴 P0', P1: '🟠 P1', P2: '🟡 P2', P3: '🟢 P3' };
-              targetOption = map[label.replace('priority: ', '')];
-            } else if (['task', 'bug', 'feature', 'research', 'epic'].includes(label)) {
-              targetField = 'Category';
-              targetOption = label;
-            } else if (label.startsWith('size: ')) {
-              targetField = 'Size';
-              targetOption = label.replace('size: ', '');
-            } else if (label.startsWith('status: ')) {
-              targetField = 'Status';
-              const map = {
-                'todo':        'Todo',
-                'in-progress': 'In Progress',
-                'blocked':     'Blocked',
-                'review':      'In Review',
-                'done':        'Done',
-              };
-              targetOption = map[label.replace('status: ', '')];
+            // Retry wrapper: exponential backoff, skip on auth errors.
+            async function graphqlWithRetry(query, vars, max = 3) {
+              let lastErr;
+              for (let i = 1; i <= max; i++) {
+                try { return await github.graphql(query, vars); }
+                catch (e) {
+                  if ([401, 403].includes(e.status)) throw e;
+                  lastErr = e;
+                  if (i < max) await new Promise(r => setTimeout(r, 1000 * 2 ** (i - 1)));
+                }
+              }
+              throw lastErr;
             }
 
-            if (!targetField || !targetOption) {
-              console.log(`Label "${label}" has no field mapping, skipping.`);
-              return;
-            }
+            try {
+              const label = context.payload.label.name;
+              const issueNodeId = context.payload.issue.node_id;
+              const projectNum = parseInt(process.env.PROJECT_NUMBER);
+              const owner = context.repo.owner;
+              const issueNum = context.payload.issue.number;
 
-            console.log(`Label "${label}" → ${targetField} = "${targetOption}"`);
+              // 标签 → (字段名, 选项名) 映射
+              let targetField = null, targetOption = null;
 
-            // 查询 project 字段信息
-            const projectData = await github.graphql(`
-              query($login: String!, $num: Int!) {
-                user(login: $login) {
-                  projectV2(number: $num) {
-                    id
-                    fields(first: 30) {
-                      nodes {
-                        __typename
-                        ... on ProjectV2SingleSelectField {
-                          id name options { id name }
-                        }
+              if (label.startsWith('priority: ')) {
+                targetField = 'Priority';
+                const map = { P0: '🔴 P0', P1: '🟠 P1', P2: '🟡 P2', P3: '🟢 P3' };
+                targetOption = map[label.replace('priority: ', '')];
+              } else if (['task', 'bug', 'feature', 'research', 'epic'].includes(label)) {
+                targetField = 'Category';
+                targetOption = label;
+              } else if (label.startsWith('size: ')) {
+                targetField = 'Size';
+                targetOption = label.replace('size: ', '');
+              } else if (label.startsWith('status: ')) {
+                targetField = 'Status';
+                const map = {
+                  'todo':        'Todo',
+                  'in-progress': 'In Progress',
+                  'blocked':     'Blocked',
+                  'review':      'In Review',
+                  'done':        'Done',
+                };
+                targetOption = map[label.replace('status: ', '')];
+              }
+
+              if (!targetField || !targetOption) {
+                console.log(`Label "${label}" has no field mapping, skipping.`);
+                return;
+              }
+
+              console.log(`Label "${label}" → ${targetField} = "${targetOption}"`);
+
+              // 查询 project 字段信息（repositoryOwner 兼容 User 和 Org 账号）
+              const projectData = await graphqlWithRetry(`
+                fragment proj on ProjectV2 {
+                  id
+                  fields(first: 30) {
+                    nodes {
+                      __typename
+                      ... on ProjectV2SingleSelectField {
+                        id name options { id name }
                       }
                     }
                   }
                 }
-              }`, { login: owner, num: projectNum });
-
-            const project = projectData.user?.projectV2;
-            if (!project) {
-              console.log(`Project #${projectNum} not found for ${owner}`);
-              return;
-            }
-
-            // 找目标字段
-            const field = project.fields.nodes.find(f => f.name === targetField);
-            if (!field) {
-              console.log(`Field "${targetField}" not found in project. Run setup-project-board.ps1 first.`);
-              return;
-            }
-
-            // 找目标选项
-            const option = field.options?.find(o => o.name === targetOption);
-            if (!option) {
-              console.log(`Option "${targetOption}" not found in field "${targetField}".`);
-              if (targetField === 'Status') {
-                console.log('Hint: Add "Blocked" and "In Review" columns in Project Settings → Manage columns.');
-              }
-              return;
-            }
-
-            // 找 issue 在 project 中的 item node ID
-            const itemData = await github.graphql(`
-              query($id: ID!) {
-                node(id: $id) {
-                  ... on Issue {
-                    projectItems(first: 10) {
-                      nodes { id project { id } }
-                    }
+                query($login: String!, $num: Int!) {
+                  repositoryOwner(login: $login) {
+                    ... on User         { projectV2(number: $num) { ...proj } }
+                    ... on Organization { projectV2(number: $num) { ...proj } }
                   }
+                }`, { login: owner, num: projectNum });
+
+              const project = projectData.repositoryOwner?.projectV2;
+              if (!project) {
+                console.log(`Project #${projectNum} not found for ${owner}`);
+                return;
+              }
+
+              // 找目标字段
+              const field = project.fields.nodes.find(f => f.name === targetField);
+              if (!field) {
+                console.log(`Field "${targetField}" not found in project. Run setup-project-board.ps1 first.`);
+                return;
+              }
+
+              // 找目标选项
+              const option = field.options?.find(o => o.name === targetOption);
+              if (!option) {
+                console.log(`Option "${targetOption}" not found in field "${targetField}".`);
+                if (targetField === 'Status') {
+                  console.log('Hint: Add "Blocked" and "In Review" columns in Project Settings → Manage columns.');
                 }
-              }`, { id: issueNodeId });
+                return;
+              }
 
-            const item = itemData.node?.projectItems?.nodes
-              ?.find(n => n.project.id === project.id);
+              // 找 issue 在 project 中的 item（指数退避应对 auto-add-to-project 竞态）
+              const findItem = async () => {
+                const d = await graphqlWithRetry(`
+                  query($id: ID!) {
+                    node(id: $id) {
+                      ... on Issue {
+                        projectItems(first: 10) {
+                          nodes { id project { id } }
+                        }
+                      }
+                    }
+                  }`, { id: issueNodeId });
+                return d.node?.projectItems?.nodes?.find(n => n.project.id === project.id);
+              };
 
-            if (!item) {
-              console.log('Issue not in project yet (add-to-project may still be running). Skipping.');
-              return;
+              let item = null;
+              // Backoff: 2s → 4s → 8s (3 attempts total)
+              const delays = [2000, 4000, 8000];
+              for (let attempt = 1; attempt <= 3; attempt++) {
+                item = await findItem();
+                if (item) break;
+                if (attempt < 3) {
+                  const wait = delays[attempt - 1];
+                  console.log(`Issue not in project yet (attempt ${attempt}/3), retrying in ${wait / 1000}s...`);
+                  await new Promise(r => setTimeout(r, wait));
+                }
+              }
+
+              if (!item) {
+                const msg = `Issue #${issueNum} still not in project #${projectNum} after 3 attempts; field "${targetField}" was not set.`;
+                core.warning(msg);
+                await core.summary
+                  .addHeading('⚠️ Set Project Fields', 3)
+                  .addRaw(`**Issue #${issueNum}** — ${msg}`)
+                  .write();
+                return;
+              }
+
+              // 设置字段值
+              await graphqlWithRetry(`
+                mutation($p: ID!, $i: ID!, $f: ID!, $v: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $p
+                    itemId: $i
+                    fieldId: $f
+                    value: { singleSelectOptionId: $v }
+                  }) { projectV2Item { id } }
+                }`, { p: project.id, i: item.id, f: field.id, v: option.id });
+
+              console.log(`✅ Set ${targetField} = "${targetOption}" for issue #${issueNum}`);
+              await core.summary
+                .addHeading('✅ Set Project Fields', 3)
+                .addRaw(`**Issue #${issueNum}** — Set **${targetField}** = "${targetOption}"`)
+                .write();
+
+            } catch (e) {
+              const issueNum = context.payload.issue?.number ?? '?';
+              core.error(`Unexpected error in set-project-fields: ${e.message}`);
+              await core.summary
+                .addHeading('❌ Set Project Fields — Error', 3)
+                .addRaw(`**Issue #${issueNum}** — ${e.message}`)
+                .write();
             }
-
-            // 设置字段值
-            await github.graphql(`
-              mutation($p: ID!, $i: ID!, $f: ID!, $v: String!) {
-                updateProjectV2ItemFieldValue(input: {
-                  projectId: $p
-                  itemId: $i
-                  fieldId: $f
-                  value: { singleSelectOptionId: $v }
-                }) { projectV2Item { id } }
-              }`, { p: project.id, i: item.id, f: field.id, v: option.id });
-
-            console.log(`✅ Set ${targetField} = "${targetOption}" for issue #${context.payload.issue.number}`);
