@@ -84,6 +84,8 @@ flowchart LR
 | `scenarios/boss/` | Boss直聘场景：求职工作流、文档 |
 | `scenarios/boss/scripts/scrape_job_details.py` | 职位详情爬虫：驱动 Boss直聘 App 滚动列表 → 进入详情 → 提取字段，爬取结果直写 `requirements.db` 的 `job_details` 表（`dedup_key UNIQUE` 全局去重），不再生成 JSON 文件 |
 | `scenarios/boss/scripts/analyze_requirements.py` | 职位需求分析引擎：优先从 `job_details` 表读取（回落 JSON），LLM提取需求标签 → `requirements.db` 存储 → 频次/薪资/公司质量评分 → Markdown报告 |
+| `scenarios/boss/scripts/smart_match_greet.py` | 简历匹配打招呼：单阶段 App 内实时循环（进详情页 → Haiku 实时评分 + 生成打招呼 → 达标立即发送）；`greetings` 表 + `dedup_key` 跨次去重；无需预爬数据库，直接实时运行 |
+| `scenarios/boss/scripts/daily_greet.py` | 每日打招呼编排脚本：按顺序串联爬取→分析→评分发送三步；多关键词逐个处理；支持 `--skip-scrape`/`--skip-analyze`/`--score-only`/`--threshold`/`--strict`/`--max-greet` 等参数 |
 | `scenarios/linkedin/scripts/ai_search_positioning.py` | LinkedIn AI 市场定位分析：deep link 搜索 → 多 result_type 滚动采集 → SQLite 去重 → Claude Haiku 分析 → Markdown 报告 |
 | `scenarios/linkedin/config/positioning.yaml` | 定位分析配置：搜索查询列表（all/people/companies/content）、简历路径、采集参数 |
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
@@ -101,6 +103,7 @@ flowchart LR
 | `job_details` | 原始爬取数据（详情表） | `dedup_key UNIQUE = normalize_card_title(title)\tcompany\thr_name` |
 | `jobs` | LLM 分析元数据（分析表） | `source_file + job_index`；`job_details_id` FK → `job_details.id` |
 | `requirements` | LLM 提取的需求标签 | `job_id` FK → `jobs.id` |
+| `greetings` | 打招呼发送记录（去重用） | `id` PK；`job_details_id` FK → `job_details.id`；字段：`keyword`, `greeting_text`, `sent_at`, `action` |
 
 ### BOSSAutomationSkill 详细说明（`skills/boss/boss_automation_skill.py`）
 
@@ -131,6 +134,8 @@ flowchart LR
 > **异步角标陷阱**：列表卡标题尾部可能带 `" &@ "` 占位字符（异步加载的角标 span），同一张卡在不同 dump 中可能带也可能不带，直接按原文去重会把同一职位当成两条。统一用 `normalize_card_title()` 归一化后再作为身份键。
 
 > **边缘卡片回收陷阱**：位于视口边缘的卡片会被 RecyclerView 部分回收，只渲染出 `title`，`company` / `location` / `hr_*` 全为空。补救方式是小步滚动后**重新 dump**——滚动会让 `tap_x/tap_y` 失效，绝不能复用滚动前的 `JobInfo` 对象。
+
+> **公司名截断陷阱**：App 职位列表卡片显示的 `job.company` 是截断版（如 `"原点星辉"`），而数据库中爬取时存储的是完整工商名（如 `"上海原点星辉科学技术有限公司"`）。`smart_match_greet.py` 的单阶段架构已彻底消除此问题——不再跨源（DB→App）做匹配，所有数据均来自同一次实时 App 详情页提取，`dedup_key` 也基于实时采集到的 title/company 生成。若仍有脚本需要在 live 卡片与 DB 记录之间匹配，**禁止使用精确字符串相等**，应用 `title 包含匹配 + company[:6] 前缀重叠`。
 
 **关键方法**：
 
@@ -165,6 +170,75 @@ Boss直聘平台规定，只有双方都发过消息后，聊天页才会出现"
 | 第一阶段 | `boss_greet_task.py` | 搜索职位 → 逐个发打招呼（立即沟通） | 无 |
 | 等待 | — | 等待数小时至一天，HR 陆续回复 | — |
 | 第二阶段 | `boss_apply_task.py` | 消息Tab → `get_message_list()` → `navigate_to_chat()` → `can_apply()` → `apply_to_job()` | HR 已回复 |
+
+### smart_match_greet.py — 简历匹配评分 + 个性化打招呼
+
+**脚本路径**：`scenarios/boss/scripts/smart_match_greet.py`
+
+比 `boss_greet_task.py` 更精准的打招呼方案：**单阶段 App 内实时循环**——无需预爬数据库，直接驱动 Boss直聘 App，逐条进入职位详情页提取完整 JD，Haiku 实时评分 + 生成量身定制问候，达标立即发送，`greetings` 表记录已发送职位，跨次运行自动跳过。日常通过 `daily_greet.py` 编排三步流程一键运行。
+
+**单阶段流程**：
+
+```mermaid
+flowchart LR
+    Resume[简历 MD] -->|extract_resume_summary| Portrait[Haiku 简历画像 JSON\n一次性]
+    Portrait --> Start[force-stop + launch\n干净启动]
+    Start --> Browse[browse_jobs keyword]
+    Browse --> Scroll[scroll_job_list n_jobs=60\n采集全量卡片]
+    Scroll --> Loop{逐条循环}
+    Loop -->|已打过招呼| Skip[跳过（dedup_key）]
+    Loop -->|薪资预过滤| Skip
+    Loop -->|进入详情页| Detail["get_job_detail()\n+ expand_description()"]
+    Detail -->|网络异常| Skip
+    Detail --> Score["score_job() → Haiku\n评分 0-10 + 生成 greeting"]
+    Score -->|score < threshold| Skip
+    Score -->|score ≥ threshold| Send["send_greeting()\n_record_greeting()"]
+    Send --> Return[_return_to_job_list]
+    Return --> Loop
+    Loop -->|greeted_count ≥ max_greet| Stop[结束]
+    Skip --> Loop
+```
+
+**关键设计决策**：
+
+| 决策 | 做法 | 原因 |
+|------|------|------|
+| 单阶段 vs 两阶段 | 单阶段：App 内实时循环，所有数据来自详情页 | 消除 DB 全名 vs App 截断公司名的跨源匹配问题，无需 `_find_greeting()` 模糊匹配 |
+| `am force-stop` 启动前 | 强制停止 App 再启动 | `launch()` 只 bring-to-foreground，不重置导航状态；停留在详情/聊天页时 `browse_jobs()` 会失败 |
+| `_return_to_job_list` 调用时机 | 仅 `greeted_count > 0` 后才调用 | 仍在职位列表时调用会触发无效 back，导致"无法返回职位列表"错误 |
+| 简历预处理 | `extract_resume_summary()` 调一次 Haiku → 结构化 JSON | 避免每个职位都传 12k 字全文，同时确保关键信息不被截断 |
+| 去重 dedup_key | `normalize_card_title(title)\tcompany\thr_name` | 唯一标识一条职位；首次打招呼时 `INSERT OR IGNORE INTO job_details`，无需预爬记录 |
+| `--score-only` 模式 | 仍需打开 App | 评分依赖实时 JD 文本，不再是离线操作 |
+
+**CLI 参数**：
+
+```
+--keyword   搜索关键词（必填）
+--threshold 最低匹配分数 0-10（默认 6）
+--max-greet 最多发送打招呼数（默认 5）
+--strict    严格评分模式（不明确要求 AI/Agent 经验的职位不超过 8 分）
+--score-only 仅评分打印，不发送（但仍需打开 App）
+--min-salary 月薪下限（K），低于此值在评分前跳过
+--no-verify  发送后不验证消息已发出
+--device    ADB 设备 serial
+```
+
+**典型运行**：
+```bash
+# 仅评分验证
+python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --score-only --strict
+
+# 发 1 条（调试）
+python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --max-greet 1 --threshold 8 --strict
+
+# 正式运行
+python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --threshold 7 --strict
+```
+
+**已知限制**：
+- `verify_send=True` 的"发送未确认"不代表失败——消息可能已发出，但 `verify_message_sent()` 轮询窗口内未抓到气泡
+- 详情页加载超时（偶发网络抖动）会跳过该职位并继续下一个
+- 列表页 `scroll_job_list` 采集坐标后再导航会因滚动偏移而坐标漂移；实测 n_jobs=60 在采集完成后立即循环，暂未发现问题
 
 **Boss直聘页面状态检测流程**（13 种状态）：
 
@@ -298,6 +372,49 @@ python scenarios/boss/scripts/analyze_requirements.py [--keyword KW] [--force]
 
 **增量处理**：已存入 DB 的 job 默认跳过（按 `source_file + job_index` 去重），`--force` 重置。
 
+### smart_match_greet.py 详细说明
+
+**路径**：`scenarios/boss/scripts/smart_match_greet.py`
+
+**功能**：单阶段 App 内实时循环——打开 Boss直聘 App，搜索关键词，采集职位卡片，逐条进入详情页提取完整 JD，Haiku 实时评分并生成个性化打招呼，分数达标立即发送，`greetings` 表记录去重，返回列表继续下一条。无需预爬数据库。
+
+**运行**：
+```powershell
+# 仅评分（验证效果，仍需打开 App）
+python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --score-only [--strict]
+
+# 正式运行（发送最多 1 条，阈值 8 分，严格模式）
+python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --max-greet 1 --threshold 8 --strict
+```
+
+**单阶段架构**：
+
+| 步骤 | 操作 | 输出 |
+|------|------|------|
+| 简历画像 | `extract_resume_summary()` 调一次 Haiku | 结构化 JSON（一次性） |
+| App 启动 | force-stop + launch + browse_jobs | 搜索结果页 |
+| 卡片采集 | `scroll_job_list(n_jobs=60)` | `List[JobInfo]`（含坐标） |
+| 逐条循环 | 去重检查 → 薪资预过滤 → navigate_to_job → expand_description → get_job_detail → score_job | greeting 文本 + 分数 |
+| 发送 | 弹窗处理 → tap chat_btn → send_greeting → `_record_greeting()` | greetings 表写入 |
+
+**关键函数**：
+
+| 函数 | 说明 |
+|------|------|
+| `extract_resume_summary()` | 一次性调用 Haiku 将全文简历提炼为 JSON 画像，所有职位共用 |
+| `score_job()` | 对单条职位调用 Haiku 评分（0-10）并生成 greeting 文本 |
+| `live_greet_loop()` | 单阶段主循环：采集 → 逐条进详情 → 评分 → 发送 |
+| `_is_already_greeted()` | 按 `dedup_key` 查询 greetings 表判断是否已发 |
+| `_record_greeting()` | `INSERT OR IGNORE INTO job_details` + `INSERT INTO greetings`（首次自动创建 job_details 记录） |
+| `_return_to_job_list()` | 导航回职位列表；**仅在 `greeted_count > 0` 时调用**（已离开列表页后） |
+
+**关键设计约束**：
+- `am force-stop` 在 launch 前执行，确保 App 从 HOME 页启动，`browse_jobs()` 才能正常工作
+- **去重 dedup_key** = `normalize_card_title(title)\tcompany\thr_name`；`_record_greeting()` 通过 `INSERT OR IGNORE` 无需预爬 job_details 记录即可写入
+- **个性化**：`MATCH_PROMPT` 传入完整 JD 原文（详情页实时提取，不截断）+ HR 姓名，指令要求含姓氏称呼、引用 JD 具体场景词、结合简历具体经历
+- `--score-only` 仍需打开 App（评分依赖实时 JD）
+- `requirements_text` 固定为 `"无标签（请从JD描述中判断）"`——单阶段跳过了 analyze_requirements.py，MATCH_PROMPT 已设计为从 description 原文推断
+
 ### LinkedIn AI 搜索定位（`scenarios/linkedin/`）
 
 **功能**：输入简历/职位描述，驱动 LinkedIn App 搜索，收集多维度结果（职位/人脉/公司/帖子），调用 Claude Haiku 分析市场定位，生成 Markdown 报告。
@@ -323,13 +440,35 @@ python scenarios/linkedin/scripts/ai_search_positioning.py [--skip-collect] [--s
 
 **LinkedInAutomationSkill 新增 API**（`skills/linkedin/linkedin_automation_skill.py`）：
 
-| 方法 | 说明 |
-|------|------|
+| 方法 / 常量 | 说明 |
+|------------|------|
 | `search_via_deeplink(query, result_type)` | force-stop → deep link → poll 等待页面加载；result_type: all/people/companies/content |
 | `collect_search_results_with_scroll(max_results, max_scrolls)` | 滚动采集当前搜索页结果，调用各 category 解析器 |
 | `_parse_search_people(root)` | text 节点近邻匹配解析人脉卡片 |
 | `_parse_search_companies(root)` | 解析公司搜索结果 |
 | `_parse_search_posts(root)` | 解析内容/帖子结果 |
+| `_parse_bounds(bounds_str)` | 静态方法；包装 `ui_types.parse_bounds()`，替换全文 14+ 处内联正则 |
+| `_extract_verified_button_job(node, parent_map)` | 提取"已验证按钮"格式的职位字段字典，供 `_parse_jobs_by_button_format` 与 `_parse_search_jobs` 共用 |
+| `_in_sheet(root)` | 判断当前 XML 是否已进入 Bottom Sheet（供 `expand_description` 使用） |
+| `_is_skip_text(text)` | 过滤人脉卡片噪声 text 节点 |
+| `_headline_after(idx, nodes)` | 按 y 坐标查找人名节点之后 260px 内的 headline 节点 |
+| `_EASY_KEYWORDS` | 类常量 `("EasyApply", "Easy Apply", "轻松申请")`，替换三处重复局部元组 |
+| `_SAFE_TAP_MAX_Y` | 类常量 `2000`（Pixel 8a 安全点击区上限），替换模块级变量 |
+| `_INFO_PATTERN` | 类常量，替换模块级正则，仅在类方法中使用 |
+
+**`ai_search_positioning.py` 关键函数**（`scenarios/linkedin/scripts/`）：
+
+| 函数 | 说明 |
+|------|------|
+| `_create_search_session(conn, query, result_type, result_count) -> int` | 插入 `search_sessions` 行，返回 `session_id`；从 `collect_for_query` 内联 INSERT 提取 |
+| `load_results_for_analysis(conn) -> list[dict]` | 全量加载 `results` 表（无 `query` 参数，不按 session 过滤，避免父/子查询不匹配） |
+| `analyze_positioning(conn, query, resume_summary) -> tuple[dict, list[dict]]` | 调用 Claude Haiku 分析，返回 `(analysis, results)` 元组，避免下游二次查库 |
+| `generate_report(conn, query, analysis, results, resume_summary) -> Path` | 组装 5 个 section helper 的输出，写入 Markdown 文件，更新 `analyses.report_path` |
+| `_report_header(query, analysis, n_results) -> list[str]` | 报告头 + 执行摘要 + 职位匹配 TOP 10 表格 |
+| `_report_company_table(analysis) -> list[str]` | 目标公司表格 |
+| `_report_skills_table(analysis) -> list[str]` | 市场高频技能表格 |
+| `_report_seniority_section(analysis) -> list[str]` | 资历定位、人脉画像、优势/差距、关键词建议 |
+| `_report_raw_data(results) -> list[str]` | 职位/人脉/帖子原始数据附录 |
 
 ## 12. 变更日志
 
