@@ -329,6 +329,15 @@ def init_detail_db(conn: sqlite3.Connection) -> None:
         scraped_at     TEXT    NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_jd_keyword ON job_details(keyword);
+    CREATE TABLE IF NOT EXISTS greetings (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        job_details_id INTEGER NOT NULL,
+        keyword        TEXT,
+        greeting_text  TEXT,
+        sent_at        TEXT    NOT NULL,
+        action         TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_gr_job ON greetings(job_details_id);
     """)
     conn.commit()
 

@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+### Changed（变更）
+- `scenarios/boss/scripts/smart_match_greet.py` — **架构重写（两阶段→单阶段）**：废弃「DB 批量评分 → App 模糊匹配」两阶段方案，改为单阶段 App 内实时循环：打开 App → 搜索 → 滚动采集卡片 → 逐条进详情页（`get_job_detail()` + `expand_description()`）→ Haiku 实时评分 + 生成打招呼 → 分数达标立即发送 → `_record_greeting()` 写 greetings 表 → 返回列表；移除 `load_jobs()`、`score_all_jobs()`、`print_score_table()`、`_find_greeting()`；新增 `_is_already_greeted()` / `_record_greeting()` / `live_greet_loop()`；去重依赖 `dedup_key = normalize_title\tcompany\thr_name`，首次打招呼时自动 UPSERT `job_details`；`--score-only` 现在仍需打开 App（评分依赖实时 JD）
+
+### Added（新增）
+- `scenarios/boss/scripts/daily_greet.py` — 每日量身定制打招呼全流程编排脚本：按顺序执行爬取→分析→评分发送三步；支持 `--threshold`/`--max-greet`/`--strict`/`--score-only`/`--skip-scrape`/`--skip-analyze`/`--keyword` 参数；多关键词逐个处理，任一失败不影响其余关键词
+
+### Changed（变更）
+- `scenarios/boss/scripts/scrape_job_details.py` — `init_detail_db()` 新增 `greetings` 表（`job_details_id`, `keyword`, `greeting_text`, `sent_at`, `action`），用于跨次运行去重追踪
+- `scenarios/boss/config/keywords.yaml` — `defaults.n_jobs` 从 10 提升到 45（2×45=90 条候选池），覆盖每日目标发送量
+
+### Added（新增）
+- `scenarios/boss/scripts/smart_match_greet.py` — 新建简历匹配评分 + 个性化打招呼脚本：Phase 1 调用 Claude Haiku 对 DB 职位逐一评分（`extract_resume_summary` 先提炼简历画像再评分，避免截断），Phase 2 打开 App 搜索实时职位、模糊匹配后发个性化打招呼。支持 `--strict`（严格评分）、`--score-only`（仅评分不打 App）、`--min-salary`（薪资预过滤）、`--max-greet` / `--threshold` 等参数。引入 `_find_greeting()` 模糊匹配器（职位名包含关系 + 公司名前 6 字符重叠）解决 App 实时卡片公司名截断问题；`am force-stop` 启动前确保 App 从 HOME 页干净启动；`_return_to_job_list` 仅在实际导航至详情页后调用，避免仍在列表页时误触 back 导致"无法返回职位列表"
+
 ### Fixed（修复）
 - `skills/boss/boss_automation_skill.py` — 搜索提交后卡死的两种形态：①结果页停留在「网络异常，请点击按钮刷新」占位页，职位列表节点永远不出现，调用方的 `wait_for_element` 只能白等到超时（实测两个关键词连续失败，`AI产品经理` 报"搜索结果页加载超时"、`FDE` 报"搜索失败"），手动点「重新加载」后 4 条职位立即加载；②回车未能提交，页面停在搜索建议浮层（ASCII 关键词走 `input text` 时尤其常见，实测 `FDE` 必现），浮层右下角另有 `tv_search`「搜索」按钮，点击后立即出结果。新增 `_submit_search()`：提交后轮询职位列表节点，未出现则查找并点击恢复按钮，最多 3 轮；`_find_recovery_button()` 在单次 dump 内依次匹配 `重新加载` / `点击重试` / `重试`，再回落到 `tv_search`。`ELEMENTS` 新增 `search_submit` 条目。`browse_jobs()` 中两处重复的「清空输入 → 输入 → 回车」代码合并到该方法
 - `skills/boss/boss_automation_skill.py` — `browse_jobs()` 静默假成功：形态②下 `_submit_search()` 找不到重试按钮时原先 `return True`「交由调用方判断」，导致 `browse_jobs('FDE')` 返回 True 而 `get_job_list()` 返回 0 条，错误被掩盖到下游才暴露。改为 `return False`
@@ -28,6 +41,7 @@
 - `skills/boss/boss_automation_skill.py` + `scenarios/boss/scripts/scrape_job_details.py` — 详情页「网络异常」占位页导致整条职位只剩 `title`：实测 `AI产品经理` 第 1 条（沐瞳科技）与第 3 条（北京蓝标传媒）的 `raw_texts` 逐字节相同——`['面议', '上海', '在校/应届', '本科', '网络异常，请检查网络后重试', '重试']`，描述与公司信息块整块缺失，但脚本仍记为成功（`errors` 为空）。原因是占位页照常渲染 `tv_job_name` 与顶部 chips，`wait_for_element("tv_job_name")` 判不出异常。新增 `recover_detail_page()`：以「dump 中不再含 `网络异常`」为成功判据（而非锚点节点存在），失败则点击页面上的「重试」按钮，最多 3 轮；按钮定位直接复用既有的 `_find_recovery_button()`（其匹配列表已含 `重试`，无需改动）。脚本在首次 dump 后检测到 `网络异常` 即调用恢复，成功则重新 dump 再提取，失败则记入 `report["errors"]` 而非静默通过
 
 ### Changed（变更）
+- `skills/linkedin/linkedin_automation_skill.py` + `scenarios/linkedin/scripts/ai_search_positioning.py` — 清理 AI 搜索定位功能技术债务（`99b7bc4`）：R1 提取 `_parse_bounds()` 静态方法替换 14+ 处内联正则；R2 `_EASY_KEYWORDS` 类常量消除三处重复；R3 提取 `_extract_verified_button_job()` 消除 `_parse_search_jobs` 与 `_parse_jobs_by_button_format` 的近似复制；R4 将 `urllib.parse`/`re` 内联导入移至模块顶部；R5 `_SAFE_TAP_MAX_Y`/`_INFO_PATTERN` 从模块级移入类；R6 `_in_sheet`/`_is_skip_text`/`_headline_after` 三个嵌套函数提升为类私有方法；S1 `load_results_for_analysis` 移除无效 `query` 参数；S2 `analyze_positioning` 返回 `(analysis, results)` 元组消除 `generate_report` 二次查库；S3 152 行 `generate_report` 拆分为 5 个 section helper；S4 提取 `_create_search_session()` 模块级函数
 - `scenarios/boss/scripts/scrape_job_details.py` — 爬取结果直写 SQLite，废弃 JSON 中间文件：新增 `job_details` 表（`dedup_key TEXT UNIQUE`，`dedup_key = normalize_card_title(title)\tcompany\thr_name`）；`main()` 打开 DB 连接并在每条职位爬完后调用 `insert_job_detail()`；删除原有 JSON 文件写入及合并逻辑；`visited_titles` 改为从 DB 读取（`load_seen_keys_from_db()`）
 - `scenarios/boss/scripts/analyze_requirements.py` — 数据读取源改为 DB 优先：`run()` 检测 `job_details` 表是否存在，存在则调用 `load_from_db()` 将详情表行转为与 JSON 格式兼容的 entry dict，回落到 JSON 文件；`init_db()` 自动为旧版 `jobs` 表追加 `job_details_id INTEGER` 列（向后兼容）；新增 `job_exists_by_detail_id()` 按 FK 去重
 
