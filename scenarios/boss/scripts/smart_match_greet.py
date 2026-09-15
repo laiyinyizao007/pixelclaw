@@ -252,11 +252,14 @@ def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
         skill.press_back()
         time.sleep(0.8)
 
-    # Fast path: single Back + wait 1.2s
-    skill.press_back()
-    time.sleep(1.2)
-    if skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=4.0):
-        return True
+    # Fast path: up to 3 Back presses, checking after each.
+    # After sending a greeting the back-stack is: chat → detail → list,
+    # so we need two presses, not one.
+    for _ in range(3):
+        skill.press_back()
+        time.sleep(1.2)
+        if skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=4.0):
+            return True
 
     # Fallback: navigate to jobs tab and re-search (only when keyword is known)
     if keyword:
