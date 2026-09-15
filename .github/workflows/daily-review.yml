@@ -1,0 +1,54 @@
+name: 每日回顾 & 周回顾自动更新
+
+on:
+  schedule:
+    # 每日回顾：周一至周五 21:30 北京时间（UTC 13:30）
+    - cron: '30 13 * * 1-5'
+    # 周回顾：周六 09:00 北京时间（UTC 01:00）
+    - cron: '0 1 * * 6'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式：daily（每日回顾）或 weekly（周回顾）'
+        required: false
+        default: 'daily'
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: 安装依赖
+        run: pip install anthropic
+      - name: 确定运行模式
+        id: mode
+        run: |
+          # workflow_dispatch 时用输入参数
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "arg=--${{ inputs.mode }}-review" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          # schedule 时根据 UTC 小时判断（1:00 UTC = 周六周回顾，13:30 UTC = 工作日每日回顾）
+          HOUR=$(date -u +%H)
+          DOW=$(date -u +%u)   # 1=Mon … 7=Sun
+          if [ "$DOW" = "6" ] && [ "$HOUR" = "01" ]; then
+            echo "arg=--weekly-review" >> $GITHUB_OUTPUT
+          else
+            echo "arg=--daily-review" >> $GITHUB_OUTPUT
+          fi
+      - name: 运行回顾更新
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          GH_OWNER: ${{ github.repository_owner }}
+        run: python3 generate_weekly_plan.py ${{ steps.mode.outputs.arg }}
