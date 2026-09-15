@@ -72,3 +72,18 @@ python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --
 
 **Q: 详情页"网络异常"怎么处理？**
 - `any("网络异常" in t for t in raw_texts)` 检测后自动跳过该条，继续下一个职位
+
+**Q: 打招呼只发出第一个词，后续内容被截断？（已修复）**
+- 症状：AI 生成 60+ 字的招呼语，设备端只收到第一个词（如"您好"或招呼语首词）
+- 根因：`send_greeting` 经由 `adb_runner.shell()` 调用时，`shlex.split(posix=True)` 剥去了 `shlex.quote()` 加的单引号，导致 `subprocess.run` 将消息文字作为独立参数传给 adb；adb 拼接 shell 命令时不重新加引号，设备端 `/bin/sh` 按空格切割，只执行第一个词
+- 修复：改用 `subprocess.run(["adb", "shell", shell_cmd])` 直接传完整命令串，绕过二次解析
+
+**Q: 启动 App 每次耗时 80 秒，日志显示 10 次 navigate_to_tab 失败重试？（已修复）**
+- 症状：脚本启动后长时间卡在"等待首页 Tab"阶段，耗时约 80 秒才继续
+- 根因：当前版本 BOSS 直聘 App 的 Tab 控件不含 `tv_tab_N`/`cl_tab_N` resource-id，旧代码只按这两种 ID 查找，永远匹配不到
+- 修复：新增文本回退逻辑——搜索 `text` 属性匹配"推荐"/"职位"/"消息"的节点并直接点击
+
+**Q: 打招呼实际已发出，但脚本报告"发送未确认"或"发送失败"？（已修复）**
+- 症状：消息气泡在 App 内可见，脚本仍输出"verify_message_sent 超时"
+- 根因：`find_element(text=prefix)` 做精确匹配；对 60+ 字长招呼，`message[:15]` 永远不等于气泡完整 text，必然匹配失败
+- 修复：改为 `prefix in xml`（在原始 XML 字符串中做子串搜索），同时将超时从 3 秒升至 8 秒
