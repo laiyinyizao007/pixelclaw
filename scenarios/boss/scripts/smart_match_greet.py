@@ -109,7 +109,7 @@ STRICT_RULES = """\
 # ─── DB 工具 ──────────────────────────────────────────────────────────────────
 
 def _ensure_greetings_table(conn: sqlite3.Connection) -> None:
-    """Create greetings and job_details tables if they don't exist (idempotent)."""
+    """Create greetings, job_details, and job_visits tables if they don't exist (idempotent)."""
     conn.execute("""
         CREATE TABLE IF NOT EXISTS job_details (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -130,13 +130,28 @@ def _ensure_greetings_table(conn: sqlite3.Connection) -> None:
             action         TEXT
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS job_visits (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            title         TEXT    NOT NULL,
+            company       TEXT    NOT NULL,
+            hr_name       TEXT,
+            keyword       TEXT    NOT NULL,
+            score         INTEGER,
+            greeted       INTEGER NOT NULL DEFAULT 0,
+            greeting_text TEXT,
+            skip_reason   TEXT,
+            visited_at    TEXT    NOT NULL
+        )
+    """)
     conn.commit()
 
 
 def _is_already_greeted(
     conn: sqlite3.Connection, title: str, company: str, hr_name: str | None
 ) -> bool:
-    """Check if a greeting has already been sent to this job."""
+    """Check if a greeting has already been sent to this HR+job combo."""
+    # Primary check: exact dedup_key in greetings history
     dedup_key = f"{normalize_card_title(title)}\t{company}\t{hr_name or ''}"
     row = conn.execute(
         """SELECT COUNT(g.id) FROM job_details jd
@@ -144,7 +159,18 @@ def _is_already_greeted(
            WHERE jd.dedup_key = ?""",
         (dedup_key,),
     ).fetchone()
-    return bool(row and row[0] > 0)
+    if row and row[0] > 0:
+        return True
+    # Secondary check: same HR at same company already greeted in any job_visits row
+    # Catches duplicate sends when title varies slightly across runs
+    if hr_name:
+        row2 = conn.execute(
+            "SELECT COUNT(*) FROM job_visits WHERE hr_name = ? AND company = ? AND greeted = 1",
+            (hr_name, company),
+        ).fetchone()
+        if row2 and row2[0] > 0:
+            return True
+    return False
 
 
 def _record_greeting(
@@ -169,6 +195,32 @@ def _record_greeting(
         """INSERT INTO greetings (job_details_id, keyword, greeting_text, sent_at, action)
            VALUES (?, ?, ?, ?, ?)""",
         (jd_id, keyword, greeting_text, time.strftime("%Y-%m-%dT%H:%M:%S"), action),
+    )
+    conn.commit()
+
+
+def _record_visit(
+    conn: sqlite3.Connection,
+    title: str,
+    company: str,
+    hr_name: str | None,
+    keyword: str,
+    score: int | None,
+    *,
+    greeted: bool = False,
+    greeting_text: str | None = None,
+    skip_reason: str | None = None,
+) -> None:
+    """Record every job detail page visit regardless of whether a greeting was sent."""
+    conn.execute(
+        """INSERT INTO job_visits
+               (title, company, hr_name, keyword, score, greeted, greeting_text, skip_reason, visited_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (
+            title, company, hr_name or "", keyword, score,
+            1 if greeted else 0, greeting_text, skip_reason,
+            time.strftime("%Y-%m-%dT%H:%M:%S"),
+        ),
     )
     conn.commit()
 
@@ -602,6 +654,8 @@ def _run_loop(
         if score < threshold or not greeting:
             logger.info("  → 跳过（%d < %d）", score, threshold)
             result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
+            _record_visit(db_conn, title, company, hr_name, keyword, score,
+                          skip_reason=f"低分({score}<{threshold})")
             continue
 
         logger.info("  ✓ 达标！打招呼：%s…", greeting[:60])
@@ -610,6 +664,8 @@ def _run_loop(
             result["skipped"].append(
                 f"{title}（{company}）：{score}/10 ✓ [score_only]\n    {greeting}"
             )
+            _record_visit(db_conn, title, company, hr_name, keyword, score,
+                          skip_reason="score_only")
             continue
 
         # 发送打招呼
@@ -622,15 +678,21 @@ def _run_loop(
                     break
                 if dialog in _SKIP_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog}）")
+                    _record_visit(db_conn, title, company, hr_name, keyword, score,
+                                  skip_reason=f"弹窗跳过({dialog})")
                     continue
 
             if not skill.tap_element("chat_btn"):
                 result["errors"].append(f"{title}：无法打开聊天页")
+                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                              skip_reason="无聊天按钮")
                 continue
             if not skill.wait_for_element(
                 "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
             ):
                 result["errors"].append(f"{title}：聊天页加载超时")
+                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                              skip_reason="聊天页超时")
                 continue
 
             dialog2 = skill.detect_dialog()
@@ -641,6 +703,8 @@ def _run_loop(
                     break
                 if dialog2 not in _CONTINUE_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog2}）")
+                    _record_visit(db_conn, title, company, hr_name, keyword, score,
+                                  skip_reason=f"弹窗跳过({dialog2})")
                     continue
 
             ok = skill.send_greeting(greeting, verify=verify_send)
@@ -652,14 +716,20 @@ def _run_loop(
                 logger.info("  ✓ 打招呼成功 — %s", greeting[:40])
                 greeted_count += 1
                 _record_greeting(db_conn, title, company, hr_name, keyword, greeting, action)
+                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                              greeted=True, greeting_text=greeting)
             else:
                 result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
                 logger.error("  ✗ 打招呼失败 — %s", title)
+                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                              skip_reason="发送失败")
             time.sleep(1.0)
 
         except Exception as exc:
             logger.error("处理 '%s' 异常", title, exc_info=True)
             result["errors"].append(f"{title}: {exc}")
+            _record_visit(db_conn, title, company, hr_name, keyword, score,
+                          skip_reason=f"异常:{exc}")
             if not skill._is_screen_on():
                 break
 
