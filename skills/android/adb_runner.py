@@ -88,11 +88,28 @@ class ADBRunner:
         _, prev_ime = self.shell("shell settings get secure default_input_method", device_id)
         self.shell(f"shell ime enable {self._ADBKEYBOARD_IME}", device_id)
         self.shell(f"shell ime set {self._ADBKEYBOARD_IME}", device_id)
-        import time; time.sleep(0.3)
+        import time; time.sleep(2.5)  # IME needs time to establish InputConnection
         args = ["adb"]
         if device_id:
             args += ["-s", device_id]
-        args += ["shell", "am", "broadcast", "-a", "ADB_INPUT_TEXT", "--es", "msg", text]
+        # Use -p (package) to make the broadcast explicit to ADBKeyboard.
+        # Android 14+ silently blocks implicit broadcasts to dynamically-registered
+        # receivers that lack RECEIVER_EXPORTED. A package-targeted broadcast is
+        # treated as semi-explicit and bypasses that restriction.
+        #
+        # CRITICAL: pass the entire shell command as ONE string to "adb shell".
+        # When "adb shell cmd arg1 arg2 ..." is used with a list, ADB joins the
+        # args with spaces and runs them under /bin/sh -c "cmd arg1 arg2 ...".
+        # If `text` contains spaces (e.g. "Agent OS"), the device shell splits
+        # it into multiple words and --es msg only receives the first word.
+        # shlex.quote() wraps the text in single quotes (escaping any embedded
+        # single quotes), so the device shell treats the whole text as one arg.
+        safe_text = shlex.quote(text)
+        shell_cmd = (
+            f"am broadcast -p com.android.adbkeyboard"
+            f" -a ADB_INPUT_TEXT --es msg {safe_text}"
+        )
+        args += ["shell", shell_cmd]
         r = subprocess.run(
             args,
             shell=False,
@@ -102,6 +119,11 @@ class ADBRunner:
             errors="replace",
         )
         ok = r.returncode == 0
+        # Wait for ADBKeyboard's onReceive() to finish commitText() before switching
+        # back to the original IME. am broadcast returns before onReceive completes for
+        # normal (non-ordered) broadcasts; switching IME before commitText() runs
+        # destroys the InputConnection, causing the text to be dropped silently.
+        import time; time.sleep(1.0)
         # Restore original IME.
         if prev_ime:
             self.shell(f"shell ime set {prev_ime.strip()}", device_id)
@@ -116,7 +138,10 @@ class ADBRunner:
         ok = self.pull("/sdcard/_screenshot.png", str(tmp), device_id)
         if not ok:
             return None
-        return Image.open(tmp).convert("RGB")
+        try:
+            return Image.open(tmp).convert("RGB")
+        except Exception:
+            return None
 
     def get_screen_size(self, device_id: Optional[str] = None) -> Tuple[int, int]:
         _, out = self.shell("shell wm size", device_id)
@@ -141,5 +166,19 @@ class ADBRunner:
         device_id: Optional[str] = None,
     ) -> bool:
         """将设备上的 remote 文件拉取到本地 local 路径。"""
-        ok, _ = self.shell(f"pull {remote} {local}", device_id)
-        return ok
+        # shlex.split(posix=True) treats Windows backslashes as escape chars, mangling
+        # paths like C:\Users\... → CUsers..., causing adb to silently pull to the wrong
+        # location. Bypass self.shell() and pass each arg as a separate list element.
+        args = ["adb"]
+        if device_id:
+            args += ["-s", device_id]
+        args += ["pull", remote, local]
+        r = subprocess.run(
+            args,
+            shell=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        return r.returncode == 0

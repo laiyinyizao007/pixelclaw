@@ -22,8 +22,10 @@ smart_match_greet.py — 实时评分 + 个性化打招呼（单阶段 App 内�
 
 import argparse
 import json
+import logging
 import sqlite3
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -244,13 +246,67 @@ def _parse_salary_low_k(salary_raw: str) -> float | None:
 
 # ─── App 导航 ─────────────────────────────────────────────────────────────────
 
-def _return_to_job_list(skill: BOSSAutomationSkill) -> bool:
-    for _ in range(4):
+def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
+    # Dismiss any overlay first
+    if skill.get_current_page() == PageState.DIALOG:
+        skill.press_back()
+        time.sleep(0.8)
+
+    # Fast path: single Back + wait 1.2s
+    skill.press_back()
+    time.sleep(1.2)
+    if skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=4.0):
+        return True
+
+    # Fallback: navigate to jobs tab and re-search (only when keyword is known)
+    if keyword:
+        skill.navigate_to_tab("jobs")
+        time.sleep(1.0)
+        for _ in range(3):
+            if skill.browse_jobs(keyword):
+                break
+            time.sleep(1.5)
+            skill.press_back()
+            time.sleep(1.0)
+            skill.navigate_to_tab("jobs")
+            time.sleep(1.0)
+        else:
+            return False
+        return skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=15.0)
+
+    # No keyword → just try more backs
+    for _ in range(3):
+        skill.press_back()
+        time.sleep(0.8)
         if skill.get_current_page() == PageState.JOB_LIST:
             return True
-        skill.press_back()
-        time.sleep(0.6)
-    return skill.get_current_page() == PageState.JOB_LIST
+    return False
+
+
+def _with_screen_heartbeat(skill: "BOSSAutomationSkill", fn):
+    """Keep device awake during fn() using KEYCODE_WAKEUP every 5 s.
+
+    KEYCODE_WAKEUP (224) signals the screen to stay on without interacting
+    with the App UI, avoiding accidental back-swipe from left-edge taps.
+    """
+    stop = threading.Event()
+
+    def _worker():
+        while True:
+            try:
+                skill._adb("shell input keyevent 224")
+            except Exception:
+                pass
+            if stop.wait(5.0):
+                break
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+    try:
+        return fn()
+    finally:
+        stop.set()
+        t.join(2.0)
 
 
 def live_greet_loop(
@@ -275,15 +331,168 @@ def live_greet_loop(
     skill = BOSSAutomationSkill(adb, device_id=device_id)
     result: dict = {"greeted": [], "skipped": [], "errors": []}
 
+    # Keep screen on (all charge types) + push lock/screen-off timeouts to 30 min.
+    # Disable Adaptive Sleep (Pixel face-detection that bypasses screen_off_timeout).
+    # Save originals so the finally block restores exactly what the user had.
+    _, _orig_timeout      = skill._adb("shell settings get system screen_off_timeout")
+    _, _orig_lock_timeout = skill._adb("shell settings get secure lock_screen_lock_after_timeout")
+    _, _orig_adaptive     = skill._adb("shell settings get secure adaptive_sleep")
+    _orig_timeout      = (_orig_timeout or "").strip()      or "60000"
+    _orig_lock_timeout = (_orig_lock_timeout or "").strip() or "60000"
+    _orig_adaptive     = (_orig_adaptive or "").strip()     or "1"
+
+    skill._adb("shell svc power stayon true")
+    skill._adb("shell settings put system screen_off_timeout 1800000")
+    skill._adb("shell settings put secure lock_screen_lock_after_timeout 1800000")
+    skill._adb("shell settings put secure adaptive_sleep 0")
+    try:
+        return _run_loop(skill, resume_summary, client, keyword, threshold, max_greet,
+                         strict, min_salary_k, verify_send, db_conn, score_only, result, logger)
+    finally:
+        skill._adb("shell svc power stayon false")
+        skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
+        skill._adb(f"shell settings put secure lock_screen_lock_after_timeout {_orig_lock_timeout}")
+        skill._adb(f"shell settings put secure adaptive_sleep {_orig_adaptive}")
+
+
+def _run_loop(
+    skill: "BOSSAutomationSkill",
+    resume_summary: str,
+    client: anthropic.Anthropic,
+    keyword: str,
+    threshold: int,
+    max_greet: int,
+    strict: bool,
+    min_salary_k: float,
+    verify_send: bool,
+    db_conn: sqlite3.Connection,
+    score_only: bool,
+    result: dict,
+    logger: logging.Logger,
+) -> dict:
+    # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
+    if not skill._is_screen_on():
+        skill._wake_screen()
+        time.sleep(2.0)
+    if not skill._is_screen_on():
+        logger.warning("⚠️  手机未唤醒，等待解锁（最多 120 秒）…")
+        _unlocked = False
+        for _ in range(12):
+            time.sleep(10)
+            skill._wake_screen()
+            time.sleep(2.0)
+            if skill._is_screen_on():
+                _unlocked = True
+                break
+        if not _unlocked:
+            result["errors"].append("手机锁屏未解，无法启动")
+            return result
+
+    # Extra check: screen may be "Awake" but the lock screen is still in front.
+    # The lock screen's root window is always "legacy_window_root" (com.android.systemui).
+    # When any real app is in the foreground the root changes to that app's window.
+    def _is_lock_screen(xml: str) -> bool:
+        return xml is not None and "legacy_window_root" in xml[:400]
+
+    _ui_xml = skill.get_ui_hierarchy()
+    if _is_lock_screen(_ui_xml):
+        logger.warning("⚠️  检测到锁屏，请解锁手机后继续（最多等待 60 秒）…")
+        _unlocked2 = False
+        for _ in range(12):
+            time.sleep(5)
+            skill._wake_screen()
+            time.sleep(1.0)
+            if not _is_lock_screen(skill.get_ui_hierarchy()):
+                _unlocked2 = True
+                break
+        if not _unlocked2:
+            result["errors"].append("手机锁屏未解，无法启动")
+            return result
+
     logger.info("[1/3] 启动 Boss直聘…")
     skill._adb(f"shell am force-stop {skill.APP_PACKAGE}")
-    time.sleep(1.0)
-    if not skill.launch():
-        result["errors"].append("无法启动 App，请确认 ADB 已连接")
-        return result
+    time.sleep(2.0)
+    # Launch directly to MainActivity to bypass WelcomeActivityAlias1 which often shows
+    # a full-screen WebView promotional page that covers the bottom nav and et_search.
+    ok_start, _ = skill._adb(
+        f"shell am start -W "
+        f"{skill.APP_PACKAGE}/.module.main.activity.MainActivity"
+    )
+    if not ok_start:
+        # Fallback to monkey launch
+        if not skill.launch(wait=6.0):
+            result["errors"].append("无法启动 App，请确认 ADB 已连接")
+            return result
+    else:
+        time.sleep(5.0)
+    # Collapse any notification shade that may have expanded during startup.
+    skill._adb("shell cmd statusbar collapse")
+    time.sleep(0.5)
+
+    # Wait for BOSS to reach the foreground and get to a page where et_search is visible.
+    # Strategy:
+    #   1. If et_search is already visible → done.
+    #   2. Try navigate_to_tab("recommend") to switch to the home tab.
+    #   3. If that fails (resource-id mismatch in current BOSS version), press BACK once
+    #      to dismiss any full-screen overlay (e.g. WebView promotion), then retry.
+    #      IMPORTANT: stop pressing BACK as soon as et_search appears — over-pressing
+    #      backs us out past the home page into the Android launcher.
+    for _startup_try in range(10):
+        xml = skill.get_ui_hierarchy()
+        # BOSS not present → lock screen, home screen, or lingering overlay.
+        if not xml or "com.hpbr.bosszhipin" not in xml:
+            if _startup_try == 0:
+                logger.info("  BOSS 未在前台，重新拉起…")
+                skill._adb("shell cmd statusbar collapse")
+                skill._adb(f"shell am start {skill.APP_PACKAGE}/.module.main.activity.MainActivity")
+                time.sleep(3.0)
+            else:
+                logger.warning("  ⚠️  等待手机解锁或 BOSS 显示… (第 %d 次)", _startup_try)
+                time.sleep(3.0)
+            continue
+        # If search bar (et_search) is already visible we're on the home page — proceed.
+        if skill.find_element(resource_id=skill.ELEMENTS["search_bar"], xml=xml):
+            logger.info("  搜索框已可见，直接进入搜索")
+            break
+        d = skill.detect_dialog(xml)
+        if d == DialogType.DAILY_LIMIT:
+            result["errors"].append("今日沟通名额已满")
+            return result
+        if d not in ("none", DialogType.EXISTING_CHAT, DialogType.DISMISSED):
+            logger.info("  启动弹窗 [%s]，关闭中…", d)
+            skill.dismiss_dialog(d, xml)
+            time.sleep(1.2)
+            continue
+        # Dismiss unrecognised generic overlays (update nags, ads, etc.)
+        _dismissed_unknown = False
+        for _btn_txt in ("我知道了", "关闭", "以后再说", "跳过"):
+            _btn = skill.find_element(text=_btn_txt, xml=xml)
+            if _btn and _btn.center:
+                logger.info("  发现弹窗按钮「%s」，关闭中…", _btn_txt)
+                skill.tap(*_btn.center)
+                time.sleep(1.0)
+                _dismissed_unknown = True
+                break
+        if _dismissed_unknown:
+            continue
+        # Try native bottom-nav tab switch first.
+        if skill.navigate_to_tab("recommend"):
+            time.sleep(1.5)
+            break
+        # navigate_to_tab failed (resource-id mismatch): press BACK once to dismiss any
+        # full-screen overlay (WebView promo, activity on top of home), then re-check.
+        logger.info("  导航到推荐页失败，尝试返回上一页…")
+        skill._adb("shell input keyevent 4")
+        time.sleep(1.5)
 
     logger.info("[2/3] 搜索职位：「%s」…", keyword)
     if not skill.browse_jobs(keyword):
+        # Save debug XML for diagnosis
+        _dbg = skill.get_ui_hierarchy()
+        if _dbg:
+            _dbg_path = Path(skill.output_dir) / "debug_search_fail.xml"
+            _dbg_path.write_text(_dbg[:12000], encoding="utf-8")
+            logger.error("  搜索失败，调试 XML 已保存至 %s", _dbg_path)
         result["errors"].append(f"搜索失败：{keyword}")
         return result
     if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=6.0):
@@ -317,14 +526,26 @@ def live_greet_loop(
                 result["skipped"].append(f"{title}：薪资偏低")
                 continue
 
-        # 确保 App 就绪
-        if not skill.ensure_ready():
-            result["errors"].append("ensure_ready 失败，停止任务")
-            break
+        # 只检查屏幕是否亮着（详情页 get_current_page() 返回 UNKNOWN 属正常，
+        # 下一步 navigate_to_job 会导航到正确页面）
+        if not skill._is_screen_on():
+            logger.warning("⚠️  屏幕熄灭，等待解锁（最多 90 秒）…")
+            _recovered = False
+            for _ in range(9):
+                time.sleep(10)
+                skill._wake_screen()
+                time.sleep(2.0)
+                if skill._is_screen_on():
+                    logger.info("  ↩ 解锁后恢复成功")
+                    _recovered = True
+                    break
+            if not _recovered:
+                result["errors"].append("屏幕未解锁，停止任务")
+                break
 
         # 返回职位列表（首条无需返回，后续每条都需要）
         if idx > 1:
-            if not _return_to_job_list(skill):
+            if not _return_to_job_list(skill, keyword):
                 result["errors"].append("无法返回职位列表")
                 break
 
@@ -361,9 +582,11 @@ def live_greet_loop(
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
 
-        # Haiku 评分 + 生成打招呼
+        # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
-            scored = score_job(client, resume_summary, job_dict, strict=strict)
+            scored = _with_screen_heartbeat(
+                skill, lambda: score_job(client, resume_summary, job_dict, strict=strict)
+            )
         except Exception as exc:
             logger.error("  评分失败：%s — %s", title, exc)
             result["errors"].append(f"{title}：评分失败（{exc}）")
@@ -418,20 +641,23 @@ def live_greet_loop(
                     continue
 
             ok = skill.send_greeting(greeting, verify=verify_send)
-            action = "打招呼成功" if ok else "发送未确认"
-            result["greeted"].append(
-                {"job": title, "company": company, "score": score, "action": action, "greeting": greeting}
-            )
-            logger.info("  ✓ %s — %s", action, greeting[:40])
-            greeted_count += 1
-
-            _record_greeting(db_conn, title, company, hr_name, keyword, greeting, action)
+            if ok:
+                action = "打招呼成功"
+                result["greeted"].append(
+                    {"job": title, "company": company, "score": score, "action": action, "greeting": greeting}
+                )
+                logger.info("  ✓ 打招呼成功 — %s", greeting[:40])
+                greeted_count += 1
+                _record_greeting(db_conn, title, company, hr_name, keyword, greeting, action)
+            else:
+                result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
+                logger.error("  ✗ 打招呼失败 — %s", title)
             time.sleep(1.0)
 
         except Exception as exc:
             logger.error("处理 '%s' 异常", title, exc_info=True)
             result["errors"].append(f"{title}: {exc}")
-            if not skill.ensure_ready():
+            if not skill._is_screen_on():
                 break
 
     return result

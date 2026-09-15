@@ -7,6 +7,8 @@ AndroidSkill as the base (with injected ADBManager for device control).
 
 import logging
 import re
+import shlex
+import subprocess
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -544,6 +546,9 @@ class BOSSAutomationSkill(AndroidSkill):
         self._logger.info("[apply_to_job] ← %s", "投递成功" if ok else "点击失败")
         return ok
 
+    # ADBKeyboard IME component name (invisible — no soft-keyboard UI)
+    _ADB_IME = "com.android.adbkeyboard/.AdbIME"
+
     def send_greeting(self, message: str, verify: bool = False) -> bool:
         """
         Type and send a greeting message in an open chat.
@@ -553,27 +558,190 @@ class BOSSAutomationSkill(AndroidSkill):
             verify: If True, poll UI after sending to confirm the message
                     appears in the chat bubble list (costs one extra dump).
         Returns:
-            True if send succeeded (and verification passed when requested).
+            True only if text was confirmed entered AND the send button was tapped
+            (and message verified when verify=True).
         """
         self._logger.info("[send_greeting] → 发送消息 (verify=%s)", verify)
+
+        # Save current IME so we can restore it after sending.
+        _, prev_ime = self._adb("shell settings get secure default_input_method")
+        prev_ime = (prev_ime or "").strip()
+
+        # Switch to ADBKeyboard BEFORE tapping the EditText.
+        # Reason: if we tap first (with Gboard active), Gboard's soft keyboard appears
+        # and shifts the UI upward.  We then switch to ADBKeyboard which has no visible
+        # keyboard — but the keyboard hide animation causes a second layout shift.
+        # Capturing the send-button coordinates during these transitions gives wrong
+        # positions.  By enabling ADBKeyboard first (it stays invisible), the BOSS chat
+        # layout never shifts and all coordinates are stable throughout.
+        self._adb(f"shell ime enable {self._ADB_IME}")
+        self._adb(f"shell ime set {self._ADB_IME}")
+        time.sleep(0.5)
+
+        # Focus the chat input (ADBKeyboard is now active → no visible keyboard).
         if not self.tap_element("chat_input"):
             self._logger.warning("[send_greeting] ← 找不到 chat_input")
+            if prev_ime:
+                self._adb(f"shell ime set {prev_ime}")
             return False
-        time.sleep(0.3)
-        if not self.type_text(message):
-            self._logger.warning("[send_greeting] ← type_text 失败")
+        # Give ADBKeyboard time to receive onStartInput() and establish
+        # the InputConnection with this EditText.
+        time.sleep(2.5)
+
+        self._save_debug_screenshot("send_01_before_type")
+
+        # Broadcast the message text directly (ADBKeyboard is already active).
+        # IMPORTANT: do NOT go through self._adb() → adb_runner.shell() here.
+        # shell() uses shlex.split(posix=True) which strips the single quotes that
+        # shlex.quote() adds, then subprocess.run passes the text as a bare arg.
+        # adb joins all shell args with spaces WITHOUT re-quoting them, so the
+        # device shell splits the greeting at any space character — truncating the
+        # message to the first word.  By passing the entire shell command as ONE
+        # arg to "adb shell" we preserve the single quotes on the device side.
+        safe_text = shlex.quote(message)
+        _bcast_cmd = (
+            f"am broadcast -p com.android.adbkeyboard"
+            f" -a ADB_INPUT_TEXT --es msg {safe_text}"
+        )
+        _bcast_args = ["adb"]
+        if self.device_id:
+            _bcast_args += ["-s", self.device_id]
+        _bcast_args += ["shell", _bcast_cmd]
+        subprocess.run(
+            _bcast_args,
+            shell=False,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        # Wait for ADBKeyboard's onReceive/commitText to complete before we
+        # dump the XML or tap the send button.
+        time.sleep(1.5)
+
+        self._save_debug_screenshot("send_02_after_type")
+
+        # Verify the text actually landed in the EditText.
+        xml_after_type = self.get_ui_hierarchy(force_refresh=True)
+        chat_elem = self.find_element(
+            resource_id=self.ELEMENTS["chat_input"], xml=xml_after_type
+        )
+        typed_text = (chat_elem.text if chat_elem else "") or ""
+        msg_start = message[:6]
+        if msg_start not in typed_text:
+            self._logger.error(
+                "[send_greeting] ← 文字未进入输入框 "
+                "(EditText='%s'，期望前缀='%s')；已保存诊断 XML。",
+                typed_text[:30], msg_start,
+            )
+            _dbg = Path(self.output_dir) / "debug_type_fail.xml"
+            _dbg.write_text(xml_after_type or "", encoding="utf-8")
+            if prev_ime:
+                self._adb(f"shell ime set {prev_ime}")
             return False
-        time.sleep(0.2)
-        ok, _ = self._adb("shell input keyevent 66")  # KEYCODE_ENTER
-        if ok and verify:
+        self._logger.info(
+            "[send_greeting] ✓ 输入框已有文字（前20字）：%s", typed_text[:20]
+        )
+
+        # Locate the send button while ADBKeyboard is still active (no soft keyboard
+        # visible → layout is stable, coordinates match what we tap below).
+        # The BOSS send button is a gradient-circle ImageView with no resource-id,
+        # text, or content-desc.  Use positional fallback.
+        _send_btn = (
+            self.find_element(content_desc="发送", xml=xml_after_type)
+            or self.find_element(text="发送", xml=xml_after_type)
+        )
+        if not (_send_btn and _send_btn.center):
+            _send_btn = self._find_send_btn_by_position(xml_after_type, chat_elem)
+        if not (_send_btn and _send_btn.center):
+            self._logger.error("[send_greeting] ← 未找到发送按钮；已保存诊断 XML。")
+            _dbg2 = Path(self.output_dir) / "debug_no_sendbtn.xml"
+            _dbg2.write_text(xml_after_type or "", encoding="utf-8")
+            if prev_ime:
+                self._adb(f"shell ime set {prev_ime}")
+            return False
+
+        self._logger.info("[send_greeting] 点击发送按钮 bounds=%s center=%s",
+                          _send_btn.bounds, _send_btn.center)
+        ok = self.tap(*_send_btn.center)
+        time.sleep(0.5)
+        self._save_debug_screenshot("send_03_after_send")
+
+        # Restore IME after sending (not before — restoring causes keyboard to appear,
+        # which would shift the layout and invalidate the coordinates used above).
+        if prev_ime:
+            self._adb(f"shell ime set {prev_ime}")
+
+        if not ok:
+            self._logger.warning("[send_greeting] ← 点击发送按钮失败")
+            return False
+
+        if verify:
             time.sleep(1.0)
             verified = self.verify_message_sent(message)
-            self._logger.info("[send_greeting] ← %s", "已验证发送" if verified else "发送后验证失败")
+            self._logger.info(
+                "[send_greeting] ← %s", "已验证发送" if verified else "发送后验证失败"
+            )
             return verified
-        self._logger.info("[send_greeting] ← %s", "发送成功" if ok else "keyevent 失败")
-        return ok
 
-    def verify_message_sent(self, message: str, timeout: float = 3.0) -> bool:
+        self._logger.info("[send_greeting] ← 发送成功（未验证）")
+        return True
+
+    def _save_debug_screenshot(self, tag: str) -> None:
+        path = self.screenshot(f"debug_{tag}.png")
+        if path:
+            self._logger.info("[debug] 截图：%s", path)
+
+    def _find_send_btn_by_position(
+        self, xml: Optional[str], chat_elem: Optional[Any]
+    ) -> Optional["UIElement"]:
+        """Find the chat send button when it has no text/content-desc.
+
+        The BOSS send button is an icon-only ImageView positioned to the right
+        of the chat EditText.  We find it by locating clickable nodes whose
+        x-range starts past the EditText's right edge, in the same y-row.
+        """
+        if not xml or not chat_elem or not chat_elem.bounds or len(chat_elem.bounds) < 4:
+            return None
+        try:
+            root = ET.fromstring(xml)
+        except ET.ParseError:
+            return None
+
+        edit_x2 = chat_elem.bounds[2]  # right edge of the input box
+        edit_y1 = chat_elem.bounds[1]
+        edit_y2 = chat_elem.bounds[3]
+        y_mid = (edit_y1 + edit_y2) // 2
+
+        best = None
+        for node in root.iter("node"):
+            if node.attrib.get("clickable") != "true":
+                continue
+            bounds = parse_bounds(node.attrib.get("bounds", ""))
+            if not bounds or len(bounds) < 4:
+                continue
+            nx1, ny1, nx2, ny2 = bounds
+            # Must start to the right of the EditText and overlap the y-row
+            if nx1 < edit_x2:
+                continue
+            if ny2 < y_mid or ny1 > edit_y2:
+                continue
+            # Prefer the rightmost candidate (the send button is furthest right)
+            if best is None or nx1 > best.bounds[0]:
+                best = UIElement(
+                    resource_id=node.attrib.get("resource-id", ""),
+                    text=node.attrib.get("text", ""),
+                    content_desc=node.attrib.get("content-desc", ""),
+                    bounds=bounds,
+                    clickable=True,
+                )
+        if best:
+            self._logger.info(
+                "[send_greeting] 按位置找到发送按钮 bounds=%s", best.bounds
+            )
+        return best
+
+    def verify_message_sent(self, message: str, timeout: float = 8.0) -> bool:
         """
         Poll the UI hierarchy until the sent message appears as a bubble.
 
@@ -583,10 +751,14 @@ class BOSSAutomationSkill(AndroidSkill):
         Returns:
             True if the message was found within timeout.
         """
+        # Use first 15 chars as the search key: the message bubble text may be
+        # longer than the prefix, so find_element(text=exact) won't match.
+        # Search the raw XML string for the prefix substring instead.
+        prefix = message[:15]
         deadline = time.time() + timeout
         while time.time() < deadline:
-            xml = self.get_ui_hierarchy()
-            if self.find_element(text=message, xml=xml):
+            xml = self.get_ui_hierarchy(force_refresh=True)
+            if xml and prefix in xml:
                 return True
             time.sleep(0.5)
         return False
@@ -809,6 +981,8 @@ class BOSSAutomationSkill(AndroidSkill):
             return False
 
         labels = self._TAB_TEXTS.get(tab, [tab])
+
+        # Primary: resource-ID-based lookup (tv_tab_N / cl_tab_N)
         for n in range(1, 5):
             tv_rid = f"{BOSS_PACKAGE}:id/tv_tab_{n}"
             for node in root.iter("node"):
@@ -826,6 +1000,21 @@ class BOSSAutomationSkill(AndroidSkill):
                                     if ok:
                                         time.sleep(self.action_delay)
                                     return ok
+
+        # Fallback: text-based lookup — find any node whose text matches a
+        # tab label; the node itself or its closest clickable ancestor is tapped.
+        for node in root.iter("node"):
+            if node.attrib.get("text", "") in labels:
+                bounds = parse_bounds(node.attrib.get("bounds", ""))
+                if bounds:
+                    ok = self.tap(
+                        (bounds[0] + bounds[2]) // 2,
+                        (bounds[1] + bounds[3]) // 2,
+                    )
+                    if ok:
+                        time.sleep(self.action_delay)
+                    return ok
+
         return False
 
     def get_message_list(self, xml: Optional[str] = None) -> List[ChatEntry]:
