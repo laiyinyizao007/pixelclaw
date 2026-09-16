@@ -782,6 +782,11 @@ class BOSSAutomationSkill(AndroidSkill):
         all_jobs: List[JobInfo] = []
         seen: Dict[str, JobInfo] = {}
         scrolls = 0
+        # RecyclerView inflates lazily: a single zero-new-found doesn't mean end of list.
+        # Only exit when the XML hasn't changed across MAX_STALE consecutive scrolls.
+        max_stale = 5
+        stale = 0
+        prev_xml = ""
 
         while len(all_jobs) < n_jobs and scrolls < max_scrolls:
             xml = self.get_ui_hierarchy()
@@ -789,12 +794,12 @@ class BOSSAutomationSkill(AndroidSkill):
 
             new_found = 0
             for job in page_jobs:
-                key = normalize_card_title(job.title)
-                if not key:
+                key = f"{normalize_card_title(job.title)}\t{job.company or ''}\t{job.hr_name or ''}"
+                if not key.strip("\t"):
                     continue
                 known = seen.get(key)
                 if known is None:
-                    job.title = key
+                    job.title = normalize_card_title(job.title)
                     seen[key] = job
                     all_jobs.append(job)
                     new_found += 1
@@ -806,7 +811,16 @@ class BOSSAutomationSkill(AndroidSkill):
                             setattr(known, attr, getattr(job, attr))
 
             if new_found == 0:
-                break  # end of list
+                if xml == prev_xml:
+                    stale += 1
+                    if stale >= max_stale:
+                        break  # XML truly unchanged — end of list
+                    time.sleep(1.0)
+                    continue
+                stale = 0
+            else:
+                stale = 0
+            prev_xml = xml
 
             if len(all_jobs) >= n_jobs:
                 break
