@@ -48,6 +48,9 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          LLM_FALLBACK_API_KEY: ${{ secrets.LLM_FALLBACK_API_KEY }}
+          LLM_FALLBACK_BASE_URL: ${{ secrets.LLM_FALLBACK_BASE_URL }}
+          LLM_FALLBACK_MODEL: ${{ vars.LLM_FALLBACK_MODEL || 'MiniMax-M3' }}
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
           GH_OWNER: ${{ github.repository_owner }}
@@ -78,6 +81,9 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          LLM_FALLBACK_API_KEY: ${{ secrets.LLM_FALLBACK_API_KEY }}
+          LLM_FALLBACK_BASE_URL: ${{ secrets.LLM_FALLBACK_BASE_URL }}
+          LLM_FALLBACK_MODEL: ${{ vars.LLM_FALLBACK_MODEL || 'MiniMax-M3' }}
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           GH_OWNER: ${{ github.repository_owner }}
         run: python3 generate_weekly_plan.py --auto-close
