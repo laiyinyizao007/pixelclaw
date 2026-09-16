@@ -49,62 +49,41 @@ _CONTINUE_DIALOGS = {DialogType.EXISTING_CHAT, DialogType.DISMISSED}
 
 # ─── Haiku Prompt ─────────────────────────────────────────────────────────────
 
-RESUME_EXTRACT_PROMPT = """\
-从以下简历中提取关键信息，仅返回 JSON，无其他文字：
+# ─── Prompt 加载 ─────────────────────────────────────────────────────────────
+# Prompt 从 scenarios/boss/config/prompts/*.md 读取，业务侧改 prompt 不用碰代码。
+# 启动时缓存 + mtime 检测：编辑 md 后下一次 score_job / extract_resume_summary 调用自动读新版本。
 
-{resume}
+_PROMPT_DIR = Path(__file__).parents[1] / "config" / "prompts"
+_PROMPT_FILES = {
+    "resume_extract": _PROMPT_DIR / "resume_extract.md",
+    "match_score":    _PROMPT_DIR / "match_score.md",
+    "strict_rules":   _PROMPT_DIR / "strict_rules.md",
+}
+_prompt_cache: dict[str, str] = {}
 
-输出格式：
-{{
-  "name": "<姓名>",
-  "title": "<当前目标职位>",
-  "total_exp_years": <产品/设计/技术相关工作年数，整数>,
-  "core_skills": ["技能1", "技能2", ...],
-  "domains": ["领域1", "领域2", ...],
-  "recent_achievements": ["成就1", "成就2", "成就3"],
-  "target_salary_min_k": <期望月薪下限（K），整数，无明确期望填 0>,
-  "preferred_location": "<城市名，如上海>"
-}}"""
 
-MATCH_PROMPT = """\
-你是严格的求职顾问，评估候选人与职位的匹配度并生成量身定制的打招呼消息。
+def _load_prompt(name: str) -> str:
+    """Read prompt from md file, reloading if mtime changed since last read.
 
-候选人画像：
-{resume_summary}
-
-职位信息：
-标题：{title}
-公司：{company}
-薪资：{salary}
-经验要求：{experience}
-公司信息：{company_info}
-HR姓名：{hr_name}
-职位描述（完整原文）：
-{description_excerpt}
-职位需求标签：
-{requirements}
-
-评分标准（严格执行，不得随意拔高）：
-9-10：职位核心要求与候选人背景几乎完全重叠
-7-8 ：主体方向匹配，有 1-2 项核心要求候选人略弱
-5-6 ：方向相关，但核心要求与候选人背景有明显差距
-3-4 ：领域相关但岗位性质明显不同（如纯技术岗 vs 产品岗）
-1-2 ：基本不相关
-{strict_rules}
-请返回 JSON（仅 JSON，无其他文字）：
-{{
-  "match_score": <0-10 整数，10 为完全匹配>,
-  "top_matches": ["最强匹配点1", "最强匹配点2"],
-  "greeting": "<打招呼消息，60-90字。规则：1.开头称呼HR姓氏（如「李女士」），无法判断性别则用「您好」；2.引用JD描述中一个具体场景或要求词（非泛泛「AI经验」，要具体如「智能体产品0到1」）；3.结合简历最强1-2个具体经历呼应该场景；4.语气自然友好、有礼貌、不卑不亢，像人写的而非模板。【硬性禁止，违反视为无效】禁止出现「感谢邀请」「感谢贵司邀请」「感谢您的邀请」「有幸被贵司关注」「感谢贵司青睐」等被动受邀语气——这是主动投递，对方从未邀请我；禁止提及「简历」或感谢对方看简历——打招呼时对方还没看简历，提前感谢显得虚假；可以在结尾自然询问是否需要发简历>"
-}}"""
-
-STRICT_RULES = """\
-
-严格模式额外约束：
-- 职位若不明确要求 AI/Agent/产品化经验，不得给出 8 分以上
-- 职位若为纯技术研发岗（工程师/算法），强制不超过 5 分
-- 薪资若低于候选人期望下限 30% 以上，扣 1 分
-"""
+    Cache by mtime so editing the md between calls takes effect on the next
+    call — no need to restart the script.
+    """
+    path = _PROMPT_FILES[name]
+    if not path.exists():
+        raise FileNotFoundError(
+            f"prompt 文件缺失：{path}。可从 git 历史恢复或参考 .py 里旧的硬编码常量。"
+        )
+    mtime = path.stat().st_mtime
+    cached = _prompt_cache.get(name)
+    if cached is not None:
+        cached_text, cached_mtime = cached  # type: ignore[misc]
+        if mtime == cached_mtime:
+            return cached_text
+    text = path.read_text(encoding="utf-8")
+    _prompt_cache[name] = (text, mtime)
+    # 模块顶层调用时 logger 还没初始化（main() 里才 setup_logger），用 print 兜底
+    print(f"[prompt] 加载 {name} (mtime={mtime:.0f})")
+    return text
 
 
 # ─── DB 工具 ──────────────────────────────────────────────────────────────────
@@ -318,7 +297,7 @@ def extract_resume_summary(
     fallback: anthropic.Anthropic | None = None,
 ) -> str:
     """Call Haiku once to distill the full resume into a compact structured JSON string."""
-    prompt = RESUME_EXTRACT_PROMPT.format(resume=resume)
+    prompt = _load_prompt("resume_extract").format(resume=resume)
     response = _call_with_fallback(
         primary, fallback,
         model="MiniMax-M3",
@@ -342,7 +321,7 @@ def score_job(
 ) -> dict:
     """Call Claude Haiku to score one job and generate a personalized greeting."""
     description = job.get("description") or ""
-    prompt = MATCH_PROMPT.format(
+    prompt = _load_prompt("match_score").format(
         resume_summary=resume_summary,
         title=job.get("title", ""),
         company=job.get("company", ""),
@@ -352,7 +331,7 @@ def score_job(
         hr_name=job.get("hr_name") or "（未知）",
         description_excerpt=description if description else "（无）",
         requirements=job.get("requirements_text") or "  无标签",
-        strict_rules=STRICT_RULES if strict else "",
+        strict_rules=_load_prompt("strict_rules") if strict else "",
     )
     response = _call_with_fallback(
         primary, fallback,
