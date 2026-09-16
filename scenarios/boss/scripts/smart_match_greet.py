@@ -666,9 +666,9 @@ def _run_loop(
                 result["errors"].append("无法返回职位列表")
                 break
 
-        # 进入详情页
+        # 进入详情页（用新鲜坐标，避免返回列表后坐标错位点到旧卡片）
         logger.info("  [%d/%d] → %s（%s）", idx, len(jobs), title, company)
-        if not skill.navigate_to_job(job):
+        if not skill.find_and_navigate_to_job(title, company, job):
             result["errors"].append(f"{title}：导航失败")
             continue
 
