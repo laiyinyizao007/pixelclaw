@@ -1,4 +1,6 @@
 name: Generate Issue Task List
+# v1.17+：Python 逻辑已提取为 .github/scripts/generate_tasklist.py
+# 见 PROJECTWIKI.md §5.14
 
 on:
   issues:
