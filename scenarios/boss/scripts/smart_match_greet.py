@@ -714,8 +714,8 @@ def _run_loop(
 
         # 等待详情页加载并验证公司名匹配，防止 Boss app 显示上一个职位的缓存数据
         _detail_ok = False
-        for _attempt in range(5):
-            if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=4.0):
+        for _attempt in range(2):
+            if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=3.0):
                 time.sleep(1.0)
                 continue
             _quick = skill.get_job_detail()
@@ -730,7 +730,7 @@ def _run_loop(
                 _detail_ok = True
                 break
             logger.warning(
-                "  详情页内容不匹配（期望=%s，实际=%s），等待重试 %d/5",
+                "  详情页内容不匹配（期望=%s，实际=%s），等待重试 %d/2",
                 company, _detail_company, _attempt + 1,
             )
             time.sleep(1.0)

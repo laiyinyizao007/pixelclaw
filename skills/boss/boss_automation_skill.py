@@ -527,98 +527,22 @@ class BOSSAutomationSkill(AndroidSkill):
 
     def find_and_navigate_to_job(
         self,
-        title: str,
-        company: str,
+        title: str,           # noqa: ARG002  保留以兼容调用方
+        company: str,         # noqa: ARG002  保留以兼容调用方
         fallback_job: JobInfo,
-        max_scrolls: int = 25,
-        screen_height: int = 2400,  # noqa: ARG004
+        max_scrolls: int = 25,   # noqa: ARG002  保留但不使用
+        screen_height: int = 2400,  # noqa: ARG002  保留但不使用
     ) -> bool:
+        """Tap the job card using coordinates captured during initial collection.
+
+        简化为"按坐标 tap"——不再做标题字符串匹配 / 列表回顶 / 陈旧坐标兜底。
+
+        校验完全交给调用方的 detail-page 检查（`tv_job_name` + 公司名前缀匹配）：
+        - 校验通过 → 继续发送招呼
+        - 校验失败 → 调用方 `continue` 找下一个目标
+
+        这就是用户要的"两条路径"：能发就发，不能发就下一个。
         """
-        Locate a job card in the current list view using fresh coordinates.
-
-        After _return_to_job_list() the RecyclerView may be at a different scroll
-        position than when the card was originally collected, making stored
-        tap_x/tap_y stale and potentially hitting the wrong card. This method
-        scrolls the list back to the top, scans the live UI dump, and scrolls
-        down until it finds the target card, then taps it with the coordinates
-        visible right now.
-
-        Self-healing scroller resolution (three stages, never silent):
-
-        1. ``_make_u2_scroller()`` — long-wait (10s) for ``recyclerView_list``,
-           the known-good scroller on the search-results page.
-        2. ``_find_working_scroller()`` — if stage 1 fails, dump the XML,
-           enumerate every ``scrollable="true"`` node, try each via
-           ``scroll.backward()`` until one actually moves the page
-           (verified by XML-hash delta).
-        3. ``_log_scroll_failure_diagnosis()`` — if stage 2 also fails,
-           dump the live UI state (page, scrollable ids, XML snippet) and
-           return ``False`` explicitly. We do NOT silently fall back to
-           swipe: ``adb shell input swipe`` is intercepted by Boss's
-           onTouchListener (proven by ``diag_swipe.py``: 23/23 Δ=0 on
-           Boss RecyclerView), so it would just waste time and return a
-           fake success that taps the wrong card.
-
-        Final fallback: if scroller was obtained but the card title never
-        shows up after ``max_scrolls`` iterations, use the stored
-        ``fallback_job.tap_x/y`` as a best-effort tap (only valid when
-        we are actually on JOB_LIST — see the page-check below).
-        """
-        norm_title = normalize_card_title(title)
-
-        # ── 三段式自愈：长等 → 枚举候选 → 诊断 ──────────────────────
-        scroller = self._make_u2_scroller()
-        if scroller is None:
-            scroller = self._find_working_scroller()
-        if scroller is None:
-            self._log_scroll_failure_diagnosis()
-            return False  # 显式失败，不再静默回退 swipe
-        # ─────────────────────────────────────────────────────────────
-
-        self._scroll_recycler_to_top(scroller)
-
-        for attempt in range(max_scrolls + 1):
-            xml = self.get_ui_hierarchy()
-            for visible_job in self.get_job_list(xml=xml):
-                if normalize_card_title(visible_job.title) != norm_title:
-                    continue
-                c_match = (
-                    not company
-                    or not visible_job.company
-                    or company[:6] in visible_job.company
-                    or visible_job.company[:6] in company
-                )
-                if not c_match:
-                    continue
-                self._logger.info(
-                    "[find_and_navigate] 找到「%s」，新坐标 (%d, %d)",
-                    visible_job.title, visible_job.tap_x, visible_job.tap_y,
-                )
-                return self.tap(visible_job.tap_x, visible_job.tap_y)
-
-            if attempt < max_scrolls and scroller is not None:
-                try:
-                    scroller.scroll.forward()
-                except Exception as exc:  # noqa: BLE001
-                    self._logger.warning(
-                        "[find_and_navigate] scroll.forward 失败（可能已到底）: %s", exc,
-                    )
-                    break
-                time.sleep(0.5)
-
-        # 卡片扫完一遍都没找到 — 用陈旧坐标兜底，但先校验页面防止误 tap
-        page = self.get_current_page()
-        if page != PageState.JOB_LIST:
-            self._logger.warning(
-                "[find_and_navigate] 卡片未找到且当前不在 JOB_LIST (page=%s)，"
-                "放弃陈旧坐标兜底，返回 False",
-                page,
-            )
-            return False
-        self._logger.warning(
-            "[find_and_navigate] 未找到「%s」，回退旧坐标 (%d, %d)",
-            title, fallback_job.tap_x, fallback_job.tap_y,
-        )
         return self.navigate_to_job(fallback_job)
 
     def _make_u2_scroller(self, max_wait: float = 10.0):
