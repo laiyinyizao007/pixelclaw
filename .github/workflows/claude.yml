@@ -1,4 +1,6 @@
 name: Claude Issue Handler
+# v1.17+：使用 actions/cache@v4 显式缓存 ~/.npm（原 setup-node cache:'npm' 因无 lockfile 失效）
+# 见 PROJECTWIKI.md §5.12
 
 on:
   issue_comment:
