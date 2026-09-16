@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Duplicate Issue detection for GitHub Issues.
 
-Usage:
-    python dedup.py <issue_number> <issue_title> <repo> <gh_token>
+Reads from environment variables set by the GitHub Actions workflow:
+    ISSUE_NUMBER, ISSUE_TITLE, REPO, GH_TOKEN
 """
 
 import json
+import os
 import re
 import sys
 import time
@@ -162,14 +163,22 @@ def post_comment(repo: str, issue_number: int, body: str, token: str) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) != 5:
-        print(f'Usage: {sys.argv[0]} <issue_number> <issue_title> <repo> <gh_token>')
+    issue_number_str = os.environ.get('ISSUE_NUMBER', '')
+    issue_title = os.environ.get('ISSUE_TITLE', '')
+    repo = os.environ.get('REPO', '')
+    token = os.environ.get('GH_TOKEN', '')
+
+    if not all([issue_number_str, issue_title, repo, token]):
+        missing = [k for k, v in {
+            'ISSUE_NUMBER': issue_number_str,
+            'ISSUE_TITLE': issue_title,
+            'REPO': repo,
+            'GH_TOKEN': token,
+        }.items() if not v]
+        print(f'[error] Missing required environment variables: {", ".join(missing)}')
         sys.exit(1)
 
-    issue_number = int(sys.argv[1])
-    issue_title = sys.argv[2]
-    repo = sys.argv[3]
-    token = sys.argv[4]
+    issue_number = int(issue_number_str)
 
     try:
         normalized = normalize_title(issue_title)
