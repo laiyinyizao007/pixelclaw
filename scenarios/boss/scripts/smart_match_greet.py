@@ -32,7 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 import anthropic
-from anthropic import RateLimitError
+from anthropic import APIStatusError, InternalServerError, RateLimitError
 from skills.android.adb_runner import ADBRunner
 from skills.boss import BOSSAutomationSkill, DialogType, PageState, normalize_card_title
 from utils.logging_setup import setup_logger
@@ -248,25 +248,31 @@ def _strip_json_fences(text: str) -> str:
 def _make_client() -> tuple[anthropic.Anthropic, anthropic.Anthropic | None]:
     """Return (primary_client, fallback_client). fallback is None if not configured.
 
-    Loads .env from the repo root so ANTHROPIC_BACKUP_API_KEY / ANTHROPIC_BACKUP_BASE_URL
-    can be defined there without polluting the shell environment.
+    Loads .env from the repo root with override=True so the env in this script
+    is always consistent with what the .env file declares, regardless of any
+    shell-set values that might point at a different relay.
+
+    As of 2026-09-16 both relays (klugai / minnimax) advertise only the
+    MiniMax-M* model family; Claude models return 500 ("No available Claude
+    accounts support the requested model"). Therefore primary uses the
+    minnimax relay + MiniMax-M3 (verified working), and fallback uses the
+    klugai relay + MiniMax-M3 as a backup when minnimax itself flakes.
     """
     import os
     from dotenv import load_dotenv
-    load_dotenv(REPO_ROOT / ".env", override=False)
-    primary_url = os.environ.get("ANTHROPIC_BASE_URL")
-    primary = anthropic.Anthropic(
-        **({"base_url": primary_url} if primary_url else {}),
-    )
-    backup_key = os.environ.get("ANTHROPIC_BACKUP_API_KEY")
-    backup_url = os.environ.get("ANTHROPIC_BACKUP_BASE_URL")
-    if backup_key:
-        fallback = anthropic.Anthropic(
-            api_key=backup_key,
-            **({"base_url": backup_url} if backup_url else {}),
-        )
-    else:
-        fallback = None
+    load_dotenv(REPO_ROOT / ".env", override=True)
+
+    primary_key = os.environ.get("ANTHROPIC_BACKUP_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    primary_url = os.environ.get("ANTHROPIC_BACKUP_BASE_URL") or os.environ.get("ANTHROPIC_BASE_URL")
+    if not primary_key:
+        raise RuntimeError("No API key found in .env (ANTHROPIC_API_KEY or ANTHROPIC_BACKUP_API_KEY)")
+    primary = anthropic.Anthropic(api_key=primary_key, base_url=primary_url)
+
+    backup_key = os.environ.get("ANTHROPIC_API_KEY")
+    backup_url = os.environ.get("ANTHROPIC_BASE_URL")
+    fallback = None
+    if backup_key and (backup_key != primary_key or backup_url != primary_url):
+        fallback = anthropic.Anthropic(api_key=backup_key, base_url=backup_url)
     return primary, fallback
 
 
@@ -275,14 +281,35 @@ def _call_with_fallback(
     fallback: anthropic.Anthropic | None,
     **kwargs,
 ) -> anthropic.types.Message:
-    """Call primary client; on RateLimitError switch to fallback if available."""
-    try:
-        return primary.messages.create(**kwargs)
-    except RateLimitError:
-        if fallback is None:
-            raise
-        logger.warning("主 API 限速，切换备用 key 重试…")
-        return fallback.messages.create(**kwargs)
+    """Call primary client; on transient errors switch to fallback if available.
+
+    As of 2026-09-16 the relays we use intermittently return 500 ("No available
+    Claude accounts support the requested model") or 403 ("not allowed in your
+    plan"). Both are recoverable by retrying on the same client, and falling
+    back to the secondary relay if the primary keeps failing.
+    """
+    import time as _time
+
+    last_exc: Exception | None = None
+    for client, label in ((primary, "primary"), (fallback, "fallback") if fallback else (None, None)):
+        if client is None:
+            continue
+        for attempt in range(2):
+            try:
+                return client.messages.create(**kwargs)
+            except (RateLimitError, InternalServerError, anthropic.APIStatusError) as exc:
+                last_exc = exc
+                wait = 1.5 * (attempt + 1)
+                logger.warning(
+                    "[%s] 暂态错误 %s (attempt %d)，%.1fs 后重试: %s",
+                    label, type(exc).__name__, attempt + 1, wait, str(exc)[:160],
+                )
+                _time.sleep(wait)
+            except Exception:
+                # Non-transient (auth, validation, etc.) — don't retry, don't fall back.
+                raise
+    assert last_exc is not None  # only reachable if both clients raised
+    raise last_exc
 
 
 def extract_resume_summary(
@@ -294,7 +321,7 @@ def extract_resume_summary(
     prompt = RESUME_EXTRACT_PROMPT.format(resume=resume)
     response = _call_with_fallback(
         primary, fallback,
-        model="claude-haiku-4-5-20251001",
+        model="MiniMax-M3",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -329,7 +356,7 @@ def score_job(
     )
     response = _call_with_fallback(
         primary, fallback,
-        model="claude-haiku-4-5-20251001",
+        model="MiniMax-M3",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -366,10 +393,17 @@ def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
     # Fast path: up to 3 Back presses, checking after each.
     # After sending a greeting the back-stack is: chat → detail → list,
     # so we need two presses, not one.
+    #
+    # IMPORTANT: check via get_current_page() == JOB_LIST, NOT
+    # wait_for_element("tv_position_name"). tv_position_name renders on
+    # BOTH the search-results page AND the home recommend feed, so the
+    # element-based check used to "succeed" while we were actually parked
+    # on the wrong tab — a one-BACK press from the detail page lands on
+    # the recommend feed, which has tv_position_name but is NOT a job list.
     for _ in range(3):
         skill.press_back()
         time.sleep(1.2)
-        if skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=4.0):
+        if skill.get_current_page() == PageState.JOB_LIST:
             return True
 
     # Fallback: navigate to jobs tab and re-search (only when keyword is known)
@@ -386,7 +420,13 @@ def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
             time.sleep(1.0)
         else:
             return False
-        return skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=15.0)
+        # Wait briefly for the page to settle, then verify it's actually JOB_LIST.
+        deadline = time.time() + 15.0
+        while time.time() < deadline:
+            if skill.get_current_page() == PageState.JOB_LIST:
+                return True
+            time.sleep(0.5)
+        return False
 
     # No keyword → just try more backs
     for _ in range(3):

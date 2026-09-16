@@ -141,6 +141,10 @@ class BOSSAutomationSkill(AndroidSkill):
         "resume_list":     f"{BOSS_PACKAGE}:id/rv_list",
         # Recommend tab anchor (verified from real-device dump)
         "recommend_card":  f"{BOSS_PACKAGE}:id/boss_job_card_view",
+        # Job-list RecyclerView (only present on search results, not on recommend feed)
+        "job_list_rv":     f"{BOSS_PACKAGE}:id/recyclerView_list",
+        # Search-results toolbar hint (only on GeekSearchActivity, not on home feed)
+        "search_hint":     f"{BOSS_PACKAGE}:id/tv_search_hint",
         # Job-list toolbar keyword indicator (visible even while cards are loading)
         "search_indicator": f"{BOSS_PACKAGE}:id/magic_indicator",
         # Toolbar search icon (rightmost img_icon in ly_menu)
@@ -220,6 +224,13 @@ class BOSSAutomationSkill(AndroidSkill):
         if self.find_element(resource_id=self.ELEMENTS["contact_vp"], xml=xml):
             return PageState.MESSAGES
         if self.find_element(resource_id=self.ELEMENTS["recommend_card"], xml=xml):
+            # boss_job_card_view appears on BOTH the recommend (home) feed and
+            # the search results page. Disambiguate: search results always have
+            # recyclerView_list + tv_search_hint (toolbar shows the keyword);
+            # the home feed has neither.
+            if (self.find_element(resource_id=self.ELEMENTS["job_list_rv"], xml=xml)
+                    and self.find_element(resource_id=self.ELEMENTS["search_hint"], xml=xml)):
+                return PageState.JOB_LIST
             return PageState.RECOMMEND
         if (self.find_element(resource_id=self.ELEMENTS["job_name"], xml=xml) or
                 self.find_element(resource_id=self.ELEMENTS["search_indicator"], xml=xml)):
@@ -520,7 +531,7 @@ class BOSSAutomationSkill(AndroidSkill):
         company: str,
         fallback_job: JobInfo,
         max_scrolls: int = 25,
-        screen_height: int = 2400,
+        screen_height: int = 2400,  # noqa: ARG004
     ) -> bool:
         """
         Locate a job card in the current list view using fresh coordinates.
@@ -528,30 +539,43 @@ class BOSSAutomationSkill(AndroidSkill):
         After _return_to_job_list() the RecyclerView may be at a different scroll
         position than when the card was originally collected, making stored
         tap_x/tap_y stale and potentially hitting the wrong card. This method
-        scans the live UI dump and scrolls down until it finds the target card,
-        then taps it with the coordinates visible right now.
+        scrolls the list back to the top, scans the live UI dump, and scrolls
+        down until it finds the target card, then taps it with the coordinates
+        visible right now.
 
-        Falls back to fallback_job.tap_x/y (stored coordinates) if the card
-        cannot be found after max_scrolls scroll attempts.
+        Self-healing scroller resolution (three stages, never silent):
+
+        1. ``_make_u2_scroller()`` — long-wait (10s) for ``recyclerView_list``,
+           the known-good scroller on the search-results page.
+        2. ``_find_working_scroller()`` — if stage 1 fails, dump the XML,
+           enumerate every ``scrollable="true"`` node, try each via
+           ``scroll.backward()`` until one actually moves the page
+           (verified by XML-hash delta).
+        3. ``_log_scroll_failure_diagnosis()`` — if stage 2 also fails,
+           dump the live UI state (page, scrollable ids, XML snippet) and
+           return ``False`` explicitly. We do NOT silently fall back to
+           swipe: ``adb shell input swipe`` is intercepted by Boss's
+           onTouchListener (proven by ``diag_swipe.py``: 23/23 Δ=0 on
+           Boss RecyclerView), so it would just waste time and return a
+           fake success that taps the wrong card.
+
+        Final fallback: if scroller was obtained but the card title never
+        shows up after ``max_scrolls`` iterations, use the stored
+        ``fallback_job.tap_x/y`` as a best-effort tap (only valid when
+        we are actually on JOB_LIST — see the page-check below).
         """
         norm_title = normalize_card_title(title)
 
-        # Scroll back to top before scanning.
-        # After scroll_job_list() the list ends at the bottom; after
-        # _return_to_job_list() the RecyclerView position is unpredictable.
-        # Boss job cards are ~520px each; a 60-card list needs ~26 upward swipes from
-        # the very bottom. Use 30 fast (100ms) flings to safely reach the top from any
-        # position. Finger moves top→bottom = content scrolls up toward first card.
-        for _ in range(30):
-            self.swipe(
-                540,
-                int(screen_height * 0.15),
-                540,
-                int(screen_height * 0.85),
-                100,
-            )
-            time.sleep(0.12)
-        time.sleep(0.4)
+        # ── 三段式自愈：长等 → 枚举候选 → 诊断 ──────────────────────
+        scroller = self._make_u2_scroller()
+        if scroller is None:
+            scroller = self._find_working_scroller()
+        if scroller is None:
+            self._log_scroll_failure_diagnosis()
+            return False  # 显式失败，不再静默回退 swipe
+        # ─────────────────────────────────────────────────────────────
+
+        self._scroll_recycler_to_top(scroller)
 
         for attempt in range(max_scrolls + 1):
             xml = self.get_ui_hierarchy()
@@ -572,17 +596,212 @@ class BOSSAutomationSkill(AndroidSkill):
                 )
                 return self.tap(visible_job.tap_x, visible_job.tap_y)
 
-            if attempt < max_scrolls:
-                start_y = int(screen_height * 0.75)
-                end_y = int(screen_height * 0.25)
-                self.swipe(540, start_y, 540, end_y, 500)
+            if attempt < max_scrolls and scroller is not None:
+                try:
+                    scroller.scroll.forward()
+                except Exception as exc:  # noqa: BLE001
+                    self._logger.warning(
+                        "[find_and_navigate] scroll.forward 失败（可能已到底）: %s", exc,
+                    )
+                    break
                 time.sleep(0.5)
 
+        # 卡片扫完一遍都没找到 — 用陈旧坐标兜底，但先校验页面防止误 tap
+        page = self.get_current_page()
+        if page != PageState.JOB_LIST:
+            self._logger.warning(
+                "[find_and_navigate] 卡片未找到且当前不在 JOB_LIST (page=%s)，"
+                "放弃陈旧坐标兜底，返回 False",
+                page,
+            )
+            return False
         self._logger.warning(
             "[find_and_navigate] 未找到「%s」，回退旧坐标 (%d, %d)",
             title, fallback_job.tap_x, fallback_job.tap_y,
         )
         return self.navigate_to_job(fallback_job)
+
+    def _make_u2_scroller(self, max_wait: float = 10.0):
+        """Return a uiautomator2 UiObject for recyclerView_list, or None.
+
+        Long-waits (default 10s) for the search-results RecyclerView to inflate —
+        the page often takes 3-7 s to render after search submission, so the
+        original 2 s wait raced and silently returned None.
+
+        Returns None only if uiautomator2 is not installed, init raises, or
+        the RecyclerView genuinely never appears (we're on the wrong page).
+        All failure paths now emit a WARNING log carrying the current page,
+        so the regression is loud instead of silent.
+        """
+        try:
+            import uiautomator2 as u2  # noqa: WPS433
+        except ImportError:
+            self._logger.warning("[find_and_navigate] uiautomator2 未安装")
+            return None
+        try:
+            device = u2.connect(self.device_id) if self.device_id else u2.connect()
+            obj = device(resourceId="com.hpbr.bosszhipin:id/recyclerView_list")
+            if not obj.wait(timeout=max_wait):
+                page = self.get_current_page()
+                self._logger.warning(
+                    "[find_and_navigate] recyclerView_list 等 %.1fs 仍不出现 (page=%s)",
+                    max_wait, page,
+                )
+                return None
+            self._logger.debug("[find_and_navigate] uiautomator2 scroller 就绪")
+            return obj
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning("[find_and_navigate] uiautomator2 初始化失败: %s", exc)
+            return None
+
+    def _parse_scrollable_candidates(self, xml: str) -> list[tuple[str, str]]:
+        """Parse a UI dump for scrollable nodes.
+
+        Returns ``[(resource_id, bounds), ...]`` for nodes where
+        ``scrollable="true"`` AND the resource-id is non-empty. Duplicate
+        resource-ids are collapsed (we can only target one UiObject per rid).
+
+        Used by the self-healing path: when ``recyclerView_list`` isn't
+        available, we enumerate every scrollable container on the page and
+        try each as a scroller candidate.
+        """
+        import xml.etree.ElementTree as ET
+        out: list[tuple[str, str]] = []
+        if not xml:
+            return out
+        try:
+            root = ET.fromstring(xml)
+        except ET.ParseError:
+            return out
+        seen: set[str] = set()
+        for node in root.iter("node"):
+            if node.attrib.get("scrollable") != "true":
+                continue
+            rid = node.attrib.get("resource-id", "")
+            if not rid or rid in seen:
+                continue
+            seen.add(rid)
+            out.append((rid, node.attrib.get("bounds", "")))
+        return out
+
+    def _find_working_scroller(self):
+        """Self-healing fallback: enumerate scrollable containers and try each.
+
+        When the primary path (``_make_u2_scroller``) can't get a handle on
+        ``recyclerView_list`` (page-settle race, wrong tab, partial render),
+        dump the live XML, list every node with ``scrollable="true"``, and
+        try each one via uiautomator2 ``scroll.backward()`` exactly once.
+        Movement is verified by comparing XML hashes before/after the call
+        — a candidate "succeeds" only if the page actually changed.
+
+        Returns the working UiObject, or None if every candidate failed.
+        """
+        try:
+            import uiautomator2 as u2  # noqa: WPS433
+        except ImportError:
+            return None
+        try:
+            device = (
+                u2.connect(self.device_id) if self.device_id else u2.connect()
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning("[find_and_navigate] uiautomator2 重连失败: %s", exc)
+            return None
+
+        xml = self.get_ui_hierarchy()
+        candidates = self._parse_scrollable_candidates(xml)
+        self._logger.info(
+            "[find_and_navigate] 发现 %d 个 scrollable 候选: %s",
+            len(candidates), [c[0] for c in candidates[:6]],
+        )
+
+        before = hash(xml)
+        for rid, _bounds in candidates:
+            try:
+                obj = device(resourceId=rid)
+                if not obj.wait(timeout=0.5):
+                    continue
+                obj.scroll.backward()
+                time.sleep(0.5)
+                after_xml = self.get_ui_hierarchy()
+                if hash(after_xml) != before:
+                    self._logger.info(
+                        "[find_and_navigate] scrollable 候选命中: %s", rid,
+                    )
+                    return obj
+                before = hash(after_xml)
+            except Exception as exc:  # noqa: BLE001
+                self._logger.debug(
+                    "[find_and_navigate] 候选 %s 失败: %s", rid, exc,
+                )
+                continue
+        return None
+
+    def _log_scroll_failure_diagnosis(self) -> None:
+        """Emit a structured diagnosis when every scroller-resolution path fails.
+
+        Captures the live UI state so the caller (or a human reading the
+        log) can see exactly why we gave up: which page we're on, what
+        scrollable containers are visible, and a snippet of the XML.
+        Never silent — this is the opposite of the old "已知无效 swipe
+        兜底" behaviour.
+        """
+        page = self.get_current_page()
+        xml = self.get_ui_hierarchy()
+        candidates = self._parse_scrollable_candidates(xml)
+        self._logger.error(
+            "[find_and_navigate] 滚动失败诊断\n"
+            "  current_page=%s\n"
+            "  scrollable 节点数=%d, ids=%s\n"
+            "  XML 前 200 字符: %s",
+            page, len(candidates), [c[0] for c in candidates[:8]],
+            (xml or "")[:200],
+        )
+
+    def _scroll_recycler_to_top(
+        self, scroller, max_steps: int = 60, stable_runs: int = 4,
+    ) -> None:
+        """Scroll the job-list RecyclerView to the beginning via UiScrollable.
+
+        Stops when the first visible card's title stops changing for
+        ``stable_runs`` consecutive ``scroll.backward()`` calls, or after
+        ``max_steps`` total calls (safety bound).
+
+        scroller must be a uiautomator2 UiObject whose target is the
+        recyclerView_list. Callers should pass ``self._make_u2_scroller()``.
+        """
+        prev_title = ""
+        same_count = 0
+        for i in range(max_steps):
+            try:
+                scroller.scroll.backward()
+            except Exception as exc:  # noqa: BLE001
+                self._logger.warning(
+                    "[scroll_top] scroll.backward 失败（可能已在顶部）: %s", exc,
+                )
+                return
+            time.sleep(0.4)
+            try:
+                xml = self.get_ui_hierarchy()
+            except Exception as exc:  # noqa: BLE001
+                self._logger.warning("[scroll_top] dump 失败 %d: %s", i, exc)
+                continue
+            cur_title = ""
+            for node in ET.fromstring(xml).iter("node"):
+                if node.attrib.get("resource-id", "") == f"{BOSS_PACKAGE}:id/tv_position_name":
+                    cur_title = node.attrib.get("text", "")
+                    break
+            if cur_title and cur_title == prev_title:
+                same_count += 1
+                if same_count >= stable_runs:
+                    self._logger.info(
+                        "[scroll_top] 已到顶部 (稳定 %d 次): %s", same_count, cur_title,
+                    )
+                    return
+            else:
+                same_count = 0
+                prev_title = cur_title
+        self._logger.warning("[scroll_top] 达到 max_steps=%d，强制结束", max_steps)
 
     def can_apply(self, xml: Optional[str] = None) -> bool:
         """Return True if an Apply button is present on the current page.
