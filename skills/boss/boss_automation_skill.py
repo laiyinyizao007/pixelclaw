@@ -536,6 +536,21 @@ class BOSSAutomationSkill(AndroidSkill):
         """
         norm_title = normalize_card_title(title)
 
+        # Scroll back to top before scanning.
+        # After scroll_job_list() the list ends at the bottom; after
+        # _return_to_job_list() the RecyclerView position is unpredictable.
+        # Swiping down (finger top→bottom) scrolls content up toward the first card.
+        for _ in range(8):
+            self.swipe(
+                540,
+                int(screen_height * 0.25),
+                540,
+                int(screen_height * 0.75),
+                250,
+            )
+            time.sleep(0.15)
+        time.sleep(0.4)
+
         for attempt in range(max_scrolls + 1):
             xml = self.get_ui_hierarchy()
             for visible_job in self.get_job_list(xml=xml):
