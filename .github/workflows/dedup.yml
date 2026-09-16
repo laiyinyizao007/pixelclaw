@@ -1,4 +1,6 @@
 name: Detect Duplicate Issues
+# v1.17+：token / issue title 通过 env var 注入（消除 shell 参数暴露与注入风险）
+# 见 PROJECTWIKI.md §5.15
 
 on:
   issues:
