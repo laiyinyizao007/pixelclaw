@@ -32,6 +32,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[3]))
 
 import anthropic
+from anthropic import RateLimitError
 from skills.android.adb_runner import ADBRunner
 from skills.boss import BOSSAutomationSkill, DialogType, PageState, normalize_card_title
 from utils.logging_setup import setup_logger
@@ -94,7 +95,7 @@ HR姓名：{hr_name}
 {{
   "match_score": <0-10 整数，10 为完全匹配>,
   "top_matches": ["最强匹配点1", "最强匹配点2"],
-  "greeting": "<打招呼消息，60-90字。规则：1.开头称呼HR姓氏（如「李女士」），无法判断性别则用「您好」；2.引用JD描述中一个具体场景或要求词（非泛泛「AI经验」，要具体如「智能体产品0到1」）；3.结合简历最强1-2个具体经历呼应该场景；4.语气自然友好、有礼貌、不卑不亢，像人写的而非模板>"
+  "greeting": "<打招呼消息，60-90字。规则：1.开头称呼HR姓氏（如「李女士」），无法判断性别则用「您好」；2.引用JD描述中一个具体场景或要求词（非泛泛「AI经验」，要具体如「智能体产品0到1」）；3.结合简历最强1-2个具体经历呼应该场景；4.语气自然友好、有礼貌、不卑不亢，像人写的而非模板。【硬性禁止，违反视为无效】禁止出现「感谢邀请」「感谢贵司邀请」「感谢您的邀请」「有幸被贵司关注」「感谢贵司青睐」等被动受邀语气——这是主动投递，对方从未邀请我；禁止提及「简历」或感谢对方看简历——打招呼时对方还没看简历，提前感谢显得虚假；可以在结尾自然询问是否需要发简历>"
 }}"""
 
 STRICT_RULES = """\
@@ -170,6 +171,14 @@ def _is_already_greeted(
         ).fetchone()
         if row2 and row2[0] > 0:
             return True
+    # Third layer: same normalized title + same company, ignoring hr_name.
+    # Fixes cross-run hr_name inconsistency (empty on first run, populated on second).
+    row3 = conn.execute(
+        "SELECT COUNT(*) FROM job_visits WHERE title = ? AND company = ? AND greeted = 1",
+        (normalize_card_title(title), company),
+    ).fetchone()
+    if row3 and row3[0] > 0:
+        return True
     return False
 
 
@@ -217,7 +226,7 @@ def _record_visit(
                (title, company, hr_name, keyword, score, greeted, greeting_text, skip_reason, visited_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
-            title, company, hr_name or "", keyword, score,
+            normalize_card_title(title), company, hr_name or "", keyword, score,
             1 if greeted else 0, greeting_text, skip_reason,
             time.strftime("%Y-%m-%dT%H:%M:%S"),
         ),
@@ -236,10 +245,55 @@ def _strip_json_fences(text: str) -> str:
     return text
 
 
-def extract_resume_summary(client: anthropic.Anthropic, resume: str) -> str:
+def _make_client() -> tuple[anthropic.Anthropic, anthropic.Anthropic | None]:
+    """Return (primary_client, fallback_client). fallback is None if not configured.
+
+    Loads .env from the repo root so ANTHROPIC_BACKUP_API_KEY / ANTHROPIC_BACKUP_BASE_URL
+    can be defined there without polluting the shell environment.
+    """
+    import os
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env", override=False)
+    primary_url = os.environ.get("ANTHROPIC_BASE_URL")
+    primary = anthropic.Anthropic(
+        **({"base_url": primary_url} if primary_url else {}),
+    )
+    backup_key = os.environ.get("ANTHROPIC_BACKUP_API_KEY")
+    backup_url = os.environ.get("ANTHROPIC_BACKUP_BASE_URL")
+    if backup_key:
+        fallback = anthropic.Anthropic(
+            api_key=backup_key,
+            **({"base_url": backup_url} if backup_url else {}),
+        )
+    else:
+        fallback = None
+    return primary, fallback
+
+
+def _call_with_fallback(
+    primary: anthropic.Anthropic,
+    fallback: anthropic.Anthropic | None,
+    **kwargs,
+) -> anthropic.types.Message:
+    """Call primary client; on RateLimitError switch to fallback if available."""
+    try:
+        return primary.messages.create(**kwargs)
+    except RateLimitError:
+        if fallback is None:
+            raise
+        logger.warning("主 API 限速，切换备用 key 重试…")
+        return fallback.messages.create(**kwargs)
+
+
+def extract_resume_summary(
+    primary: anthropic.Anthropic,
+    resume: str,
+    fallback: anthropic.Anthropic | None = None,
+) -> str:
     """Call Haiku once to distill the full resume into a compact structured JSON string."""
     prompt = RESUME_EXTRACT_PROMPT.format(resume=resume)
-    response = client.messages.create(
+    response = _call_with_fallback(
+        primary, fallback,
         model="claude-haiku-4-5-20251001",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
@@ -253,7 +307,11 @@ def extract_resume_summary(client: anthropic.Anthropic, resume: str) -> str:
 
 
 def score_job(
-    client: anthropic.Anthropic, resume_summary: str, job: dict, strict: bool = False
+    primary: anthropic.Anthropic,
+    resume_summary: str,
+    job: dict,
+    strict: bool = False,
+    fallback: anthropic.Anthropic | None = None,
 ) -> dict:
     """Call Claude Haiku to score one job and generate a personalized greeting."""
     description = job.get("description") or ""
@@ -269,7 +327,8 @@ def score_job(
         requirements=job.get("requirements_text") or "  无标签",
         strict_rules=STRICT_RULES if strict else "",
     )
-    response = client.messages.create(
+    response = _call_with_fallback(
+        primary, fallback,
         model="claude-haiku-4-5-20251001",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
@@ -376,6 +435,7 @@ def live_greet_loop(
     device_id: str | None,
     db_conn: sqlite3.Connection,
     score_only: bool = False,
+    fallback: anthropic.Anthropic | None = None,
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -402,7 +462,8 @@ def live_greet_loop(
     skill._adb("shell settings put secure adaptive_sleep 0")
     try:
         return _run_loop(skill, resume_summary, client, keyword, threshold, max_greet,
-                         strict, min_salary_k, verify_send, db_conn, score_only, result, logger)
+                         strict, min_salary_k, verify_send, db_conn, score_only, result, logger,
+                         fallback=fallback)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -424,6 +485,7 @@ def _run_loop(
     score_only: bool,
     result: dict,
     logger: logging.Logger,
+    fallback: anthropic.Anthropic | None = None,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     if not skill._is_screen_on():
@@ -609,8 +671,31 @@ def _run_loop(
         if not skill.navigate_to_job(job):
             result["errors"].append(f"{title}：导航失败")
             continue
-        if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=4.0):
-            result["errors"].append(f"{title}：详情页加载超时")
+
+        # 等待详情页加载并验证公司名匹配，防止 Boss app 显示上一个职位的缓存数据
+        _detail_ok = False
+        for _attempt in range(5):
+            if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=4.0):
+                time.sleep(1.0)
+                continue
+            _quick = skill.get_job_detail()
+            _detail_company = _quick.get("company") or ""
+            _company_match = (
+                not company
+                or not _detail_company
+                or company[:6] in _detail_company
+                or _detail_company[:6] in company
+            )
+            if _company_match:
+                _detail_ok = True
+                break
+            logger.warning(
+                "  详情页内容不匹配（期望=%s，实际=%s），等待重试 %d/5",
+                company, _detail_company, _attempt + 1,
+            )
+            time.sleep(1.0)
+        if not _detail_ok:
+            result["errors"].append(f"{title}：详情页加载超时或内容不匹配")
             continue
 
         # 检测网络异常占位页
@@ -636,11 +721,14 @@ def _run_loop(
             "description":      detail.get("description") or "",
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
+        # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
+        # Using this for all DB writes ensures consistent dedup across runs.
+        effective_hr_name = job_dict.get("hr_name") or hr_name
 
         # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
             scored = _with_screen_heartbeat(
-                skill, lambda: score_job(client, resume_summary, job_dict, strict=strict)
+                skill, lambda: score_job(client, resume_summary, job_dict, strict=strict, fallback=fallback)
             )
         except Exception as exc:
             logger.error("  评分失败：%s — %s", title, exc)
@@ -654,7 +742,7 @@ def _run_loop(
         if score < threshold or not greeting:
             logger.info("  → 跳过（%d < %d）", score, threshold)
             result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
-            _record_visit(db_conn, title, company, hr_name, keyword, score,
+            _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                           skip_reason=f"低分({score}<{threshold})")
             continue
 
@@ -664,7 +752,7 @@ def _run_loop(
             result["skipped"].append(
                 f"{title}（{company}）：{score}/10 ✓ [score_only]\n    {greeting}"
             )
-            _record_visit(db_conn, title, company, hr_name, keyword, score,
+            _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                           skip_reason="score_only")
             continue
 
@@ -678,20 +766,20 @@ def _run_loop(
                     break
                 if dialog in _SKIP_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog}）")
-                    _record_visit(db_conn, title, company, hr_name, keyword, score,
+                    _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                                   skip_reason=f"弹窗跳过({dialog})")
                     continue
 
             if not skill.tap_element("chat_btn"):
                 result["errors"].append(f"{title}：无法打开聊天页")
-                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="无聊天按钮")
                 continue
             if not skill.wait_for_element(
                 "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
             ):
                 result["errors"].append(f"{title}：聊天页加载超时")
-                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="聊天页超时")
                 continue
 
@@ -703,7 +791,7 @@ def _run_loop(
                     break
                 if dialog2 not in _CONTINUE_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog2}）")
-                    _record_visit(db_conn, title, company, hr_name, keyword, score,
+                    _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                                   skip_reason=f"弹窗跳过({dialog2})")
                     continue
 
@@ -715,20 +803,20 @@ def _run_loop(
                 )
                 logger.info("  ✓ 打招呼成功 — %s", greeting[:40])
                 greeted_count += 1
-                _record_greeting(db_conn, title, company, hr_name, keyword, greeting, action)
-                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                _record_greeting(db_conn, title, company, effective_hr_name, keyword, greeting, action)
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               greeted=True, greeting_text=greeting)
             else:
                 result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
                 logger.error("  ✗ 打招呼失败 — %s", title)
-                _record_visit(db_conn, title, company, hr_name, keyword, score,
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="发送失败")
             time.sleep(1.0)
 
         except Exception as exc:
             logger.error("处理 '%s' 异常", title, exc_info=True)
             result["errors"].append(f"{title}: {exc}")
-            _record_visit(db_conn, title, company, hr_name, keyword, score,
+            _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                           skip_reason=f"异常:{exc}")
             if not skill._is_screen_on():
                 break
@@ -764,9 +852,9 @@ def main() -> int:
     print(f"✓ 简历已加载：{resume_path.name}（{len(resume_text)} 字符）")
 
     # ── 提取简历画像（一次性 Haiku 调用）──────────────────────────────────────
-    client = anthropic.Anthropic()
+    client, fallback = _make_client()
     print("⏳ 提取简历画像（Haiku）…", end="", flush=True)
-    resume_summary = extract_resume_summary(client, resume_text)
+    resume_summary = extract_resume_summary(client, resume_text, fallback=fallback)
     print(" 完成")
 
     # ── 初始化 DB（确保表存在）──────────────────────────────────────────────
@@ -792,6 +880,7 @@ def main() -> int:
         device_id=args.device,
         db_conn=db_conn,
         score_only=args.score_only,
+        fallback=fallback,
     )
     db_conn.close()
 
