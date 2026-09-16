@@ -514,6 +514,59 @@ class BOSSAutomationSkill(AndroidSkill):
         self._logger.info("[navigate_to_job] ← (回退) %s", "成功" if ok else "失败")
         return ok
 
+    def find_and_navigate_to_job(
+        self,
+        title: str,
+        company: str,
+        fallback_job: JobInfo,
+        max_scrolls: int = 25,
+        screen_height: int = 2400,
+    ) -> bool:
+        """
+        Locate a job card in the current list view using fresh coordinates.
+
+        After _return_to_job_list() the RecyclerView may be at a different scroll
+        position than when the card was originally collected, making stored
+        tap_x/tap_y stale and potentially hitting the wrong card. This method
+        scans the live UI dump and scrolls down until it finds the target card,
+        then taps it with the coordinates visible right now.
+
+        Falls back to fallback_job.tap_x/y (stored coordinates) if the card
+        cannot be found after max_scrolls scroll attempts.
+        """
+        norm_title = normalize_card_title(title)
+
+        for attempt in range(max_scrolls + 1):
+            xml = self.get_ui_hierarchy()
+            for visible_job in self.get_job_list(xml=xml):
+                if normalize_card_title(visible_job.title) != norm_title:
+                    continue
+                c_match = (
+                    not company
+                    or not visible_job.company
+                    or company[:6] in visible_job.company
+                    or visible_job.company[:6] in company
+                )
+                if not c_match:
+                    continue
+                self._logger.info(
+                    "[find_and_navigate] 找到「%s」，新坐标 (%d, %d)",
+                    visible_job.title, visible_job.tap_x, visible_job.tap_y,
+                )
+                return self.tap(visible_job.tap_x, visible_job.tap_y)
+
+            if attempt < max_scrolls:
+                start_y = int(screen_height * 0.75)
+                end_y = int(screen_height * 0.25)
+                self.swipe(540, start_y, 540, end_y, 500)
+                time.sleep(0.5)
+
+        self._logger.warning(
+            "[find_and_navigate] 未找到「%s」，回退旧坐标 (%d, %d)",
+            title, fallback_job.tap_x, fallback_job.tap_y,
+        )
+        return self.navigate_to_job(fallback_job)
+
     def can_apply(self, xml: Optional[str] = None) -> bool:
         """Return True if an Apply button is present on the current page.
 
