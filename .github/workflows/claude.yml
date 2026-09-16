@@ -40,7 +40,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
+
+      - name: Cache npm download cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-claude-code-${{ runner.os }}
+          restore-keys: npm-claude-code-
 
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
