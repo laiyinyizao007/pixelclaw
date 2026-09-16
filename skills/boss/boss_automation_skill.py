@@ -539,16 +539,18 @@ class BOSSAutomationSkill(AndroidSkill):
         # Scroll back to top before scanning.
         # After scroll_job_list() the list ends at the bottom; after
         # _return_to_job_list() the RecyclerView position is unpredictable.
-        # Swiping down (finger top→bottom) scrolls content up toward the first card.
-        for _ in range(8):
+        # Boss job cards are ~520px each; a 60-card list needs ~26 upward swipes from
+        # the very bottom. Use 30 fast (100ms) flings to safely reach the top from any
+        # position. Finger moves top→bottom = content scrolls up toward first card.
+        for _ in range(30):
             self.swipe(
                 540,
-                int(screen_height * 0.25),
+                int(screen_height * 0.15),
                 540,
-                int(screen_height * 0.75),
-                250,
+                int(screen_height * 0.85),
+                100,
             )
-            time.sleep(0.15)
+            time.sleep(0.12)
         time.sleep(0.4)
 
         for attempt in range(max_scrolls + 1):
