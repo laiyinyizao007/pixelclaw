@@ -6,6 +6,14 @@
 
 ## [Unreleased]
 
+### Fixed（修复）
+- `skills/boss/boss_automation_skill.py` — 新增 `DialogType.WARM_REMINDER` 弹窗类型：Boss直聘在点击「立即沟通」后会弹出「温馨提示」确认弹窗，需点击「好」才能进入聊天页。原 `_SIGNATURES` 无此关键词，`_scan_for_dialog` 返回 `"none"`，`wait_for_element("editText_with_scrollbar")` 4秒超时，所有招呼实际未发出。新增 `WARM_REMINDER = "warm_reminder"` 常量、`"温馨提示": "warm_reminder"` 签名映射，以及 `dismiss_dialog` 中依次尝试点击 "好"/"确定"/"我知道了" 的关闭逻辑
+- `scenarios/boss/scripts/smart_match_greet.py` — 多项防护与可观测性改进：
+  - **温馨提示弹窗预检**：在 `tap_element("chat_btn")` 后、`wait_for_element` 前新增 0.8s sleep + `detect_dialog()` 检测，识别到 `WARM_REMINDER` 后 dismiss 再继续；`WARM_REMINDER` 加入 `_CONTINUE_DIALOGS`（dismiss 后不跳过该职位）
+  - **每日发送上限保护**：启动时调用 `_count_today_greeted(db_conn)` 从 `greetings.sent_at` 统计今日已发数（修正列名 `created_at` → `sent_at`）；≥110 条直接退出，≥90 条打 WARNING
+  - **发送后补检弹窗**：`send_greeting()` 返回后立即再次 `detect_dialog()`，若出现 `DAILY_LIMIT` 等致命弹窗则终止
+  - **进度日志**：每发 10 条打印 "本次已发 N/M，今日累计约 K 条"
+
 ### Changed（变更）
 - `scenarios/boss/scripts/smart_match_greet.py` — **架构重写（两阶段→单阶段）**：废弃「DB 批量评分 → App 模糊匹配」两阶段方案，改为单阶段 App 内实时循环：打开 App → 搜索 → 滚动采集卡片 → 逐条进详情页（`get_job_detail()` + `expand_description()`）→ Haiku 实时评分 + 生成打招呼 → 分数达标立即发送 → `_record_greeting()` 写 greetings 表 → 返回列表；移除 `load_jobs()`、`score_all_jobs()`、`print_score_table()`、`_find_greeting()`；新增 `_is_already_greeted()` / `_record_greeting()` / `live_greet_loop()`；去重依赖 `dedup_key = normalize_title\tcompany\thr_name`，首次打招呼时自动 UPSERT `job_details`；`--score-only` 现在仍需打开 App（评分依赖实时 JD）
 

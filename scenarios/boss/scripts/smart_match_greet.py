@@ -28,6 +28,7 @@ import sys
 import threading
 import time
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
@@ -51,7 +52,7 @@ RESUME_DEFAULT = Path("C:/Dev/projects/resume-renew/resume/current.md")
 # ─── 弹窗分类 ─────────────────────────────────────────────────────────────────
 _FATAL_DIALOGS = {DialogType.DAILY_LIMIT, DialogType.LOGIN_REQUIRED}
 _SKIP_DIALOGS = {DialogType.JOB_OFFLINE}
-_CONTINUE_DIALOGS = {DialogType.EXISTING_CHAT, DialogType.DISMISSED}
+_CONTINUE_DIALOGS = {DialogType.EXISTING_CHAT, DialogType.DISMISSED, DialogType.WARM_REMINDER}
 
 # ─── Haiku Prompt ─────────────────────────────────────────────────────────────
 
@@ -305,6 +306,21 @@ def _make_client() -> tuple[anthropic.Anthropic, anthropic.Anthropic | None]:
     return primary, fallback
 
 
+def _extract_reset_at(exc: Exception) -> datetime | None:
+    """Return the UTC reset time embedded in a klugai cost-limit 429 response, or None."""
+    try:
+        body = getattr(exc, "body", None)
+        if not isinstance(body, dict):
+            return None
+        # klugai top-level: {"resetAt": "2026-...", ...}
+        reset_str = body.get("resetAt") or (body.get("error") or {}).get("resetAt")
+        if reset_str:
+            return datetime.fromisoformat(reset_str.replace("Z", "+00:00"))
+    except Exception:
+        pass
+    return None
+
+
 def _call_with_fallback(
     primary: anthropic.Anthropic,
     fallback: anthropic.Anthropic | None,
@@ -478,6 +494,16 @@ def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
     return False
 
 
+def _count_today_greeted(db_conn: sqlite3.Connection) -> int:
+    """Return the number of greetings sent today (UTC+8 calendar day)."""
+    today = datetime.now().strftime("%Y-%m-%d")
+    row = db_conn.execute(
+        "SELECT COUNT(*) FROM greetings WHERE sent_at >= ?",
+        (today + " 00:00:00",),
+    ).fetchone()
+    return row[0] if row else 0
+
+
 def _with_screen_heartbeat(skill: "BOSSAutomationSkill", fn):
     """Keep device awake during fn() using KEYCODE_WAKEUP every 5 s.
 
@@ -598,9 +624,10 @@ def _find_next_job(
             continue
         full = by_key.get(v_key)
         if full is None:
-            # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序结果）——
-            # 用屏幕卡自己当 JobInfo 返回（字段可能不全，但足够定位）。
-            continue
+            # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序/出新卡）——
+            # 用屏幕卡自身返回：tap 坐标新鲜，字段可能不全，
+            # 但 Layer 1/2/3 校验已能兜底，不应静默丢弃新卡。
+            return v
         # 用 full 的完整字段 + v 的新鲜坐标
         return replace(full, tap_x=v.tap_x, tap_y=v.tap_y)
 
@@ -761,6 +788,23 @@ def _run_loop(
     no_target_scrolls = 0
     processed = 0  # 用于日志显示的「第 N 条」计数器
 
+    # ── 每日上限保护（主动检查，不依赖弹窗被动检测）──
+    DAILY_HARD_LIMIT = 110  # 到达此数直接退出（留 ~10 条 buffer）
+    DAILY_WARN_LIMIT = 90   # 到达此数打 WARNING
+    today_count = _count_today_greeted(db_conn)
+    logger.info("  今日已发送 %d 条招呼", today_count)
+    if today_count >= DAILY_HARD_LIMIT:
+        logger.error(
+            "今日已发送 %d 条，已达每日上限（%d），退出。明日再运行。",
+            today_count, DAILY_HARD_LIMIT,
+        )
+        return result
+    if today_count >= DAILY_WARN_LIMIT:
+        logger.warning(
+            "今日已发送 %d 条，接近每日上限（%d），请注意剩余名额。",
+            today_count, DAILY_HARD_LIMIT,
+        )
+
     while greeted_count < max_greet:
         # 0. 如果上一条操作后离开了列表页（detail / chat / search-results），
         #    先回到 JOB_LIST，再 _find_next_job 看屏幕
@@ -893,9 +937,26 @@ def _run_loop(
                 skill, lambda: score_job(client, resume_summary, job_dict, strict=strict, fallback=fallback)
             )
         except Exception as exc:
-            logger.error("  评分失败：%s — %s", title, exc)
-            result["errors"].append(f"{title}：评分失败（{exc}）")
-            continue
+            reset_at = _extract_reset_at(exc)
+            if reset_at:
+                wait_secs = max(5.0, (reset_at - datetime.now(timezone.utc)).total_seconds() + 10.0)
+                logger.warning(
+                    "  两端 API 配额耗尽，等待 %.0f 秒至 %s UTC 后重试：%s",
+                    wait_secs, reset_at.strftime("%H:%M:%S"), title,
+                )
+                time.sleep(wait_secs)
+                try:
+                    scored = _with_screen_heartbeat(
+                        skill, lambda: score_job(client, resume_summary, job_dict, strict=strict, fallback=fallback)
+                    )
+                except Exception as exc2:
+                    logger.error("  配额恢复后仍失败：%s — %s", title, exc2)
+                    result["errors"].append(f"{title}：评分失败（配额恢复后仍失败：{exc2}）")
+                    continue
+            else:
+                logger.error("  评分失败：%s — %s", title, exc)
+                result["errors"].append(f"{title}：评分失败（{exc}）")
+                continue
 
         score = scored.get("match_score", 0)
         greeting = scored.get("greeting", "")
@@ -937,6 +998,23 @@ def _run_loop(
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="无聊天按钮")
                 continue
+
+            # ── 温馨提示弹窗可能在进入聊天页瞬间出现，提前dismiss ──
+            time.sleep(0.8)
+            _pre_chat_dialog = skill.detect_dialog()
+            if _pre_chat_dialog != DialogType.NONE:
+                logger.info("  进入聊天页前检测到弹窗：%s，尝试关闭", _pre_chat_dialog)
+                skill.dismiss_dialog(_pre_chat_dialog)
+                if _pre_chat_dialog in _FATAL_DIALOGS:
+                    result["errors"].append(f"进入聊天前致命弹窗（{_pre_chat_dialog}），终止")
+                    break
+                if _pre_chat_dialog not in _CONTINUE_DIALOGS:
+                    result["skipped"].append(f"{title}（{_pre_chat_dialog}）")
+                    _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                                  skip_reason=f"弹窗跳过({_pre_chat_dialog})")
+                    continue
+                time.sleep(0.5)  # 等弹窗关闭动画
+
             if not skill.wait_for_element(
                 "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
             ):
@@ -1013,6 +1091,16 @@ def _run_loop(
                     continue
 
             ok = skill.send_greeting(greeting, verify=verify_send)
+
+            # ── 发送后补检弹窗（DAILY_LIMIT 可能在发送完成后才弹出）──
+            _post_dialog = skill.detect_dialog()
+            if _post_dialog != DialogType.NONE:
+                skill.dismiss_dialog(_post_dialog)
+                if _post_dialog in _FATAL_DIALOGS:
+                    logger.error("  发送后出现致命弹窗（%s），终止", _post_dialog)
+                    result["errors"].append(f"发送后致命弹窗（{_post_dialog}），终止")
+                    break
+
             if ok:
                 action = "打招呼成功"
                 result["greeted"].append(
@@ -1020,6 +1108,12 @@ def _run_loop(
                 )
                 logger.info("  ✓ 打招呼成功 — %s", greeting[:40])
                 greeted_count += 1
+                today_count += 1
+                if greeted_count % 10 == 0:
+                    logger.info(
+                        "  📊 进度：本次已发 %d/%d，今日累计约 %d 条",
+                        greeted_count, max_greet, today_count,
+                    )
                 _record_greeting(db_conn, title, company, effective_hr_name, keyword, greeting, action)
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               greeted=True, greeting_text=greeting)
