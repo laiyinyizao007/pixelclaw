@@ -27,6 +27,7 @@ import sqlite3
 import sys
 import threading
 import time
+from dataclasses import replace
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[3]))
@@ -36,6 +37,11 @@ from anthropic import APIStatusError, InternalServerError, RateLimitError
 from skills.android.adb_runner import ADBRunner
 from skills.boss import BOSSAutomationSkill, DialogType, PageState, normalize_card_title
 from utils.logging_setup import setup_logger
+
+# Module-level logger reference — used by helpers called BEFORE live_greet_loop()
+# configures its handlers. setup_logger() is idempotent and configures this same
+# logger object, so log lines emitted here flow to the same console/file.
+logger = logging.getLogger("smart_match_greet")
 
 # ─── 路径 ─────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parents[3]
@@ -216,11 +222,56 @@ def _record_visit(
 # ─── 评分 ──────────────────────────────────────────────────────────────────────
 
 def _strip_json_fences(text: str) -> str:
+    """Extract JSON object from response, tolerating LLM's common formatting quirks.
+
+    Handles three common cases:
+    1. ```json\\n{...}\\n``` fenced block (preferred by LLM)
+    2. ```\\n{...}\\n``` fenced block without language tag
+    3. Bare text with a JSON object embedded (LLM added preamble like "Sure! Here is the result:")
+       — falls back to scanning for the first '{' and last balanced '}'
+    """
+    # Case 1 & 2: fenced block
     if text.startswith("```"):
-        text = text.split("```", 2)[1]
-        if text.startswith("json"):
-            text = text[4:]
-        text = text.rsplit("```", 1)[0].strip()
+        parts = text.split("```", 2)
+        if len(parts) >= 2:
+            inner = parts[1]
+            if inner.startswith("json"):
+                inner = inner[4:]
+            elif inner.startswith("JSON"):
+                inner = inner[4:]
+            text = inner.rsplit("```", 1)[0].strip()
+            return text
+
+    # Case 3: bare text — find first '{' and last balanced '}'
+    first_brace = text.find("{")
+    if first_brace < 0:
+        return text
+    # Track depth to find matching close
+    depth = 0
+    last_match = -1
+    in_string = False
+    escape = False
+    for i, ch in enumerate(text[first_brace:], start=first_brace):
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                last_match = i
+                break
+    if last_match > first_brace:
+        return text[first_brace:last_match + 1]
     return text
 
 
@@ -490,6 +541,61 @@ def live_greet_loop(
         skill._adb(f"shell settings put secure adaptive_sleep {_orig_adaptive}")
 
 
+def _find_next_job(
+    skill: "BOSSAutomationSkill",
+    visited_keys: set[str],
+    initial_jobs: list,
+) -> object | None:
+    """Return the next unvisited job visible on the CURRENT screen (fresh coords).
+
+    Implements the "正确模式（增量）" documented in
+    scenarios/boss/docs/atomic_operations.md § 4.1:
+
+        陷阱：调用 `_return_to_job_list()` 重新搜索后，列表回到顶部，
+        旧的 `tap_y` 指向不同的职位。必须在每次导航前重新获取坐标。
+
+    Single `get_ui_hierarchy()` + `get_job_list()` call — no scrolling.
+    Returns a JobInfo whose fields come from `initial_jobs` (for stable
+    dedup_key fields like hr_name that list cards often lack) and whose
+    tap_x/tap_y come from the CURRENT screen.
+
+    Args:
+        skill: Boss skill instance.
+        visited_keys: Set of normalize_card_title(title) + "\t" + company
+            strings that this loop has already tried (greeted, skipped,
+            or detail-mismatch).
+        initial_jobs: The 60 cards collected at the top of _run_loop.
+
+    Returns:
+        Next unvisited JobInfo with fresh tap coordinates, or None if
+        every visible card has been visited (caller should scroll_down
+        or break).
+    """
+    xml = skill.get_ui_hierarchy()
+    visible = skill.get_job_list(xml=xml)  # List[JobInfo]，只含当前屏幕
+
+    # Build a map of (normalize_title + company) → JobInfo from initial_jobs.
+    # We use this to fill in fields the list-card XML often lacks (e.g. hr_active)
+    # and to compare against visited_keys.
+    by_key: dict[str, object] = {
+        f"{normalize_card_title(j.title)}\t{j.company or ''}": j for j in initial_jobs
+    }
+
+    for v in visible:
+        v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}"
+        if v_key in visited_keys:
+            continue
+        full = by_key.get(v_key)
+        if full is None:
+            # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序结果）——
+            # 用屏幕卡自己当 JobInfo 返回（字段可能不全，但足够定位）。
+            continue
+        # 用 full 的完整字段 + v 的新鲜坐标
+        return replace(full, tap_x=v.tap_x, tap_y=v.tap_y)
+
+    return None
+
+
 def _run_loop(
     skill: "BOSSAutomationSkill",
     resume_summary: str,
@@ -635,29 +741,51 @@ def _run_loop(
         result["errors"].append("职位列表加载超时")
         return result
 
-    logger.info("[3/3] 采集职位列表…")
+    logger.info("[3/3] 采集职位列表（基线，用于补全字段）…")
     jobs = skill.scroll_job_list(n_jobs=60, max_scrolls=20)
     logger.info("  ✓ 采集到 %d 条职位卡片", len(jobs))
 
+    visited_keys: set[str] = set()
     greeted_count = 0
-    for idx, job in enumerate(jobs, 1):
-        if greeted_count >= max_greet:
-            logger.info("已达最大打招呼数 %d，结束", max_greet)
-            break
+    no_target_scrolls = 0
+    processed = 0  # 用于日志显示的「第 N 条」计数器
 
-        title = job.title or ""
-        company = job.company or ""
-        hr_name = job.hr_name or ""
+    while greeted_count < max_greet:
+        # 0. 如果上一条操作后离开了列表页（detail / chat / search-results），
+        #    先回到 JOB_LIST，再 _find_next_job 看屏幕
+        if skill.get_current_page() != PageState.JOB_LIST:
+            if not _return_to_job_list(skill, keyword):
+                result["errors"].append("无法返回职位列表")
+                break
 
-        # 去重检查
+        # 1. 在当前屏幕找一个未访问的目标（按 doc §4.1：每次导航前重取坐标）
+        target = _find_next_job(skill, visited_keys, jobs)
+        if target is None:
+            no_target_scrolls += 1
+            if no_target_scrolls > 3:
+                logger.info("  列表已无未访问目标（连滑 %d 次都没新卡），结束", no_target_scrolls - 1)
+                break
+            logger.info("  当前屏幕无未访问目标，列表下滑 %d/3", no_target_scrolls)
+            skill.scroll_down(start_y=1800, end_y=600)
+            time.sleep(0.8)
+            continue
+        no_target_scrolls = 0
+
+        processed += 1
+        title = target.title or ""
+        company = target.company or ""
+        hr_name = target.hr_name or ""
+        visited_keys.add(f"{normalize_card_title(title)}\t{company}")
+
+        # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
-            logger.info("  [%d/%d] 跳过（已打过招呼）：%s", idx, len(jobs), title)
+            logger.info("  [%d] 跳过（已打过招呼）：%s", processed, title)
             result["skipped"].append(f"{title}（{company}）：已打过招呼")
             continue
 
         # 薪资预过滤（利用列表卡片信息快速跳过）
         if min_salary_k > 0:
-            low_k = _parse_salary_low_k(job.salary or "")
+            low_k = _parse_salary_low_k(target.salary or "")
             if low_k is not None and low_k < min_salary_k:
                 result["skipped"].append(f"{title}：薪资偏低")
                 continue
@@ -679,42 +807,46 @@ def _run_loop(
                 result["errors"].append("屏幕未解锁，停止任务")
                 break
 
-        # 返回职位列表（首条无需返回，后续每条都需要）
-        if idx > 1:
-            if not _return_to_job_list(skill, keyword):
-                result["errors"].append("无法返回职位列表")
-                break
-
-        # 进入详情页（用新鲜坐标，避免返回列表后坐标错位点到旧卡片）
-        logger.info("  [%d/%d] → %s（%s）", idx, len(jobs), title, company)
-        if not skill.find_and_navigate_to_job(title, company, job):
+        # 进入详情页（用 _find_next_job 给的新鲜坐标）
+        logger.info("  [%d] → %s（%s）", processed, title, company)
+        if not skill.find_and_navigate_to_job(title, company, target):
             result["errors"].append(f"{title}：导航失败")
             continue
 
-        # 等待详情页加载并验证公司名匹配，防止 Boss app 显示上一个职位的缓存数据
+        # 等待详情页加载并验证职位标题 + 公司名都匹配
+        # 防止：(a) 列表 tap 错卡片（旧坐标错位） (b) Boss 显示上一个职位的缓存数据
         _detail_ok = False
-        for _attempt in range(2):
+        for _attempt in range(3):
             if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=3.0):
                 time.sleep(1.0)
                 continue
             _quick = skill.get_job_detail()
+            _detail_title = _quick.get("title") or ""
             _detail_company = _quick.get("company") or ""
+            _title_match = (
+                not title
+                or not _detail_title
+                or title in _detail_title       # 列表 title 是详情 title 的子串
+                or _detail_title in title       # 详情 title 被列表 title 截断
+            )
             _company_match = (
                 not company
                 or not _detail_company
                 or company[:6] in _detail_company
                 or _detail_company[:6] in company
             )
-            if _company_match:
+            if _title_match and _company_match:
                 _detail_ok = True
                 break
             logger.warning(
-                "  详情页内容不匹配（期望=%s，实际=%s），等待重试 %d/2",
-                company, _detail_company, _attempt + 1,
+                "  详情页不匹配（期望 title=%s/company=%s，实际 title=%s/company=%s），重试 %d/3",
+                title, company, _detail_title, _detail_company, _attempt + 1,
             )
             time.sleep(1.0)
         if not _detail_ok:
             result["errors"].append(f"{title}：详情页加载超时或内容不匹配")
+            _record_visit(db_conn, title, company, hr_name, keyword, None,
+                          skip_reason="详情页title或公司名不匹配")
             continue
 
         # 检测网络异常占位页
@@ -731,12 +863,12 @@ def _run_loop(
         job_dict = {
             "title":            detail.get("title") or title,
             "company":          detail.get("company") or company,
-            "salary_raw":       detail.get("salary") or job.salary,
+            "salary_raw":       detail.get("salary") or target.salary,
             "experience":       detail.get("experience") or "",
             "company_info":     detail.get("company_info") or "",
             "hr_name":          detail.get("hr_name") or hr_name,
-            "hr_title":         detail.get("hr_title") or (job.hr_title if hasattr(job, "hr_title") else ""),
-            "hr_active":        detail.get("hr_active") or (job.hr_active if hasattr(job, "hr_active") else ""),
+            "hr_title":         detail.get("hr_title") or (target.hr_title if hasattr(target, "hr_title") else ""),
+            "hr_active":        detail.get("hr_active") or (target.hr_active if hasattr(target, "hr_active") else ""),
             "description":      detail.get("description") or "",
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
@@ -802,6 +934,61 @@ def _run_loop(
                               skip_reason="聊天页超时")
                 continue
 
+            # ── 第 2 层校验：聊天页的 HR / 职位 / 公司名是否真的是目标 ──
+            # 防止：详情页显示 HR A 但聊天页跳到 HR B（同公司多 HR 代理），
+            # 或者详情页校验通过但聊天页又跳回了上个会话的窗口。
+            _chat_ok = False
+            _chat_xml = skill.get_ui_hierarchy()
+            _chat_title_elem = skill.find_element(
+                resource_id="com.hpbr.bosszhipin:id/tv_title", xml=_chat_xml
+            )
+            _chat_position_elem = skill.find_element(
+                resource_id="com.hpbr.bosszhipin:id/tv_position_name", xml=_chat_xml
+            )
+            _chat_company_elem = skill.find_element(
+                resource_id="com.hpbr.bosszhipin:id/tv_company_name", xml=_chat_xml
+            )
+            _chat_title_text = (_chat_title_elem.text if _chat_title_elem else "") or ""
+            _chat_position_text = (_chat_position_elem.text if _chat_position_elem else "") or ""
+            _chat_company_text = (_chat_company_elem.text if _chat_company_elem else "") or ""
+
+            _chat_title_match = (
+                not title
+                or not _chat_position_text
+                or title in _chat_position_text
+                or _chat_position_text in title
+            )
+            _chat_company_match = (
+                not company
+                or not _chat_company_text
+                or company[:6] in _chat_company_text
+                or _chat_company_text[:6] in company
+            )
+            _target_hr_surname = (effective_hr_name or "")[:2]
+            _chat_hr_match = (
+                not _target_hr_surname
+                or _target_hr_surname in _chat_title_text
+            )
+            if _chat_title_match and _chat_company_match and _chat_hr_match:
+                _chat_ok = True
+            else:
+                logger.error(
+                    "  聊天页内容不匹配 — 目标 title=%s company=%s hr=%s，"
+                    "实际 chat_position=%s chat_company=%s chat_hr=%s。",
+                    title, company, effective_hr_name,
+                    _chat_position_text, _chat_company_text, _chat_title_text,
+                )
+                _dbg_chat = Path(skill.output_dir) / "debug_chat_mismatch.xml"
+                _dbg_chat.write_text(_chat_xml or "", encoding="utf-8")
+                result["errors"].append(
+                    f"{title}：聊天页 HR/职位/公司不匹配 "
+                    f"（hr={_chat_title_text!r}, pos={_chat_position_text!r}, co={_chat_company_text!r}）"
+                )
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                              skip_reason="聊天页HR/职位/公司不匹配")
+                # 不发送、不污染 greetings 表，直接 continue
+                continue
+
             dialog2 = skill.detect_dialog()
             if dialog2 != DialogType.NONE:
                 skill.dismiss_dialog(dialog2)
@@ -825,6 +1012,22 @@ def _run_loop(
                 _record_greeting(db_conn, title, company, effective_hr_name, keyword, greeting, action)
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               greeted=True, greeting_text=greeting)
+                # ── 第 3 层兜底：刚发的招呼 hr_name 不能为空 ──
+                # 防止：effective_hr_name 为空时把空字符串写到 job_details 表，
+                # 影响后续按 hr_name + company 去重。
+                # greetings 表只存 FK；hr_name 存在 job_details 里，需要 JOIN。
+                _last = db_conn.execute(
+                    """SELECT jd.hr_name, jd.dedup_key
+                       FROM greetings g
+                       JOIN job_details jd ON g.job_details_id = jd.id
+                       ORDER BY g.id DESC LIMIT 1"""
+                ).fetchone()
+                if _last and (not _last[0] or _last[0] == ""):
+                    logger.warning(
+                        "  兜底告警：刚发的招呼 hr_name 为空（dedup_key=%s），"
+                        "后续仅靠 title+company 去重",
+                        _last[1],
+                    )
             else:
                 result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
                 logger.error("  ✗ 打招呼失败 — %s", title)
