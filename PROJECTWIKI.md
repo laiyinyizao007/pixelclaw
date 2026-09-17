@@ -112,7 +112,7 @@ flowchart LR
 | 类 | 用途 |
 |----|------|
 | `PageState` | 页面状态字符串常量：`HOME / JOB_LIST / JOB_DETAIL / CHAT / DIALOG / UNKNOWN / RECOMMEND / MESSAGES / PROFILE / FILTER_PANEL / COMPANY_DETAIL / RESUME / APPLICATIONS` |
-| `DialogType` | 弹窗类型常量：`DAILY_LIMIT / LOGIN_REQUIRED / JOB_OFFLINE / EXISTING_CHAT / DISMISSED / NONE / UNKNOWN_DIALOG` |
+| `DialogType` | 弹窗类型常量：`DAILY_LIMIT / LOGIN_REQUIRED / JOB_OFFLINE / EXISTING_CHAT / DISMISSED / NONE / UNKNOWN_DIALOG / WARM_REMINDER` |
 | `ChatEntry` | 消息列表条目 dataclass：`hr_name / position / last_msg / time_str / tap_x / tap_y` |
 
 **JobInfo 数据类**（`@dataclass`）：
@@ -278,6 +278,7 @@ flowchart TD
 | `"立即登录"` / `"请登录后操作"` | `LOGIN_REQUIRED` |
 | `"该职位已下线"` / `"职位已下线"` / `"暂停招聘"` | `JOB_OFFLINE` |
 | `"已和对方建立沟通"` | `EXISTING_CHAT` |
+| `"温馨提示"` | `WARM_REMINDER`（点击「立即沟通」后的确认弹窗，dismiss 后继续发送） |
 
 **navigation bug 修复说明**（ADR-202509-boss-nav）：
 - **问题**：原 `tap_element("job_name")` 永远点第一个 `tv_position_name` 节点，多职位迭代时死循环

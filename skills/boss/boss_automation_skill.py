@@ -58,6 +58,7 @@ class DialogType:
     DISMISSED      = "dismissed"
     NONE           = "none"
     UNKNOWN_DIALOG = "unknown_dialog"
+    WARM_REMINDER  = "warm_reminder"   # 「温馨提示」确认弹窗，点"好"即可继续
 
     # keyword → type mapping (checked via `in` on each node's text)
     _SIGNATURES: Dict[str, str] = {
@@ -70,6 +71,7 @@ class DialogType:
         "职位已下线":          "job_offline",
         "暂停招聘":            "job_offline",
         "已和对方建立沟通":    "existing_chat",
+        "温馨提示":            "warm_reminder",
     }
 
 
@@ -273,6 +275,13 @@ class BOSSAutomationSkill(AndroidSkill):
             return self.press_back()
         elif dialog_type == DialogType.EXISTING_CHAT:
             return True  # already in chat, proceed
+        elif dialog_type == DialogType.WARM_REMINDER:
+            # 「温馨提示」确认弹窗，点"好"继续
+            for txt in ("好", "确定", "我知道了"):
+                elem = self.find_element(text=txt, xml=xml)
+                if elem and elem.center:
+                    return self.tap(*elem.center)
+            return self.press_back()
         elif dialog_type == DialogType.UNKNOWN_DIALOG:
             for txt in ("确定", "关闭", "取消"):
                 elem = self.find_element(text=txt, xml=xml)
