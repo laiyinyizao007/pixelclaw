@@ -15,6 +15,10 @@ on:
         description: '运行模式：daily（每日回顾）或 weekly（周回顾）'
         required: false
         default: 'daily'
+      backfill_date:
+        description: '回填日期（YYYY-MM-DD，仅 mode=daily 时有效，留空则回顾今日）'
+        required: false
+        default: ''
 
 permissions:
   issues: write
@@ -57,6 +61,7 @@ jobs:
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
           PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
           GH_OWNER: ${{ github.repository_owner }}
+          BACKFILL_DATE: ${{ inputs.backfill_date }}
         run: python3 generate_weekly_plan.py ${{ steps.mode.outputs.arg }}
       - name: 提交新追踪仓库（如有）
         run: |
