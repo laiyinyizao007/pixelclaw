@@ -282,11 +282,10 @@ def _make_client() -> tuple[anthropic.Anthropic, anthropic.Anthropic | None]:
     is always consistent with what the .env file declares, regardless of any
     shell-set values that might point at a different relay.
 
-    As of 2026-09-16 both relays (klugai / minnimax) advertise only the
-    MiniMax-M* model family; Claude models return 500 ("No available Claude
-    accounts support the requested model"). Therefore primary uses the
-    minnimax relay + MiniMax-M3 (verified working), and fallback uses the
-    klugai relay + MiniMax-M3 as a backup when minnimax itself flakes.
+    Primary uses the minnimax relay + MiniMax-M3.
+    Fallback uses the klugai relay + claude-3-5-haiku-20241022
+    (klugai supports standard Claude model IDs, not MiniMax-M* names).
+    _call_with_fallback handles the model name switch via fallback_model=.
     """
     import os
     from dotenv import load_dotenv
@@ -309,6 +308,7 @@ def _make_client() -> tuple[anthropic.Anthropic, anthropic.Anthropic | None]:
 def _call_with_fallback(
     primary: anthropic.Anthropic,
     fallback: anthropic.Anthropic | None,
+    fallback_model: str | None = None,
     **kwargs,
 ) -> anthropic.types.Message:
     """Call primary client; on transient errors switch to fallback if available.
@@ -317,6 +317,12 @@ def _call_with_fallback(
     Claude accounts support the requested model") or 403 ("not allowed in your
     plan"). Both are recoverable by retrying on the same client, and falling
     back to the secondary relay if the primary keeps failing.
+
+    Args:
+        fallback_model: If set, overrides the `model` kwarg when calling the
+            fallback client — useful when primary/fallback relays advertise
+            different model namespaces (e.g. minnimax uses "MiniMax-M3" while
+            klugai uses standard Claude model IDs).
     """
     import time as _time
 
@@ -324,9 +330,12 @@ def _call_with_fallback(
     for client, label in ((primary, "primary"), (fallback, "fallback") if fallback else (None, None)):
         if client is None:
             continue
+        call_kwargs = dict(kwargs)
+        if label == "fallback" and fallback_model:
+            call_kwargs["model"] = fallback_model
         for attempt in range(2):
             try:
-                return client.messages.create(**kwargs)
+                return client.messages.create(**call_kwargs)
             except (RateLimitError, InternalServerError, anthropic.APIStatusError) as exc:
                 last_exc = exc
                 wait = 1.5 * (attempt + 1)
@@ -351,6 +360,7 @@ def extract_resume_summary(
     prompt = _load_prompt("resume_extract").format(resume=resume)
     response = _call_with_fallback(
         primary, fallback,
+        fallback_model="claude-haiku-4-5-20251001",
         model="MiniMax-M3",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
@@ -386,6 +396,7 @@ def score_job(
     )
     response = _call_with_fallback(
         primary, fallback,
+        fallback_model="claude-haiku-4-5-20251001",
         model="MiniMax-M3",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
