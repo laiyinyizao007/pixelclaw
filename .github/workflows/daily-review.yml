@@ -1,4 +1,7 @@
 name: 每日回顾 & 周回顾自动更新
+# v1.17+：通过 LLM_FALLBACK_* 环境变量启用 Claude API 主备 fallback
+# 主 key 限流 / 失败时自动切换到备用 LLM；未设时行为等价于现状
+# 见 PROJECTWIKI.md §5.24 / §6
 
 on:
   schedule:
