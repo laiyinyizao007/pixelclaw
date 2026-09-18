@@ -439,6 +439,7 @@ def score_job(
     job: dict,
     strict: bool = False,
     fallback: anthropic.Anthropic | None = None,
+    scoring_dimensions: dict | None = None,
 ) -> dict:
     """Call Claude Haiku to score one job and generate a personalized greeting."""
     description = job.get("description") or ""
@@ -453,12 +454,13 @@ def score_job(
         description_excerpt=description if description else "（无）",
         requirements=job.get("requirements_text") or "  无标签",
         strict_rules=_load_prompt("strict_rules") if strict else "",
+        scoring_rubric=_build_scoring_rubric(scoring_dimensions or {}),
     )
     response = _call_with_fallback(
         primary, fallback,
         fallback_model="claude-haiku-4-5-20251001",
         model="MiniMax-M3",
-        max_tokens=1024,
+        max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
     text = _strip_json_fences(response.content[0].text.strip())
@@ -556,11 +558,24 @@ def _description_filter_job(
 
 
 def _extract_job_location(job: dict, known_cities: list[str]) -> str:
-    """Extract city from job description + company_info text.
+    """Extract city from job location field, then description + company_info text.
 
-    Checks the first 500 chars of description and all of company_info.
+    Checks dedicated location field first, then first 500 chars of description
+    and all of company_info.
     Returns 'full_remote', 'remote', a city name, or 'unknown'.
     """
+    # 1. 优先用详情页专用地点字段（tv_area_district / tv_job_area）
+    loc_field = job.get("location") or ""
+    if loc_field:
+        if "全远程" in loc_field or "居家办公" in loc_field:
+            return "全远程"
+        if "远程" in loc_field:
+            return "远程"
+        for city in known_cities:
+            if city not in ("全远程", "远程", "default") and city in loc_field:
+                return city
+
+    # 2. 兜底：扫描 company_info + description 前500字
     text = (job.get("company_info") or "") + " " + (job.get("description") or "")[:500]
     if "全远程" in text or "居家办公" in text:
         return "全远程"
@@ -570,6 +585,74 @@ def _extract_job_location(job: dict, known_cities: list[str]) -> str:
         if city not in ("全远程", "远程", "default") and city in text:
             return city
     return "unknown"
+
+
+def _build_scoring_rubric(dimensions: dict) -> str:
+    """Build the scoring rubric string from candidate_profile.yaml scoring_dimensions."""
+    if not dimensions:
+        return (
+            "评分标准（0-10）：10=完全匹配，7-9=良好匹配，5-6=部分匹配，3-4=方向不同，1-2=基本不相关"
+        )
+    total_w = sum(d.get("weight", 0) for d in dimensions.values())
+    lines = [
+        f"请按以下 {len(dimensions)} 个维度独立评分（每维度 0-10 分），"
+        f"最终得分 = Σ(维度分 × 权重)，四舍五入到整数（权重合计 {total_w:.0%}）：",
+    ]
+    for dim in dimensions.values():
+        w = int(dim.get("weight", 0) * 100)
+        lines.append(f"- **{dim.get('label', '未命名')}**（权重 {w}%）：{dim.get('desc', '')}")
+    return "\n".join(lines)
+
+
+def _extract_publish_days(job: dict) -> float | None:
+    """Parse publish time from raw_texts. Returns days (float) or None."""
+    import re as _re
+    for text in (job.get("raw_texts") or []):
+        t = text.strip()
+        if "刚刚" in t:
+            return 0.0
+        m = _re.search(r"(\d+)\s*小时前", t)
+        if m:
+            return int(m.group(1)) / 24.0
+        m = _re.search(r"(\d+)\s*天前", t)
+        if m:
+            return float(m.group(1))
+        m = _re.search(r"(\d+)\s*周前", t)
+        if m:
+            return float(m.group(1)) * 7
+        m = _re.search(r"(\d+)\s*个月前", t)
+        if m:
+            return float(m.group(1)) * 30
+    return None
+
+
+def _get_recency_weight(days: float | None, cfg: dict) -> float:
+    if days is None:
+        return cfg.get("unknown", 1.0)
+    if days <= 1:
+        return cfg.get("within_1d", 1.15)
+    if days <= 3:
+        return cfg.get("within_3d", 1.1)
+    if days <= 7:
+        return cfg.get("within_7d", 1.05)
+    if days <= 30:
+        return cfg.get("within_30d", 1.0)
+    return cfg.get("older", 0.95)
+
+
+def _parse_company_info(company_info: str) -> tuple[str, str]:
+    """Parse 'company_info' field (e.g. '不需要融资 • 1000-9999人 • 智能硬件').
+    Returns (scale, financing) strings for dict lookup."""
+    import re as _re
+    scale = ""
+    financing = ""
+    for part in company_info.split("•"):
+        p = part.strip()
+        if _re.search(r"\d", p) and "人" in p:
+            scale = p
+        elif any(kw in p for kw in ["融资", "上市", "天使", "种子", "轮", "不需要"]):
+            financing = p
+    return scale, financing
 
 
 # ─── App 导航 ─────────────────────────────────────────────────────────────────
@@ -678,6 +761,11 @@ def live_greet_loop(
     location_weights: dict | None = None,
     description_filters: dict | None = None,
     fallback: anthropic.Anthropic | None = None,
+    company_size_weights: dict | None = None,
+    recency_weights: dict | None = None,
+    financing_weights: dict | None = None,
+    scoring_dimensions: dict | None = None,
+    company_tier_weights: dict | None = None,
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -707,7 +795,12 @@ def live_greet_loop(
                          strict, min_salary_k, verify_send, db_conn, score_only, result, logger,
                          location_weights=location_weights,
                          description_filters=description_filters,
-                         fallback=fallback)
+                         fallback=fallback,
+                         company_size_weights=company_size_weights,
+                         recency_weights=recency_weights,
+                         financing_weights=financing_weights,
+                         scoring_dimensions=scoring_dimensions,
+                         company_tier_weights=company_tier_weights)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -788,6 +881,11 @@ def _run_loop(
     location_weights: dict | None = None,
     description_filters: dict | None = None,
     fallback: anthropic.Anthropic | None = None,
+    company_size_weights: dict | None = None,
+    recency_weights: dict | None = None,
+    financing_weights: dict | None = None,
+    scoring_dimensions: dict | None = None,
+    company_tier_weights: dict | None = None,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     if not skill._is_screen_on():
@@ -960,7 +1058,7 @@ def _run_loop(
                 logger.info("  列表已无未访问目标（连滑 %d 次都没新卡），结束", no_target_scrolls - 1)
                 break
             logger.info("  当前屏幕无未访问目标，列表下滑 %d/3", no_target_scrolls)
-            skill.scroll_down(start_y=1800, end_y=600)
+            skill.scroll_down(start_y=1300, end_y=1050, duration=600)  # 250px / 600ms，不触发 fling
             time.sleep(0.8)
             continue
         no_target_scrolls = 0
@@ -1067,11 +1165,14 @@ def _run_loop(
             "company":          detail.get("company") or company,
             "salary_raw":       detail.get("salary") or target.salary,
             "experience":       detail.get("experience") or "",
+            "location":         detail.get("location") or target.location or "",
             "company_info":     detail.get("company_info") or "",
             "hr_name":          detail.get("hr_name") or hr_name,
             "hr_title":         detail.get("hr_title") or (target.hr_title if hasattr(target, "hr_title") else ""),
             "hr_active":        detail.get("hr_active") or (target.hr_active if hasattr(target, "hr_active") else ""),
             "description":      detail.get("description") or "",
+            "company_scale":    detail.get("company_scale") or "",
+            "raw_texts":        detail.get("raw_texts") or [],
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
         # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
@@ -1096,7 +1197,7 @@ def _run_loop(
         # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
             scored = _with_screen_heartbeat(
-                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback)
+                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions)
             )
         except Exception as exc:
             reset_at = _extract_reset_at(exc)
@@ -1109,7 +1210,7 @@ def _run_loop(
                 time.sleep(wait_secs)
                 try:
                     scored = _with_screen_heartbeat(
-                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback)
+                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions)
                     )
                 except Exception as exc2:
                     logger.error("  配额恢复后仍失败：%s — %s", title, exc2)
@@ -1128,6 +1229,10 @@ def _run_loop(
         greeting = scored.get("greeting", "")
         result["all_scores"].append(score)
         logger.info("  分数 %d/10  %s", score, scored.get("top_matches", []))
+        dim_scores = scored.get("dimension_scores")
+        if dim_scores:
+            parts = " | ".join(f"{k}={v}" for k, v in dim_scores.items())
+            logger.info("  维度分：%s", parts)
         if scored.get("mismatch_concerns"):
             logger.info("  差距：%s", scored["mismatch_concerns"])
 
@@ -1145,6 +1250,49 @@ def _run_loop(
             if weight != 1.0:
                 adjusted = max(1, round(score * weight))
                 logger.info("  地点「%s」权重 %.2f → 分数 %d→%d", loc, weight, score, adjusted)
+                score = adjusted
+
+        # ── 公司规模 + 融资阶段权重（从 company_info 解析）──────────────────
+        if (company_size_weights or financing_weights) and score > 0:
+            ci = job_dict.get("company_info") or ""
+            cs, fin = _parse_company_info(ci)
+            cs_weight = (company_size_weights or {}).get(cs, (company_size_weights or {}).get("default", 1.0))
+            fin_weight = (financing_weights or {}).get(fin, (financing_weights or {}).get("default", 1.0))
+            combined = cs_weight * fin_weight
+            if combined != 1.0:
+                adjusted = max(1, round(score * combined))
+                logger.info(
+                    "  规模「%s」×融资「%s」= %.2f×%.2f=%.3f → 分数 %d→%d",
+                    cs or "未知", fin or "未知", cs_weight, fin_weight, combined, score, adjusted,
+                )
+                score = adjusted
+
+        # ── 互联网大厂权重 ─────────────────────────────────────────────────────
+        if company_tier_weights and score > 0:
+            tier_w = 1.0
+            tier_match = ""
+            for pattern, w in company_tier_weights.items():
+                if pattern == "default":
+                    continue
+                if pattern.lower() in company.lower():
+                    if float(w) > tier_w:
+                        tier_w = float(w)
+                        tier_match = pattern
+            if tier_w == 1.0:
+                tier_w = float(company_tier_weights.get("default", 1.0))
+            if tier_w != 1.0:
+                adjusted = max(1, round(score * tier_w))
+                logger.info("  大厂加权「%s」×%.2f → 分数 %d→%d", tier_match, tier_w, score, adjusted)
+                score = adjusted
+
+        # ── 发布时间权重 ──────────────────────────────────────────────────────
+        if recency_weights and score > 0:
+            pub_days = _extract_publish_days(job_dict)
+            r_weight = _get_recency_weight(pub_days, recency_weights)
+            if r_weight != 1.0:
+                adjusted = max(1, round(score * r_weight))
+                days_str = f"{pub_days:.1f}天前" if pub_days is not None else "未知"
+                logger.info("  发布时间「%s」权重 %.2f → 分数 %d→%d", days_str, r_weight, score, adjusted)
                 score = adjusted
 
         if score < threshold or not greeting:
@@ -1289,7 +1437,7 @@ def _run_loop(
             if ok:
                 action = "打招呼成功"
                 result["greeted"].append(
-                    {"job": title, "company": company, "score": score, "action": action, "greeting": greeting}
+                    {"job": title, "company": company, "score": score, "action": action, "greeting": greeting, "keyword": keyword}
                 )
                 logger.info("  ✓ 打招呼成功 — %s", greeting[:40])
                 greeted_count += 1
@@ -1359,6 +1507,11 @@ def main() -> int:
     _profile_min_salary = profile.get("min_salary_k", 0)
     location_weights: dict = profile.get("location_weights", {})
     description_filters: dict = profile.get("description_filters", {})
+    company_size_weights: dict = profile.get("company_size_weights", {})
+    recency_weights: dict = profile.get("recency_weights", {})
+    financing_weights: dict = profile.get("financing_weights", {})
+    scoring_dimensions: dict = profile.get("scoring_dimensions", {})
+    company_tier_weights: dict = profile.get("company_tier_weights", {})
 
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
     parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
@@ -1414,6 +1567,11 @@ def main() -> int:
         location_weights=location_weights,
         description_filters=description_filters,
         fallback=fallback,
+        company_size_weights=company_size_weights,
+        recency_weights=recency_weights,
+        financing_weights=financing_weights,
+        scoring_dimensions=scoring_dimensions,
+        company_tier_weights=company_tier_weights,
     )
     db_conn.close()
 

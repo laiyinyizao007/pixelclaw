@@ -175,8 +175,8 @@ class AndroidSkill:
         ok, _ = self._adb(f"shell input swipe {x1} {y1} {x2} {y2} {duration}")
         return ok
 
-    def scroll_down(self, start_y: int = 1500, end_y: int = 800) -> None:
-        self._adb(f"shell input swipe 540 {start_y} 540 {end_y} 300")
+    def scroll_down(self, start_y: int = 1500, end_y: int = 800, duration: int = 300) -> None:
+        self._adb(f"shell input swipe 540 {start_y} 540 {end_y} {duration}")
         time.sleep(0.5)
 
     # ── App 生命周期 ────────────────────────────────────────────────────────
