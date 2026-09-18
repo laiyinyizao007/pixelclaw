@@ -61,12 +61,25 @@ _CONTINUE_DIALOGS = {DialogType.EXISTING_CHAT, DialogType.DISMISSED, DialogType.
 # 启动时缓存 + mtime 检测：编辑 md 后下一次 score_job / extract_resume_summary 调用自动读新版本。
 
 _PROMPT_DIR = Path(__file__).parents[1] / "config" / "prompts"
+_PROFILE_PATH = _PROMPT_DIR.parent / "candidate_profile.yaml"
 _PROMPT_FILES = {
-    "resume_extract": _PROMPT_DIR / "resume_extract.md",
-    "match_score":    _PROMPT_DIR / "match_score.md",
-    "strict_rules":   _PROMPT_DIR / "strict_rules.md",
+    "match_score":  _PROMPT_DIR / "match_score.md",
+    "strict_rules": _PROMPT_DIR / "strict_rules.md",
 }
 _prompt_cache: dict[str, str] = {}
+
+
+def _load_candidate_profile() -> dict:
+    """Load candidate_profile.yaml; return empty dict if absent."""
+    if not _PROFILE_PATH.exists():
+        return {}
+    try:
+        import yaml  # pyyaml; standard dependency
+        with open(_PROFILE_PATH, encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except Exception as exc:
+        print(f"[profile] 读取 candidate_profile.yaml 失败，使用默认值：{exc}")
+        return {}
 
 
 def _load_prompt(name: str) -> str:
@@ -119,18 +132,37 @@ def _ensure_greetings_table(conn: sqlite3.Connection) -> None:
     """)
     conn.execute("""
         CREATE TABLE IF NOT EXISTS job_visits (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            title         TEXT    NOT NULL,
-            company       TEXT    NOT NULL,
-            hr_name       TEXT,
-            keyword       TEXT    NOT NULL,
-            score         INTEGER,
-            greeted       INTEGER NOT NULL DEFAULT 0,
-            greeting_text TEXT,
-            skip_reason   TEXT,
-            visited_at    TEXT    NOT NULL
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            title             TEXT    NOT NULL,
+            company           TEXT    NOT NULL,
+            hr_name           TEXT,
+            keyword           TEXT    NOT NULL,
+            score             INTEGER,
+            greeted           INTEGER NOT NULL DEFAULT 0,
+            greeting_text     TEXT,
+            skip_reason       TEXT,
+            visited_at        TEXT    NOT NULL,
+            salary            TEXT,
+            experience        TEXT,
+            company_info      TEXT,
+            description       TEXT,
+            top_matches       TEXT,
+            mismatch_concerns TEXT
         )
     """)
+    # 为旧数据库补列（ALTER TABLE 不支持 IF NOT EXISTS，用 try/except 兜底）
+    for col, coltype in [
+        ("salary",            "TEXT"),
+        ("experience",        "TEXT"),
+        ("company_info",      "TEXT"),
+        ("description",       "TEXT"),
+        ("top_matches",       "TEXT"),
+        ("mismatch_concerns", "TEXT"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE job_visits ADD COLUMN {col} {coltype}")
+        except Exception:
+            pass
     conn.commit()
 
 
@@ -205,16 +237,28 @@ def _record_visit(
     greeted: bool = False,
     greeting_text: str | None = None,
     skip_reason: str | None = None,
+    job_dict: dict | None = None,
+    scored_result: dict | None = None,
 ) -> None:
     """Record every job detail page visit regardless of whether a greeting was sent."""
+    import json as _json
+    jd = job_dict or {}
+    sc = scored_result or {}
     conn.execute(
         """INSERT INTO job_visits
-               (title, company, hr_name, keyword, score, greeted, greeting_text, skip_reason, visited_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               (title, company, hr_name, keyword, score, greeted, greeting_text, skip_reason, visited_at,
+                salary, experience, company_info, description, top_matches, mismatch_concerns)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             normalize_card_title(title), company, hr_name or "", keyword, score,
             1 if greeted else 0, greeting_text, skip_reason,
             time.strftime("%Y-%m-%dT%H:%M:%S"),
+            jd.get("salary_raw") or jd.get("salary"),
+            jd.get("experience"),
+            jd.get("company_info"),
+            jd.get("description"),
+            _json.dumps(sc.get("top_matches"), ensure_ascii=False) if sc.get("top_matches") else None,
+            _json.dumps(sc.get("mismatch_concerns"), ensure_ascii=False) if sc.get("mismatch_concerns") else None,
         ),
     )
     conn.commit()
@@ -378,7 +422,7 @@ def extract_resume_summary(
         primary, fallback,
         fallback_model="claude-haiku-4-5-20251001",
         model="MiniMax-M3",
-        max_tokens=512,
+        max_tokens=768,
         messages=[{"role": "user", "content": prompt}],
     )
     text = _strip_json_fences(response.content[0].text.strip())
@@ -391,7 +435,7 @@ def extract_resume_summary(
 
 def score_job(
     primary: anthropic.Anthropic,
-    resume_summary: str,
+    resume: str,
     job: dict,
     strict: bool = False,
     fallback: anthropic.Anthropic | None = None,
@@ -399,7 +443,7 @@ def score_job(
     """Call Claude Haiku to score one job and generate a personalized greeting."""
     description = job.get("description") or ""
     prompt = _load_prompt("match_score").format(
-        resume_summary=resume_summary,
+        resume=resume,
         title=job.get("title", ""),
         company=job.get("company", ""),
         salary=job.get("salary_raw") or "未知",
@@ -414,7 +458,7 @@ def score_job(
         primary, fallback,
         fallback_model="claude-haiku-4-5-20251001",
         model="MiniMax-M3",
-        max_tokens=512,
+        max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
     )
     text = _strip_json_fences(response.content[0].text.strip())
@@ -422,8 +466,12 @@ def score_job(
     return {**job, **result}
 
 
-def _parse_salary_low_k(salary_raw: str) -> float | None:
-    """Return lower bound monthly salary in K, or None if unparseable."""
+def _parse_salary_range_k(salary_raw: str) -> tuple[float, float] | None:
+    """Return (low_k, high_k) monthly salary in K, or None if unparseable.
+
+    Handles formats like '20-30K·13薪', '25K', '25-35K'.
+    Both bounds are annualised to monthly equivalents when a multiplier is present.
+    """
     import re
     if not salary_raw:
         return None
@@ -432,11 +480,96 @@ def _parse_salary_low_k(salary_raw: str) -> float | None:
     multiplier = int(m.group(1)) if m else 12
     rng = re.search(r"(\d+(?:\.\d+)?)[- ](\d+(?:\.\d+)?)K", raw)
     if rng:
-        return float(rng.group(1)) * multiplier / 12
+        lo = float(rng.group(1)) * multiplier / 12
+        hi = float(rng.group(2)) * multiplier / 12
+        return lo, hi
     single = re.search(r"(\d+(?:\.\d+)?)K", raw)
     if single:
-        return float(single.group(1)) * multiplier / 12
+        v = float(single.group(1)) * multiplier / 12
+        return v, v
     return None
+
+
+def _parse_salary_low_k(salary_raw: str) -> float | None:
+    """Return lower bound monthly salary in K, or None if unparseable."""
+    r = _parse_salary_range_k(salary_raw)
+    return r[0] if r else None
+
+
+_profile_cache = _load_candidate_profile()
+_TECH_ROLE_BLOCKLIST: list[str] = _profile_cache.get("role_blocklist", [
+    "Java工程师", "C++工程师", "C#工程师", "Go工程师", "Rust工程师",
+    "前端工程师", "后端工程师", "全栈工程师",
+    "算法工程师", "机器学习工程师", "深度学习工程师", "NLP工程师", "CV工程师",
+    "大数据工程师", "数据工程师", "数据开发", "推荐算法",
+    "测试工程师", "QA工程师", "运维工程师", "SRE", "DevOps工程师",
+    "iOS工程师", "Android工程师", "嵌入式工程师",
+])
+_HYBRID_EXEMPTIONS: list[str] = _profile_cache.get("role_exemptions", [
+    "产品", "PM", "经理", "负责人", "AI产品", "研发管理",
+])
+
+
+def _pre_filter_job(title: str) -> bool:
+    """返回 True 表示应跳过（职位标题命中纯技术岗黑名单且无产品职能词）。"""
+    t = title.strip()
+    if any(ex in t for ex in _HYBRID_EXEMPTIONS):
+        return False
+    return any(kw in t for kw in _TECH_ROLE_BLOCKLIST)
+
+
+def _description_filter_job(
+    job: dict,
+    industry_blocklist: list[str],
+    min_base_salary_k: float,
+) -> str | None:
+    """基于详情页内容过滤。返回跳过原因字符串，或 None 表示通过。"""
+    desc = job.get("description") or ""
+    company_info = job.get("company_info") or ""
+    full_text = desc + " " + company_info
+
+    for kw in industry_blocklist:
+        if kw in full_text:
+            return f"行业关键词「{kw}」"
+
+    if min_base_salary_k > 0:
+        import re
+        m = re.search(
+            r"(?:底薪|基本工资)[：:\s约不低于]*(\d+(?:\.\d+)?)\s*([kKwW万]?)",
+            full_text,
+        )
+        if m:
+            val = float(m.group(1))
+            unit = m.group(2).lower()
+            if unit == "k":
+                val_k = val
+            elif unit in ("w", "万"):
+                val_k = val * 10
+            elif val >= 1000:
+                val_k = val / 1000
+            else:
+                val_k = val
+            if val_k < min_base_salary_k:
+                return f"底薪 {val_k:.0f}K < 要求 {min_base_salary_k:.0f}K"
+
+    return None
+
+
+def _extract_job_location(job: dict, known_cities: list[str]) -> str:
+    """Extract city from job description + company_info text.
+
+    Checks the first 500 chars of description and all of company_info.
+    Returns 'full_remote', 'remote', a city name, or 'unknown'.
+    """
+    text = (job.get("company_info") or "") + " " + (job.get("description") or "")[:500]
+    if "全远程" in text or "居家办公" in text:
+        return "全远程"
+    if "远程" in text:
+        return "远程"
+    for city in known_cities:
+        if city not in ("全远程", "远程", "default") and city in text:
+            return city
+    return "unknown"
 
 
 # ─── App 导航 ─────────────────────────────────────────────────────────────────
@@ -531,7 +664,7 @@ def _with_screen_heartbeat(skill: "BOSSAutomationSkill", fn):
 
 
 def live_greet_loop(
-    resume_summary: str,
+    resume: str,
     client: anthropic.Anthropic,
     keyword: str,
     threshold: int,
@@ -542,6 +675,8 @@ def live_greet_loop(
     device_id: str | None,
     db_conn: sqlite3.Connection,
     score_only: bool = False,
+    location_weights: dict | None = None,
+    description_filters: dict | None = None,
     fallback: anthropic.Anthropic | None = None,
 ) -> dict:
     """
@@ -551,7 +686,7 @@ def live_greet_loop(
     logger = setup_logger("smart_match_greet", log_dir="./logs/boss")
     adb = ADBRunner()
     skill = BOSSAutomationSkill(adb, device_id=device_id)
-    result: dict = {"greeted": [], "skipped": [], "errors": []}
+    result: dict = {"greeted": [], "skipped": [], "errors": [], "all_scores": []}
 
     # Keep screen on (all charge types) + push lock/screen-off timeouts to 30 min.
     # Disable Adaptive Sleep (Pixel face-detection that bypasses screen_off_timeout).
@@ -568,8 +703,10 @@ def live_greet_loop(
     skill._adb("shell settings put secure lock_screen_lock_after_timeout 1800000")
     skill._adb("shell settings put secure adaptive_sleep 0")
     try:
-        return _run_loop(skill, resume_summary, client, keyword, threshold, max_greet,
+        return _run_loop(skill, resume, client, keyword, threshold, max_greet,
                          strict, min_salary_k, verify_send, db_conn, score_only, result, logger,
+                         location_weights=location_weights,
+                         description_filters=description_filters,
                          fallback=fallback)
     finally:
         skill._adb("shell svc power stayon false")
@@ -636,7 +773,7 @@ def _find_next_job(
 
 def _run_loop(
     skill: "BOSSAutomationSkill",
-    resume_summary: str,
+    resume: str,
     client: anthropic.Anthropic,
     keyword: str,
     threshold: int,
@@ -648,6 +785,8 @@ def _run_loop(
     score_only: bool,
     result: dict,
     logger: logging.Logger,
+    location_weights: dict | None = None,
+    description_filters: dict | None = None,
     fallback: anthropic.Anthropic | None = None,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
@@ -838,12 +977,20 @@ def _run_loop(
             result["skipped"].append(f"{title}（{company}）：已打过招呼")
             continue
 
-        # 薪资预过滤（利用列表卡片信息快速跳过）
+        # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过
         if min_salary_k > 0:
-            low_k = _parse_salary_low_k(target.salary or "")
-            if low_k is not None and low_k < min_salary_k:
-                result["skipped"].append(f"{title}：薪资偏低")
+            sal_range = _parse_salary_range_k(target.salary or "")
+            if sal_range is not None and sal_range[1] < min_salary_k:
+                result["skipped"].append(
+                    f"{title}：薪资上限 {sal_range[1]:.0f}K < 下限 {min_salary_k:.0f}K"
+                )
                 continue
+
+        # 职位标题预过滤（明显技术岗，不进 LLM）
+        if _pre_filter_job(title):
+            logger.info("  [%d] 跳过（技术岗）：%s", processed, title)
+            result["skipped"].append(f"{title}：纯技术岗跳过")
+            continue
 
         # 只检查屏幕是否亮着（详情页 get_current_page() 返回 UNKNOWN 属正常，
         # 下一步 navigate_to_job 会导航到正确页面）
@@ -931,10 +1078,25 @@ def _run_loop(
         # Using this for all DB writes ensures consistent dedup across runs.
         effective_hr_name = job_dict.get("hr_name") or hr_name
 
+        # 详情页内容过滤（行业关键词 + 底薪下限）
+        if description_filters:
+            _df = description_filters
+            _desc_skip = _description_filter_job(
+                job_dict,
+                industry_blocklist=_df.get("industry_blocklist", []),
+                min_base_salary_k=float(_df.get("min_base_salary_k", 0)),
+            )
+            if _desc_skip:
+                logger.info("  跳过（详情过滤）：%s — %s", title, _desc_skip)
+                result["skipped"].append(f"{title}（{company}）：{_desc_skip}")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, None,
+                              skip_reason=_desc_skip, job_dict=job_dict)
+                continue
+
         # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
             scored = _with_screen_heartbeat(
-                skill, lambda: score_job(client, resume_summary, job_dict, strict=strict, fallback=fallback)
+                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback)
             )
         except Exception as exc:
             reset_at = _extract_reset_at(exc)
@@ -947,26 +1109,49 @@ def _run_loop(
                 time.sleep(wait_secs)
                 try:
                     scored = _with_screen_heartbeat(
-                        skill, lambda: score_job(client, resume_summary, job_dict, strict=strict, fallback=fallback)
+                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback)
                     )
                 except Exception as exc2:
                     logger.error("  配额恢复后仍失败：%s — %s", title, exc2)
                     result["errors"].append(f"{title}：评分失败（配额恢复后仍失败：{exc2}）")
+                    _record_visit(db_conn, title, company, effective_hr_name, keyword, None,
+                                  skip_reason=f"评分失败:{exc2}", job_dict=job_dict)
                     continue
             else:
                 logger.error("  评分失败：%s — %s", title, exc)
                 result["errors"].append(f"{title}：评分失败（{exc}）")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, None,
+                              skip_reason=f"评分失败:{exc}", job_dict=job_dict)
                 continue
 
         score = scored.get("match_score", 0)
         greeting = scored.get("greeting", "")
-        logger.info("  分数 %d/10  %s", score, scored.get("top_matches", [])[:2])
+        result["all_scores"].append(score)
+        logger.info("  分数 %d/10  %s", score, scored.get("top_matches", []))
+        if scored.get("mismatch_concerns"):
+            logger.info("  差距：%s", scored["mismatch_concerns"])
+
+        # ── 地点权重调整 ───────────────────────────────────────────────────────
+        if location_weights and score > 0:
+            _lw = location_weights
+            loc = _extract_job_location(job_dict, list(_lw.keys()))
+            weight = _lw.get(loc, _lw.get("default", 1.0))
+            if weight == 0:
+                logger.info("  地点「%s」权重=0，跳过", loc)
+                result["skipped"].append(f"{title}（{company}）：地点「{loc}」权重为0，跳过")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                              skip_reason=f"地点权重0({loc})", job_dict=job_dict, scored_result=scored)
+                continue
+            if weight != 1.0:
+                adjusted = max(1, round(score * weight))
+                logger.info("  地点「%s」权重 %.2f → 分数 %d→%d", loc, weight, score, adjusted)
+                score = adjusted
 
         if score < threshold or not greeting:
             logger.info("  → 跳过（%d < %d）", score, threshold)
             result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
             _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                          skip_reason=f"低分({score}<{threshold})")
+                          skip_reason=f"低分({score}<{threshold})", job_dict=job_dict, scored_result=scored)
             continue
 
         logger.info("  ✓ 达标！打招呼：%s…", greeting[:60])
@@ -976,7 +1161,7 @@ def _run_loop(
                 f"{title}（{company}）：{score}/10 ✓ [score_only]\n    {greeting}"
             )
             _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                          skip_reason="score_only")
+                          skip_reason="score_only", job_dict=job_dict, scored_result=scored)
             continue
 
         # 发送打招呼
@@ -990,13 +1175,13 @@ def _run_loop(
                 if dialog in _SKIP_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog}）")
                     _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                                  skip_reason=f"弹窗跳过({dialog})")
+                                  skip_reason=f"弹窗跳过({dialog})", job_dict=job_dict, scored_result=scored)
                     continue
 
             if not skill.tap_element("chat_btn"):
                 result["errors"].append(f"{title}：无法打开聊天页")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason="无聊天按钮")
+                              skip_reason="无聊天按钮", job_dict=job_dict, scored_result=scored)
                 continue
 
             # ── 温馨提示弹窗可能在进入聊天页瞬间出现，提前dismiss ──
@@ -1011,7 +1196,7 @@ def _run_loop(
                 if _pre_chat_dialog not in _CONTINUE_DIALOGS:
                     result["skipped"].append(f"{title}（{_pre_chat_dialog}）")
                     _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                                  skip_reason=f"弹窗跳过({_pre_chat_dialog})")
+                                  skip_reason=f"弹窗跳过({_pre_chat_dialog})", job_dict=job_dict, scored_result=scored)
                     continue
                 time.sleep(0.5)  # 等弹窗关闭动画
 
@@ -1020,7 +1205,7 @@ def _run_loop(
             ):
                 result["errors"].append(f"{title}：聊天页加载超时")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason="聊天页超时")
+                              skip_reason="聊天页超时", job_dict=job_dict, scored_result=scored)
                 continue
 
             # ── 第 2 层校验：聊天页的 HR / 职位 / 公司名是否真的是目标 ──
@@ -1074,7 +1259,7 @@ def _run_loop(
                     f"（hr={_chat_title_text!r}, pos={_chat_position_text!r}, co={_chat_company_text!r}）"
                 )
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason="聊天页HR/职位/公司不匹配")
+                              skip_reason="聊天页HR/职位/公司不匹配", job_dict=job_dict, scored_result=scored)
                 # 不发送、不污染 greetings 表，直接 continue
                 continue
 
@@ -1087,7 +1272,7 @@ def _run_loop(
                 if dialog2 not in _CONTINUE_DIALOGS:
                     result["skipped"].append(f"{title}（{dialog2}）")
                     _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                                  skip_reason=f"弹窗跳过({dialog2})")
+                                  skip_reason=f"弹窗跳过({dialog2})", job_dict=job_dict, scored_result=scored)
                     continue
 
             ok = skill.send_greeting(greeting, verify=verify_send)
@@ -1116,7 +1301,8 @@ def _run_loop(
                     )
                 _record_greeting(db_conn, title, company, effective_hr_name, keyword, greeting, action)
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              greeted=True, greeting_text=greeting)
+                              greeted=True, greeting_text=greeting,
+                              job_dict=job_dict, scored_result=scored)
                 # ── 第 3 层兜底：刚发的招呼 hr_name 不能为空 ──
                 # 防止：effective_hr_name 为空时把空字符串写到 job_details 表，
                 # 影响后续按 hr_name + company 去重。
@@ -1137,16 +1323,30 @@ def _run_loop(
                 result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
                 logger.error("  ✗ 打招呼失败 — %s", title)
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason="发送失败")
+                              skip_reason="发送失败", job_dict=job_dict, scored_result=scored)
             time.sleep(1.0)
 
         except Exception as exc:
             logger.error("处理 '%s' 异常", title, exc_info=True)
             result["errors"].append(f"{title}: {exc}")
             _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                          skip_reason=f"异常:{exc}")
+                          skip_reason=f"异常:{exc}",
+                          job_dict=locals().get("job_dict"),
+                          scored_result=locals().get("scored"))
             if not skill._is_screen_on():
                 break
+
+    # ── 本次评分分布摘要 ──────────────────────────────────────────────────────
+    all_s = result["all_scores"]
+    if all_s:
+        high = sum(1 for s in all_s if s >= 8)
+        mid  = sum(1 for s in all_s if 6 <= s < 8)
+        low  = sum(1 for s in all_s if s < 6)
+        avg  = sum(all_s) / len(all_s)
+        logger.info(
+            "📊 评分分布（共 %d 个职位打分）: ≥8分=%d  6-7分=%d  <6分=%d  均分=%.1f  跳过=%d",
+            len(all_s), high, mid, low, avg, len(result["skipped"]),
+        )
 
     return result
 
@@ -1154,6 +1354,12 @@ def _run_loop(
 # ─── 主入口 ────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    profile = _load_candidate_profile()
+    _profile_threshold = profile.get("default_threshold", 6)
+    _profile_min_salary = profile.get("min_salary_k", 0)
+    location_weights: dict = profile.get("location_weights", {})
+    description_filters: dict = profile.get("description_filters", {})
+
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
     parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
     parser.add_argument(
@@ -1161,11 +1367,13 @@ def main() -> int:
         default=str(RESUME_DEFAULT),
         help=f"简历 Markdown 路径（默认：{RESUME_DEFAULT}）",
     )
-    parser.add_argument("--threshold", type=int, default=6, help="最低匹配分数 0-10（默认 6）")
+    parser.add_argument("--threshold", type=int, default=_profile_threshold,
+                        help=f"最低匹配分数 0-10（默认来自 candidate_profile.yaml：{_profile_threshold}）")
     parser.add_argument("--max-greet", type=int, default=5, help="最多发送打招呼数（默认 5）")
     parser.add_argument("--score-only", action="store_true", help="仅评分打印，不发送打招呼")
     parser.add_argument("--strict", action="store_true", help="严格评分模式，减少分数虚高")
-    parser.add_argument("--min-salary", type=float, default=0, help="月薪下限（K），低于此值跳过（默认 0=不过滤）")
+    parser.add_argument("--min-salary", type=float, default=_profile_min_salary,
+                        help=f"月薪下限（K），低于此值跳过（默认来自 candidate_profile.yaml：{_profile_min_salary}K）")
     parser.add_argument("--no-verify", action="store_true", help="发送后不验证消息已发出")
     parser.add_argument("--device", default=None, help="ADB 设备 serial")
     args = parser.parse_args()
@@ -1178,11 +1386,7 @@ def main() -> int:
     resume_text = resume_path.read_text(encoding="utf-8")
     print(f"✓ 简历已加载：{resume_path.name}（{len(resume_text)} 字符）")
 
-    # ── 提取简历画像（一次性 Haiku 调用）──────────────────────────────────────
     client, fallback = _make_client()
-    print("⏳ 提取简历画像（Haiku）…", end="", flush=True)
-    resume_summary = extract_resume_summary(client, resume_text, fallback=fallback)
-    print(" 完成")
 
     # ── 初始化 DB（确保表存在）──────────────────────────────────────────────
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -1196,7 +1400,7 @@ def main() -> int:
     )
 
     result = live_greet_loop(
-        resume_summary=resume_summary,
+        resume=resume_text,
         client=client,
         keyword=args.keyword,
         threshold=args.threshold,
@@ -1207,6 +1411,8 @@ def main() -> int:
         device_id=args.device,
         db_conn=db_conn,
         score_only=args.score_only,
+        location_weights=location_weights,
+        description_filters=description_filters,
         fallback=fallback,
     )
     db_conn.close()
