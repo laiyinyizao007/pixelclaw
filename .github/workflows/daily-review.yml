@@ -5,8 +5,10 @@ name: 每日回顾 & 周回顾自动更新
 
 on:
   schedule:
-    # 每日回顾：周一至周五 21:30 北京时间（UTC 13:30）
-    - cron: '30 13 * * 1-5'
+    # 每日回顾：每天 21:30 北京时间（UTC 13:30）
+    - cron: '30 13 * * *'
+    # 周回顾：周一 09:00 北京时间（UTC 01:00），周报文件由周日 weekly-update 生成
+    - cron: '0 1 * * 1'
   workflow_dispatch:
     inputs:
       mode:
@@ -36,9 +38,11 @@ jobs:
       - name: 确定运行模式
         id: mode
         run: |
-          # workflow_dispatch 时用输入参数，否则 schedule 固定是每日回顾
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "arg=--${{ inputs.mode }}-review" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 1 * * 1" ]; then
+            # 周一 09:00 BJ 触发 → 周回顾
+            echo "arg=--weekly-review" >> $GITHUB_OUTPUT
           else
             echo "arg=--daily-review" >> $GITHUB_OUTPUT
           fi
@@ -66,8 +70,8 @@ jobs:
   auto-close:
     runs-on: ubuntu-latest
     needs: review
-    # 只在每日回顾时运行（workflow_dispatch 选 weekly 时跳过）
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'daily' }}
+    # 只在每日回顾时运行（周一周回顾 cron 和 workflow_dispatch weekly 时跳过）
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
