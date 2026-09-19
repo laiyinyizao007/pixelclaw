@@ -44,9 +44,8 @@ jobs:
             exit 0
           fi
           # schedule 时根据 UTC 小时判断（1:00 UTC = 周六周回顾，13:30 UTC = 工作日每日回顾）
-          HOUR=$(date -u +%H)
           DOW=$(date -u +%u)   # 1=Mon … 7=Sun
-          if [ "$DOW" = "6" ] && [ "$HOUR" = "01" ]; then
+          if [ "$DOW" = "6" ]; then
             echo "arg=--weekly-review" >> $GITHUB_OUTPUT
           else
             echo "arg=--daily-review" >> $GITHUB_OUTPUT
@@ -76,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: review
     # 只在每日回顾时运行（工作日），周六周回顾不自动关闭
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'daily' }}
+    if: ${{ github.event.schedule != '0 1 * * 6' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'daily') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
