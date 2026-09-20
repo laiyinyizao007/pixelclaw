@@ -198,6 +198,16 @@ def _is_already_greeted(
     ).fetchone()
     if row3 and row3[0] > 0:
         return True
+    # Fourth layer: same title + same hr_name regardless of company.
+    # Catches empty-company first encounter: dedup_key stores '' for company,
+    # but second encounter has company populated → all previous layers miss it.
+    if hr_name:
+        row4 = conn.execute(
+            "SELECT COUNT(*) FROM job_visits WHERE title = ? AND hr_name = ? AND greeted = 1",
+            (normalize_card_title(title), hr_name),
+        ).fetchone()
+        if row4 and row4[0] > 0:
+            return True
     return False
 
 
@@ -1069,6 +1079,10 @@ def _run_loop(
         company = target.company or ""
         hr_name = target.hr_name or ""
         visited_keys.add(f"{normalize_card_title(title)}\t{company}")
+        # Also register empty-company variant: the same card may appear again
+        # later with company populated, which would otherwise look like a new key.
+        if company:
+            visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
