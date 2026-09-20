@@ -6,7 +6,15 @@
 
 ## [Unreleased]
 
+### Added（新增）
+- `scenarios/wecom/` — 新建企业微信消息监控场景：
+  - `skills/wecom/wecom_automation_skill.py`：企业微信自动化 skill；ELEMENTS 通过 UIAutomator dump 确认（设备 42231JEKB04971，2026-09）；`parse_messages()` 以 `ctw` 行容器为单位解析纯文字与卡片消息，含双向时间继承（前向传播 + 首批消息向后借用）；`_extract_card_url()` 点击卡片读取 WeCom 内置浏览器 `copyhackinput` 节点获取外部链接
+  - `scenarios/wecom/scripts/monitor_messages.py`：消息监控脚本；按 contacts.yaml 逐一搜索会话 → UIAutomator dump → 解析 → SHA-256 去重 → 写入 `wecom_messages.db`（含 contact/sender/time_str/text/url 字段）；`--dry-run` 仅解析打印；`device_lock` 与其他 scenario 脚本互斥
+  - `scenarios/wecom/scripts/watch_wecom.py`：轻量事件驱动触发器；每 30s 轮询 `adb shell dumpsys notification`，检测到企业微信通知数增加时才触发 monitor_messages.py；空闲时不占用手机屏幕；监控为最低优先级，被 device_lock 抢占时静默跳过
+  - `config/app_knowledge/wecom.json`：企业微信 UI 元素知识库（nxm/lrk/ge0/iz3/ilm/imi/ipg/nmd/nwv，含卡片 URL 提取方法及消息气泡层级说明）
+
 ### Fixed（修复）
+- `utils/logging_setup.py` — StreamHandler 改为 `io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")`，修复 Windows cp1252 终端输出中文字符时的 `UnicodeEncodeError`
 - `skills/boss/boss_automation_skill.py` — 新增 `DialogType.WARM_REMINDER` 弹窗类型：Boss直聘在点击「立即沟通」后会弹出「温馨提示」确认弹窗，需点击「好」才能进入聊天页。原 `_SIGNATURES` 无此关键词，`_scan_for_dialog` 返回 `"none"`，`wait_for_element("editText_with_scrollbar")` 4秒超时，所有招呼实际未发出。新增 `WARM_REMINDER = "warm_reminder"` 常量、`"温馨提示": "warm_reminder"` 签名映射，以及 `dismiss_dialog` 中依次尝试点击 "好"/"确定"/"我知道了" 的关闭逻辑
 - `scenarios/boss/scripts/smart_match_greet.py` — 多项防护与可观测性改进：
   - **温馨提示弹窗预检**：在 `tap_element("chat_btn")` 后、`wait_for_element` 前新增 0.8s sleep + `detect_dialog()` 检测，识别到 `WARM_REMINDER` 后 dismiss 再继续；`WARM_REMINDER` 加入 `_CONTINUE_DIALOGS`（dismiss 后不跳过该职位）

@@ -1,0 +1,130 @@
+{
+  "app_name": "wecom",
+  "package": "com.tencent.wework",
+  "note": "resource-id values verified on Pixel 8a (device 42231JEKB04971) with 企业微信 (WeCom) via UIAutomator dump, 2026-09. App update changed all conversation-list-page IDs; chat-page IDs partially changed.",
+  "elements": [
+    {
+      "element_id": "com.tencent.wework:id/nxm",
+      "visual_description": "会话列表页顶部右侧的搜索图标按钮",
+      "action": "Click",
+      "page": "conversation_list",
+      "note": "verified (replaces old n68 after WeCom app update)",
+      "documentation": {
+        "function": "点击进入搜索页",
+        "prerequisites": "在企业微信消息 Tab（会话列表页）",
+        "post_conditions": "跳转至搜索页，显示搜索输入框 lrk"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/lrk",
+      "visual_description": "搜索页顶部输入框，hint 文字「搜索」",
+      "action": "Click+Type",
+      "page": "search_page",
+      "note": "verified (EditText, hint=搜索; replaces old lhb after app update)",
+      "documentation": {
+        "function": "输入联系人/群名关键词，触发搜索",
+        "prerequisites": "已点击搜索入口（nxm），在搜索页",
+        "post_conditions": "显示搜索结果联系人资料页"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/ge0",
+      "visual_description": "联系人资料页底部的「进入」按钮，点击进入与该联系人/群的会话",
+      "action": "Click",
+      "page": "contact_profile",
+      "note": "verified (TextView text=进入, clickable=true; ID stable across app update)",
+      "documentation": {
+        "function": "从搜索结果联系人资料页进入会话聊天页",
+        "prerequisites": "在搜索结果联系人资料页，已显示「进入」按钮",
+        "post_conditions": "进入该联系人/群的聊天页"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/iz3",
+      "visual_description": "群聊消息气泡中发送人区域容器，位于头像右侧、消息气泡上方",
+      "action": "Read",
+      "page": "group_chat",
+      "note": "verified (replaces old jds; ViewGroup iz3 contains sender name as first child TextView; iz3 itself has no text attribute)",
+      "documentation": {
+        "function": "获取群聊中每条消息的发送人姓名（1-on-1 聊天无此节点）",
+        "prerequisites": "在含人类文字消息的群聊页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "iz3 为容器，取其第一个有 text 的子节点作为发送人姓名；父容器为 ivq (RelativeLayout)"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/ilm",
+      "visual_description": "聊天页消息气泡中的文字正文 TextView",
+      "action": "Read",
+      "page": "chat",
+      "note": "verified (replaces old j1l after app update)",
+      "documentation": {
+        "function": "获取消息气泡的文字内容",
+        "prerequisites": "在 1-on-1 或群聊聊天页，页面已加载完成",
+        "post_conditions": "无（仅读取）"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/imi",
+      "visual_description": "聊天页消息行的时间戳文本（如「昨天  21:20」），也用于系统提示消息",
+      "action": "Read",
+      "page": "chat",
+      "note": "verified (replaces old j2e after app update; CAUTION: also used for system messages like '此群为外部群' — must filter with time regex)",
+      "documentation": {
+        "function": "获取消息对应的显示时间字符串",
+        "prerequisites": "在 1-on-1 或群聊聊天页",
+        "post_conditions": "无（仅读取）",
+        "implementation": "parse_messages() 用时间正则过滤，排除系统消息节点"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/ipg",
+      "visual_description": "聊天页卡片消息的可点击外层容器（包含标题、描述、缩略图）",
+      "action": "Click",
+      "page": "chat",
+      "note": "verified (replaces old j5_; clickable=true; bounds ~[139,1248][830,1597])",
+      "documentation": {
+        "function": "卡片消息整体容器，点击打开 WeCom 内置浏览器",
+        "prerequisites": "在聊天页，消息为卡片类型",
+        "post_conditions": "打开 WeCom 内置浏览器，copyhackinput 节点出现含外部链接 URL"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/nmd",
+      "visual_description": "卡片消息标题文本",
+      "action": "Read",
+      "page": "chat",
+      "note": "verified (replaces old mww; inside ipg container; bounds ~[192,1280][798,1410])",
+      "documentation": {
+        "function": "获取卡片消息的标题文字",
+        "prerequisites": "在聊天页，消息为卡片类型（ipg 容器内）",
+        "post_conditions": "无（仅读取）"
+      }
+    },
+    {
+      "element_id": "com.tencent.wework:id/nwv",
+      "visual_description": "聊天页标题栏，显示联系人或群聊名称（如「自己人(2)」）",
+      "action": "Read",
+      "page": "chat",
+      "note": "verified (replaces j28 for chat-page detection; text contains group name + member count)",
+      "documentation": {
+        "function": "检测当前是否在聊天页，并获取会话名称",
+        "prerequisites": "已进入某联系人/群的聊天页",
+        "post_conditions": "无（仅读取）"
+      }
+    }
+  ],
+  "card_url_extraction": {
+    "description": "卡片消息 URL 提取方法（无需处理 '允许' 弹窗）",
+    "method": "点击 ipg 容器 → WeCom 内置浏览器加载 → UI dump 中找 resource-id='copyhackinput' 节点 → 读其 text 属性",
+    "copyhackinput_note": "copyhackinput 为 WeCom 内置浏览器注入的隐藏 EditText，text 为原始外部链接 URL（如 xhsdiscover://video_feed/<noteId>）",
+    "xhs_deeplink": "adb shell am start -a android.intent.action.VIEW -d 'xhsdiscover://video_feed/<noteId>' 可直接打开小红书视频"
+  },
+  "message_bubble_hierarchy": {
+    "description": "群聊消息气泡层级（2026-09 app update 后确认）",
+    "plain_text": "ivq (RelativeLayout) → [iz3 (sender container) → TextView(name), 消息气泡区 → ... → ilm (text)]",
+    "card": "ipg (clickable card container) → [nmd (title TextView), 无 id TextView (description)]",
+    "time_header": "imi (time/system TextView, 需时间正则过滤)",
+    "chat_page_indicator": "nwv (title bar, text=群名+人数)"
+  }
+}

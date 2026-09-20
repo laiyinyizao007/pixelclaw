@@ -43,8 +43,9 @@ def setup_logger(
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
     logger.propagate = False
 
-    # Console handler
-    sh = logging.StreamHandler(sys.stdout)
+    # Console handler — force UTF-8 so Chinese characters don't break on Windows cp1252
+    import io
+    sh = logging.StreamHandler(io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8"))
     sh.setFormatter(
         logging.Formatter("%(asctime)s %(levelname)-7s %(message)s", "%H:%M:%S")
     )

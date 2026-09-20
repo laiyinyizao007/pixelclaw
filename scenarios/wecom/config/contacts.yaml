@@ -1,0 +1,10 @@
+# 企业微信消息监控 — 联系人/群配置
+#
+# 只监控这里列出的联系人/群显示名（不会遍历全部会话列表）。
+# name 必须与企业微信会话列表中显示的名称完全一致，用于搜索定位会话。
+#
+# 用法：
+#   python scenarios/wecom/scripts/monitor_messages.py
+
+contacts:
+  - name: "自己人"
