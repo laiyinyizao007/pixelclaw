@@ -88,6 +88,11 @@ flowchart LR
 | `scenarios/boss/scripts/daily_greet.py` | 每日打招呼编排脚本：按顺序串联爬取→分析→评分发送三步；多关键词逐个处理；支持 `--skip-scrape`/`--skip-analyze`/`--score-only`/`--threshold`/`--strict`/`--max-greet` 等参数 |
 | `scenarios/linkedin/scripts/ai_search_positioning.py` | LinkedIn AI 市场定位分析：deep link 搜索 → 多 result_type 滚动采集 → SQLite 去重 → Claude Haiku 分析 → Markdown 报告 |
 | `scenarios/linkedin/config/positioning.yaml` | 定位分析配置：搜索查询列表（all/people/companies/content）、简历路径、采集参数 |
+| `skills/wecom/` | 企业微信（WeCom）自动化 skill（UIAutomator + ctw 行容器解析） |
+| `scenarios/wecom/` | 企业微信场景：消息监控工作流、配置、输出 |
+| `scenarios/wecom/scripts/monitor_messages.py` | 消息监控脚本：搜索会话 → UIAutomator dump → ctw 行解析 → 时间继承 → SQLite 去重写入；`--dry-run` 仅打印不写库 |
+| `scenarios/wecom/scripts/watch_wecom.py` | 轻量通知触发器：每 30s 轮询 `dumpsys notification`，有新通知时才触发 monitor_messages.py；不占用手机屏幕 |
+| `config/app_knowledge/wecom.json` | 企业微信 UI 元素知识库（2026-09 app update 后，9 个 element） |
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
 | `tasks/` | 通用任务脚本（微信、测试等） |
 | `scripts/` | 通用环境安装与连接测试脚本 |
@@ -95,6 +100,19 @@ flowchart LR
 | `docs/` | 通用项目文档 |
 | `pixelclaw/memory/` | 三层记忆系统（capture → store → recall） |
 | `tests/` | 单元测试（pytest，193 tests，无真机依赖） |
+
+### WeCom 数据库 Schema（`scenarios/wecom/output/wecom_messages.db`）
+
+| 表 | 用途 | 主键 / 唯一约束 |
+|----|------|----------------|
+| `messages` | 企业微信聊天消息 | `id` PK；`msg_hash UNIQUE = SHA-256(contact\|sender\|text\|time_str)` |
+
+`messages` 字段：`id, contact, sender, time_str, text, url, msg_hash, first_seen_at`
+
+- `contact`：联系人或群名（来自 contacts.yaml）
+- `time_str`：消息显示时间（如「昨天 21:20」）；无独立时间戳的消息继承上一条已知时间（前向传播），首批消息向后借用第一个已知时间
+- `url`：卡片消息外部链接（默认空；`fetch_card_urls=True` 时点击卡片提取）
+- `msg_hash`：跨次运行全局去重，`IntegrityError` = 已存在，静默跳过
 
 ### Boss 数据库 Schema（`scenarios/boss/output/requirements.db`）
 
@@ -470,6 +488,55 @@ python scenarios/linkedin/scripts/ai_search_positioning.py [--skip-collect] [--s
 | `_report_skills_table(analysis) -> list[str]` | 市场高频技能表格 |
 | `_report_seniority_section(analysis) -> list[str]` | 资历定位、人脉画像、优势/差距、关键词建议 |
 | `_report_raw_data(results) -> list[str]` | 职位/人脉/帖子原始数据附录 |
+
+### WeComAutomationSkill 详细说明（`skills/wecom/wecom_automation_skill.py`）
+
+**resource-id（设备 42231JEKB04971，2026-09 app update 后确认）**：
+
+| 键 | resource-id | 说明 |
+|----|------------|------|
+| `search_entry` | `com.tencent.wework:id/nxm` | 会话列表页右上角搜索图标 |
+| `search_input` | `com.tencent.wework:id/lrk` | 搜索页输入框（hint=搜索） |
+| `session_item` | `com.tencent.wework:id/ge0` | 联系人资料页「进入」按钮 |
+| `message_sender` | `com.tencent.wework:id/iz3` | 发送人容器（ViewGroup，取首个子 TextView） |
+| `message_text` | `com.tencent.wework:id/ilm` | 消息气泡正文 |
+| `message_time` | `com.tencent.wework:id/imi` | 时间戳/系统消息（时间正则过滤） |
+| `card_container` | `com.tencent.wework:id/ipg` | 卡片消息可点击容器 |
+| `card_title` | `com.tencent.wework:id/nmd` | 卡片消息标题 |
+| `chat_page_title` | `com.tencent.wework:id/nwv` | 聊天页标题栏（群名+人数） |
+
+**parse_messages() 核心机制**：
+
+- 以 `ctw` 行容器为单位遍历，每个 `ctw` 内部独立查找时间/发送人/内容，避免全局列表顺序匹配错位
+- 时间继承：`imi` 无文本则沿用 `last_time`（前向传播）；首批时间戳前的消息向后借用第一个已知时间（后向回填）
+- 卡片检测：`ipg` + `clickable=true` + 含 `nmd` 标题节点；普通 `ipg` 包普通文本的不识别为卡片
+- `fetch_card_urls=False`（默认）：不点击卡片，`url` 字段为空；`True` 时点击 `ipg` → WeCom 内置浏览器 → 读 `copyhackinput` 节点
+
+**消息监控架构（事件驱动）**：
+
+```mermaid
+flowchart LR
+    W[watch_wecom.py\n每30s轮询] -->|dumpsys notification\n企业微信通知数增加| M[monitor_messages.py\n占屏~30s]
+    W -->|通知数不变| W
+    M --> DB[(wecom_messages.db)]
+    M -->|device_lock 已被占用| Skip[跳过本次]
+```
+
+- `watch_wecom.py` 仅读取系统通知计数，不控制屏幕，极低开销
+- `monitor_messages.py` 持有 `device_lock`，与 `smart_match_greet.py` 互斥；监控为最低优先级，被抢锁时静默跳过
+
+**运行方式**：
+
+```bash
+# 启动事件驱动监听（后台，无窗口）
+Start-Process python -ArgumentList "scenarios\wecom\scripts\watch_wecom.py --device 42231JEKB04971" -WindowStyle Hidden
+
+# 手动单次抓取（dry-run）
+python scenarios/wecom/scripts/monitor_messages.py --dry-run --device 42231JEKB04971
+
+# 手动单次抓取（写库）
+python scenarios/wecom/scripts/monitor_messages.py --device 42231JEKB04971
+```
 
 ## 12. 变更日志
 

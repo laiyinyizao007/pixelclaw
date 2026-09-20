@@ -37,6 +37,7 @@ import anthropic
 from anthropic import APIStatusError, InternalServerError, RateLimitError
 from skills.android.adb_runner import ADBRunner
 from skills.boss import BOSSAutomationSkill, DialogType, PageState, normalize_card_title
+from utils.device_lock import DeviceBusyError, device_lock
 from utils.logging_setup import setup_logger
 
 # Module-level logger reference — used by helpers called BEFORE live_greet_loop()
@@ -1054,12 +1055,12 @@ def _run_loop(
         target = _find_next_job(skill, visited_keys, jobs)
         if target is None:
             no_target_scrolls += 1
-            if no_target_scrolls > 3:
+            if no_target_scrolls > 5:
                 logger.info("  列表已无未访问目标（连滑 %d 次都没新卡），结束", no_target_scrolls - 1)
                 break
-            logger.info("  当前屏幕无未访问目标，列表下滑 %d/3", no_target_scrolls)
+            logger.info("  当前屏幕无未访问目标，列表下滑 %d/5", no_target_scrolls)
             skill.scroll_down(start_y=1300, end_y=1050, duration=600)  # 250px / 600ms，不触发 fling
-            time.sleep(0.8)
+            time.sleep(1.5)
             continue
         no_target_scrolls = 0
 
@@ -1539,64 +1540,69 @@ def main() -> int:
     resume_text = resume_path.read_text(encoding="utf-8")
     print(f"✓ 简历已加载：{resume_path.name}（{len(resume_text)} 字符）")
 
-    client, fallback = _make_client()
+    try:
+        with device_lock(script_name=f"smart_match_greet:{args.keyword}"):
+            client, fallback = _make_client()
 
-    # ── 初始化 DB（确保表存在）──────────────────────────────────────────────
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    db_conn = sqlite3.connect(DB_PATH)
-    _ensure_greetings_table(db_conn)
+            # ── 初始化 DB（确保表存在）──────────────────────────────────────────
+            DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+            db_conn = sqlite3.connect(DB_PATH)
+            _ensure_greetings_table(db_conn)
 
-    mode_label = "严格模式" if args.strict else "标准模式"
-    score_label = "仅评分" if args.score_only else f"最多发送 {args.max_greet} 条"
-    print(
-        f"\n🤖 单阶段循环（关键词：{args.keyword}，阈值：{args.threshold}，{mode_label}，{score_label}）"
-    )
+            mode_label = "严格模式" if args.strict else "标准模式"
+            score_label = "仅评分" if args.score_only else f"最多发送 {args.max_greet} 条"
+            print(
+                f"\n🤖 单阶段循环（关键词：{args.keyword}，阈值：{args.threshold}，{mode_label}，{score_label}）"
+            )
 
-    result = live_greet_loop(
-        resume=resume_text,
-        client=client,
-        keyword=args.keyword,
-        threshold=args.threshold,
-        max_greet=args.max_greet,
-        strict=args.strict,
-        min_salary_k=args.min_salary,
-        verify_send=not args.no_verify,
-        device_id=args.device,
-        db_conn=db_conn,
-        score_only=args.score_only,
-        location_weights=location_weights,
-        description_filters=description_filters,
-        fallback=fallback,
-        company_size_weights=company_size_weights,
-        recency_weights=recency_weights,
-        financing_weights=financing_weights,
-        scoring_dimensions=scoring_dimensions,
-        company_tier_weights=company_tier_weights,
-    )
-    db_conn.close()
+            result = live_greet_loop(
+                resume=resume_text,
+                client=client,
+                keyword=args.keyword,
+                threshold=args.threshold,
+                max_greet=args.max_greet,
+                strict=args.strict,
+                min_salary_k=args.min_salary,
+                verify_send=not args.no_verify,
+                device_id=args.device,
+                db_conn=db_conn,
+                score_only=args.score_only,
+                location_weights=location_weights,
+                description_filters=description_filters,
+                fallback=fallback,
+                company_size_weights=company_size_weights,
+                recency_weights=recency_weights,
+                financing_weights=financing_weights,
+                scoring_dimensions=scoring_dimensions,
+                company_tier_weights=company_tier_weights,
+            )
+            db_conn.close()
 
-    # ── 结果摘要 ────────────────────────────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("执行结果摘要")
-    print("=" * 60)
-    if args.score_only:
-        above = [s for s in result["skipped"] if "✓" in s]
-        print(f"✓ 达到阈值 {args.threshold}+：{len(above)} 条")
-        for item in above:
-            print(f"  · {item}")
-    else:
-        print(f"✓ 打招呼成功：{len(result['greeted'])} 条")
-        for item in result["greeted"]:
-            print(f"  · {item['job']}（{item['company']}）{item['score']}/10 —— {item['action']}")
-            print(f"    {item['greeting'][:80]}")
-    if result["skipped"]:
-        print(f"- 跳过：{len(result['skipped'])} 条")
-    if result["errors"]:
-        print(f"✗ 错误：{len(result['errors'])} 个")
-        for err in result["errors"]:
-            print(f"  · {err}")
+            # ── 结果摘要 ────────────────────────────────────────────────────────
+            print("\n" + "=" * 60)
+            print("执行结果摘要")
+            print("=" * 60)
+            if args.score_only:
+                above = [s for s in result["skipped"] if "✓" in s]
+                print(f"✓ 达到阈值 {args.threshold}+：{len(above)} 条")
+                for item in above:
+                    print(f"  · {item}")
+            else:
+                print(f"✓ 打招呼成功：{len(result['greeted'])} 条")
+                for item in result["greeted"]:
+                    print(f"  · {item['job']}（{item['company']}）{item['score']}/10 —— {item['action']}")
+                    print(f"    {item['greeting'][:80]}")
+            if result["skipped"]:
+                print(f"- 跳过：{len(result['skipped'])} 条")
+            if result["errors"]:
+                print(f"✗ 错误：{len(result['errors'])} 个")
+                for err in result["errors"]:
+                    print(f"  · {err}")
 
-    return 0 if not result["errors"] else 1
+            return 0 if not result["errors"] else 1
+    except DeviceBusyError as exc:
+        print(f"⚠ 设备已被占用，跳过本次运行：{exc}")
+        return 0
 
 
 if __name__ == "__main__":

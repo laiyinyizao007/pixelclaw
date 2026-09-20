@@ -164,6 +164,11 @@ class AndroidSkill:
         ok, _ = self._adb("shell input keyevent 4")
         return ok
 
+    def press_home(self) -> bool:
+        """发送 KEYCODE_HOME（keycode 3）。"""
+        ok, _ = self._adb("shell input keyevent 3")
+        return ok
+
     def swipe(
         self,
         x1: int,
