@@ -1016,17 +1016,25 @@ class BOSSAutomationSkill(AndroidSkill):
 
             new_found = 0
             for job in page_jobs:
-                key = f"{normalize_card_title(job.title)}\t{job.company or ''}\t{job.hr_name or ''}"
+                norm_title = normalize_card_title(job.title)
+                job.title = norm_title
+                hr = job.hr_name or ""
+                comp = job.company or ""
+                # Dedup key: prefer title+hr_name to tolerate lazy-loaded company names.
+                # RecyclerView edge cards often render title first; company text binds
+                # later. Using company in the key would create two entries for the same
+                # physical card (once with company="", once with company populated).
+                # Fall back to title+company only when hr_name is absent.
+                key = f"{norm_title}\t{hr}" if hr else f"{norm_title}\t\t{comp}"
                 if not key.strip("\t"):
                     continue
                 known = seen.get(key)
                 if known is None:
-                    job.title = normalize_card_title(job.title)
                     seen[key] = job
                     all_jobs.append(job)
                     new_found += 1
                 else:
-                    # 边缘卡片首次可能只渲染出 title，再次出现时补齐空字段。
+                    # 边缘卡片首次可能只渲染出 title/company，再次出现时补齐空字段。
                     for attr in ("company", "salary", "location",
                                  "hr_name", "hr_title", "hr_active"):
                         if not getattr(known, attr) and getattr(job, attr):
