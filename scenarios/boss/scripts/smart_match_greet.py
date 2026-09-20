@@ -666,6 +666,43 @@ def _parse_company_info(company_info: str) -> tuple[str, str]:
     return scale, financing
 
 
+def _extract_hr_active_days(hr_active: str) -> float | None:
+    """Parse hr_active text → days (float) or None.
+    Handles: "今天活跃"→0, "3天前活跃"→3, "本周活跃"→5, "本月活跃"→20.
+    """
+    import re as _re
+    t = (hr_active or "").strip()
+    if not t:
+        return None
+    if "今天" in t:
+        return 0.0
+    m = _re.search(r"(\d+)\s*天前", t)
+    if m:
+        return float(m.group(1))
+    if "本周" in t:
+        return 5.0
+    if "本月" in t:
+        return 20.0
+    m = _re.search(r"(\d+)\s*个月前", t)
+    if m:
+        return float(m.group(1)) * 30
+    return None
+
+
+def _get_hr_active_weight(days: float | None, cfg: dict) -> float:
+    if days is None:
+        return cfg.get("unknown", 1.0)
+    if days <= 0:
+        return cfg.get("today", 1.1)
+    if days <= 3:
+        return cfg.get("within_3d", 1.05)
+    if days <= 7:
+        return cfg.get("within_7d", 1.0)
+    if days <= 30:
+        return cfg.get("within_30d", 0.95)
+    return cfg.get("older", 0.9)
+
+
 # ─── App 导航 ─────────────────────────────────────────────────────────────────
 
 def _return_to_job_list(skill: BOSSAutomationSkill, keyword: str = "") -> bool:
@@ -777,6 +814,7 @@ def live_greet_loop(
     financing_weights: dict | None = None,
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
+    hr_active_weights: dict | None = None,
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -811,7 +849,8 @@ def live_greet_loop(
                          recency_weights=recency_weights,
                          financing_weights=financing_weights,
                          scoring_dimensions=scoring_dimensions,
-                         company_tier_weights=company_tier_weights)
+                         company_tier_weights=company_tier_weights,
+                         hr_active_weights=hr_active_weights)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -897,6 +936,7 @@ def _run_loop(
     financing_weights: dict | None = None,
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
+    hr_active_weights: dict | None = None,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     if not skill._is_screen_on():
@@ -1310,6 +1350,16 @@ def _run_loop(
                 logger.info("  发布时间「%s」权重 %.2f → 分数 %d→%d", days_str, r_weight, score, adjusted)
                 score = adjusted
 
+        # ── HR 活跃度权重 ──────────────────────────────────────────────────────
+        if hr_active_weights and score > 0:
+            active_days = _extract_hr_active_days(job_dict.get("hr_active", ""))
+            a_weight = _get_hr_active_weight(active_days, hr_active_weights)
+            if a_weight != 1.0:
+                adjusted = max(1, round(score * a_weight))
+                days_str = f"{active_days:.0f}天前活跃" if active_days is not None else "未知"
+                logger.info("  HR活跃度「%s」权重 %.2f → 分数 %d→%d", days_str, a_weight, score, adjusted)
+                score = adjusted
+
         if score < threshold or not greeting:
             logger.info("  → 跳过（%d < %d）", score, threshold)
             result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
@@ -1527,6 +1577,7 @@ def main() -> int:
     financing_weights: dict = profile.get("financing_weights", {})
     scoring_dimensions: dict = profile.get("scoring_dimensions", {})
     company_tier_weights: dict = profile.get("company_tier_weights", {})
+    hr_active_weights: dict = profile.get("hr_active_weights", {})
 
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
     parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
@@ -1589,6 +1640,7 @@ def main() -> int:
                 financing_weights=financing_weights,
                 scoring_dimensions=scoring_dimensions,
                 company_tier_weights=company_tier_weights,
+                hr_active_weights=hr_active_weights,
             )
             db_conn.close()
 
