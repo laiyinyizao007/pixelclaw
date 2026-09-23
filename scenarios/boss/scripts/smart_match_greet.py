@@ -815,6 +815,7 @@ def live_greet_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
+    daily_hard_limit: int = 110,
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -850,7 +851,8 @@ def live_greet_loop(
                          financing_weights=financing_weights,
                          scoring_dimensions=scoring_dimensions,
                          company_tier_weights=company_tier_weights,
-                         hr_active_weights=hr_active_weights)
+                         hr_active_weights=hr_active_weights,
+                         daily_hard_limit=daily_hard_limit)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -902,6 +904,12 @@ def _find_next_job(
         v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}"
         if v_key in visited_keys:
             continue
+        # title-only 去重：仅当卡片 company 为空时才检查（懒加载尚未填充）；
+        # 若 company 非空，跳过此检查，避免不同公司的同名职位被误杀。
+        if not v.company:
+            title_only_key = f"{normalize_card_title(v.title)}\t"
+            if title_only_key in visited_keys:
+                continue
         full = by_key.get(v_key)
         if full is None:
             # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序/出新卡）——
@@ -937,6 +945,7 @@ def _run_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
+    daily_hard_limit: int = 110,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     if not skill._is_screen_on():
@@ -977,7 +986,7 @@ def _run_loop(
             result["errors"].append("手机锁屏未解，无法启动")
             return result
 
-    logger.info("[1/3] 启动 Boss直聘…")
+    logger.info("[1/2] 启动 Boss直聘…")
     skill._adb(f"shell am force-stop {skill.APP_PACKAGE}")
     time.sleep(2.0)
     # Launch directly to MainActivity to bypass WelcomeActivityAlias1 which often shows
@@ -1053,7 +1062,7 @@ def _run_loop(
         skill._adb("shell input keyevent 4")
         time.sleep(1.5)
 
-    logger.info("[2/3] 搜索职位：「%s」…", keyword)
+    logger.info("[2/2] 搜索职位：「%s」…", keyword)
     if not skill.browse_jobs(keyword):
         # Save debug XML for diagnosis
         _dbg = skill.get_ui_hierarchy()
@@ -1067,9 +1076,8 @@ def _run_loop(
         result["errors"].append("职位列表加载超时")
         return result
 
-    logger.info("[3/3] 采集职位列表（基线，用于补全字段）…")
-    jobs = skill.scroll_job_list(n_jobs=60, max_scrolls=20)
-    logger.info("  ✓ 采集到 %d 条职位卡片", len(jobs))
+    # 无基线：直接从当前屏幕开始处理；hr_name 等懒加载字段由详情页补全
+    jobs: list = []
 
     visited_keys: set[str] = set()
     greeted_count = 0
@@ -1077,8 +1085,8 @@ def _run_loop(
     processed = 0  # 用于日志显示的「第 N 条」计数器
 
     # ── 每日上限保护（主动检查，不依赖弹窗被动检测）──
-    DAILY_HARD_LIMIT = 110  # 到达此数直接退出（留 ~10 条 buffer）
-    DAILY_WARN_LIMIT = 90   # 到达此数打 WARNING
+    DAILY_HARD_LIMIT = daily_hard_limit  # 来自 candidate_profile.yaml daily_hard_limit
+    DAILY_WARN_LIMIT = max(1, DAILY_HARD_LIMIT - 20)
     today_count = _count_today_greeted(db_conn)
     logger.info("  今日已发送 %d 条招呼", today_count)
     if today_count >= DAILY_HARD_LIMIT:
@@ -1109,7 +1117,7 @@ def _run_loop(
                 logger.info("  列表已无未访问目标（连滑 %d 次都没新卡），结束", no_target_scrolls - 1)
                 break
             logger.info("  当前屏幕无未访问目标，列表下滑 %d/5", no_target_scrolls)
-            skill.scroll_down(start_y=1300, end_y=1050, duration=600)  # 250px / 600ms，不触发 fling
+            skill.scroll_down(start_y=1300, end_y=980, duration=600)  # 320px ≈ 1 张卡片高，不触发 fling
             time.sleep(1.5)
             continue
         no_target_scrolls = 0
@@ -1119,9 +1127,9 @@ def _run_loop(
         company = target.company or ""
         hr_name = target.hr_name or ""
         visited_keys.add(f"{normalize_card_title(title)}\t{company}")
-        # Also register empty-company variant: the same card may appear again
-        # later with company populated, which would otherwise look like a new key.
-        if company:
+        # 仅当 company 为空时注册 title-only 变体（懒加载未填充场景）；
+        # company 非空时不注册，避免误杀不同公司的同名职位。
+        if not company:
             visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # 去重检查（已落库 greetings 的不再打招呼）
@@ -1233,6 +1241,14 @@ def _run_loop(
         # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
         # Using this for all DB writes ensures consistent dedup across runs.
         effective_hr_name = job_dict.get("hr_name") or hr_name
+
+        # 列表页 hr_name 可能为空（RecyclerView 懒加载），此时首层 _is_already_greeted 可能漏检；
+        # 用详情页补全的 effective_hr_name 再校验一次。
+        if effective_hr_name and effective_hr_name != hr_name:
+            if _is_already_greeted(db_conn, job_dict["title"], job_dict["company"], effective_hr_name):
+                logger.info("  [%d] 跳过（已打过招呼，详情页确认 hr=%s）：%s", processed, effective_hr_name, title)
+                result["skipped"].append(f"{title}（{company}）：已打过招呼")
+                continue
 
         # 详情页内容过滤（行业关键词 + 底薪下限）
         if description_filters:
@@ -1578,6 +1594,7 @@ def main() -> int:
     scoring_dimensions: dict = profile.get("scoring_dimensions", {})
     company_tier_weights: dict = profile.get("company_tier_weights", {})
     hr_active_weights: dict = profile.get("hr_active_weights", {})
+    daily_hard_limit: int = int(profile.get("daily_hard_limit", 110))
 
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
     parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")
@@ -1641,6 +1658,7 @@ def main() -> int:
                 scoring_dimensions=scoring_dimensions,
                 company_tier_weights=company_tier_weights,
                 hr_active_weights=hr_active_weights,
+                daily_hard_limit=daily_hard_limit,
             )
             db_conn.close()
 

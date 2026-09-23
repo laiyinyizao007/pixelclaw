@@ -5,6 +5,7 @@ min_salary_k: 24          # 月薪下限（K）；CLI --min-salary 可覆盖
 
 # ── 分数阈值 ──────────────────────────────────────────────────────────────────
 default_threshold: 7      # 打招呼最低分；CLI --threshold 可覆盖
+daily_hard_limit: 200     # 每日发送上限（脚本内部保护，非平台限制）；到达此数直接退出
 
 # ── 评分维度权重（各维度 0-10 分，最终 = Σ(维度分 × weight)，weight 之和须为 1.0）
 scoring_dimensions:
