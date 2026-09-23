@@ -1238,6 +1238,14 @@ def _run_loop(
             "raw_texts":        detail.get("raw_texts") or [],
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
+        # 列表页 company 可能为空（懒加载占位）；详情页拿到真实公司名后，
+        # 将 visited_keys 里的占位 key 替换为精确 key，
+        # 避免同 title 不同公司的后续空-company 卡片被误杀。
+        _real_company = job_dict.get("company") or ""
+        if not company and _real_company:
+            visited_keys.discard(f"{normalize_card_title(title)}\t")
+            visited_keys.add(f"{normalize_card_title(title)}\t{_real_company}")
+
         # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
         # Using this for all DB writes ensures consistent dedup across runs.
         effective_hr_name = job_dict.get("hr_name") or hr_name
