@@ -5,6 +5,7 @@
 - **目标**：基于视觉识别的 Android 自动化系统，运行于 Raspberry Pi 5（aarch64）上，控制 Pixel 8a 完成小红书（XHS）、微信等 App 的自动化操作
 - **背景**：通过 ADB + Shizuku 驱动设备，使用多级 VLM/OCR 策略分析屏幕并执行动作
 - **运行环境**：Raspberry Pi 5 (aarch64) + Android Pixel 8a，Python 3.x
+- **远程控制链路**：默认同一 WiFi 下走 §3 无线 ADB；2026-10 起支持 Tailscale 隧道（WireGuard）跨子网/跨公网远程控制物理 Pixel，ADB over WireGuard，无需 USB / 中转服务器（详见 §8.4.4）
 - **调用方式**：`python -m pixelclaw [subcommand]`
 
 ## 2. 架构设计
@@ -441,6 +442,61 @@ cp config/devices.raspberrypi.example.json config/devices.json
 2. `VisionAgent` / `FallbackManager` 改为在 `cmd_task` / `cmd_interactive` 内 lazy import（这两个会触发 `cv2` / `torch` import）
 
 历史包袱：2026-10 之前 `__main__.py` 顶层 `from .core.vision_agent import VisionAgent`，启动 `--service` 也会被迫加载 cv2；同期项目根还有一个空的 inner `pixelclaw/` 命名空间包（仅 `memory/` 有真实代码），遮蔽外层 `pixelclaw` package，导致 `python -m pixelclaw` 报 `No module named pixelclaw.__main__`。本次修复已把 inner 目录删除、`memory/` 移至根。
+
+### 8.4.4 Tailscale 远程控制链路（2026-10 新增）
+
+§8.4.1–§8.4.3 描述的无线 ADB 配对要求 Pi 与 Pixel 在同一 WiFi 子网（如 `10.32.7.0/24`）。当两者不在同一网络（甚至跨公网）时，通过 Tailscale 把 Pixel 上的 Linux 虚拟机暴露进同一 tailnet，ADB over WireGuard 隧道即可远程控制。
+
+**拓扑**：
+
+```mermaid
+flowchart LR
+    Pi["Raspberry Pi 5<br/>主机 baverypi<br/>100.86.255.34"] -->|WireGuard / DERP| VM["Pixel 上的 Linux 虚拟机<br/>(Termux + proot)<br/>localhost-0: 100.108.209.0"]
+    VM -->|adb 5555| Phone["Pixel 8a<br/>Android 物理设备"]
+```
+
+**链路组件**：
+- **Pi 主机**：tailnet 节点 `baverypi`（`100.86.255.34`），执行所有 ADB 客户端命令
+- **Pixel 上的 Linux 虚拟机**：Termux + `proot-distro`（Debian/Ubuntu）跑出的用户态 Linux 环境，安装并登录 Tailscale → 暴露为 tailnet 节点 `localhost-0`（`100.108.209.0`）
+- **虚拟机内 ADB 服务**：监听 `0.0.0.0:5555`（Android 11+ `adb tcpip 5555` 即可）
+- **Tailscale 隧道**：WireGuard 建立 P2P 连接（NAT 穿透成功）；跨子网/对称 NAT 失败时回落 DERP 中继
+
+**连接命令**：
+
+```bash
+# 在 Pi 主机执行（不受子网约束）
+adb connect 100.108.209.0:5555
+
+# 验证
+adb devices -l
+# 预期: 100.108.209.0:5555    device product:akita model:Pixel_8a ...
+
+# 启动 App 并截图（实测可工作）
+adb shell am start -n com.tencent.mm/com.tencent.mm.ui.LauncherUI
+adb exec-out screencap -p > wechat.png
+```
+
+**关键优势**：
+- **跨子网/跨公网**：Pi 与 Pixel 不必在同一 WiFi（公司 + 家庭、跨城、出差）
+- **免 USB**：完全脱离物理连接
+- **免中转**：NAT 穿透成功时 P2P；失败走 Tailscale 自带 DERP 中继（仍免自建）
+- **加密**：ADB 流量走 WireGuard，链路层加密
+
+**与 §8.4.1 关系**：Tailscale 链路是「同一 WiFi 无线 ADB」的**超集**——两者可同时存在，按场景切换：
+- 同一 WiFi 优先走 `10.32.7.125:42527`（延迟更低）
+- 不在同一网络走 `100.108.209.0:5555`（跨子网/跨公网）
+
+**实测验证（2026-10-09）**：
+- 主机：Pi 5（`baverypi`，`100.86.255.34`）
+- Pixel 节点：`localhost-0`（`100.108.209.0`）
+- 操作序列：`adb connect 100.108.209.0:5555` → `am start com.tencent.mm/.ui.LauncherUI` → `exec-out screencap -p > wechat.png`
+- 结果：截图成功（1080×2400 PNG，157 KB），内容为微信主界面，时间戳 23:58 与主机时间一致
+
+**配置建议**：
+- `config/devices.json` 当前仅存 WiFi 内网值；tailnet 远程链路可作为**应急备份**——主用 WiFi 链路不可达时（如换网/出远门），临时 `adb connect <tailnet_ip>:5555` 即可接管
+- 后续可考虑在 `config/devices.json` 增加 `tailscale_ip` / `tailscale_port` 字段，`DeviceConnector.connect()` 增加 tailnet 兜底分支
+
+用户操作指引见 `docs/GETTING_STARTED.md` §3.11。
 
 ## 9. 依赖图谱
 

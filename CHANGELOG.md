@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Added（新增）
+- **远程控制链路（Tailscale over WireGuard，2026-10-09）**：通过 Tailscale 隧道实现跨子网/跨公网远程控制物理 Pixel 设备。Pixel 上的 Linux 虚拟机（Termux + proot）作为 tailnet 节点 `localhost-0`（`100.108.209.0`）暴露 `0.0.0.0:5555` ADB 端口；主机端 `adb connect 100.108.209.0:5555` 即可建立 P2P 控制链路，不再依赖同一 WiFi / USB / 自建中转服务器，所有 ADB 流量经 WireGuard 加密。拓扑、连接命令与实测验证（`am start` + `exec-out screencap` 截图返回微信主界面 1080×2400）详见 `PROJECTWIKI.md` §8.4.4；用户指引见 `docs/GETTING_STARTED.md` §3.11
+- `PROJECTWIKI.md` — §1 运行环境补充「远程控制链路」一行；§8.4.3 后新增 §8.4.4「Tailscale 远程控制链路」，含拓扑 Mermaid 图、链路组件、连接命令、关键优势、与 §8.4.1 关系、2026-10-09 实测验证、配置建议
+- `docs/GETTING_STARTED.md` — 末尾新增 §3.11「Tailscale 远程控制（跨子网 / 跨公网）」：前提（Termux/proot/Tailscale/adbd）、`tailscale status` 查节点 IP、`adb connect <tailnet_ip>:5555` 连接命令、适用场景（公司网 + 家庭网、出差、多设备跨地域）
+
 ### Fixed（修复）
 - `__main__.py` — `python -m pixelclaw --service` 入口可用：①删除空的 inner `pixelclaw/` 命名空间包（之前因同名子目录遮蔽了项目根的 `pixelclaw` package，导致 `-m pixelclaw` 报 `No module named pixelclaw.__main__`）；②将 `pixelclaw/memory/` 全部源码移到项目根 `memory/`（结构上同 `core/` / `monitors/` / `services/` 平级）；③`VisionAgent` 与 `FallbackManager` 改为在 `cmd_task` / `cmd_interactive` 内部 lazy import，`--service` / `--monitor` / `--status` 不再需要 `cv2` / `torch` 等重依赖；④文件首部自动把项目根与其父目录加进 `sys.path`，使 `python __main__.py`（从项目根）和 `python -m pixelclaw`（从项目根的父目录）两种调用方式都能解析相对导入
 - `pixelclaw`（新增 launcher 脚本，项目根） — 解决「`python -m pixelclaw` 需要 CWD 为项目根父目录」的不便：脚本内部 `os.chdir(parent)` 后 `subprocess.call([sys.executable, "-m", "pixelclaw", *argv])`。用法：`./pixelclaw --service` / `./pixelclaw --monitor` / `./pixelclaw --task "..."`，等价于从项目根父目录直接 `python -m pixelclaw`。原 `scripts/run_keepalive.py` wrapper 已删除（被 launcher 取代）
