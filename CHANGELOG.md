@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+### Fixed（修复）
+- `__main__.py` — `python -m pixelclaw --service` 入口可用：①删除空的 inner `pixelclaw/` 命名空间包（之前因同名子目录遮蔽了项目根的 `pixelclaw` package，导致 `-m pixelclaw` 报 `No module named pixelclaw.__main__`）；②将 `pixelclaw/memory/` 全部源码移到项目根 `memory/`（结构上同 `core/` / `monitors/` / `services/` 平级）；③`VisionAgent` 与 `FallbackManager` 改为在 `cmd_task` / `cmd_interactive` 内部 lazy import，`--service` / `--monitor` / `--status` 不再需要 `cv2` / `torch` 等重依赖；④文件首部自动把项目根与其父目录加进 `sys.path`，使 `python __main__.py`（从项目根）和 `python -m pixelclaw`（从项目根的父目录）两种调用方式都能解析相对导入
+- `pixelclaw`（新增 launcher 脚本，项目根） — 解决「`python -m pixelclaw` 需要 CWD 为项目根父目录」的不便：脚本内部 `os.chdir(parent)` 后 `subprocess.call([sys.executable, "-m", "pixelclaw", *argv])`。用法：`./pixelclaw --service` / `./pixelclaw --monitor` / `./pixelclaw --task "..."`，等价于从项目根父目录直接 `python -m pixelclaw`。原 `scripts/run_keepalive.py` wrapper 已删除（被 launcher 取代）
+- `config/devices.json` — 修正 Pixel 8a 真实 IP / 端口：`ip` 由 `172.19.0.1`（不可达，Pi 在 WiFi `10.32.7.0/24` 子网，docker bridge 地址不可达）→ `10.32.7.125`；`port` 由 `45373`（占位）→ `42527`（无线调试配对后新开的实际 ADB 端口）；`pairing_code` / `pairing_port` 更新为本次手机显示的最新值（每次重开无线调试会变）
+
+### Added（新增）
+- `config/devices.windows.example.json` + `config/devices.raspberrypi.example.json` — 新增主机档位参考快照：保留旧 Windows 主机调试值（`172.19.0.1:45373:444047`，`pairing_port: null`）作为历史备份，保留当前 Pi 5 主机值（`10.32.7.125:42527:988963:36111`）便于跨档位切换；两份文件均带 `_comment` / `_use_case` 字段说明用途。`config/devices.json` 维持 Pi 5 档为默认。切换方法见 `docs/GETTING_STARTED.md` §3.10
+
+### Documentation（文档）
+- `PROJECTWIKI.md` — 新增第 8.4 节「设备连接与 Keepalive 服务」，覆盖无线 ADB 配对流程（IP/配对端口/接入端口三者关系、配对码 30s 过期）、`config/devices.json` 字段说明、Keepalive 服务架构与重连机制、launcher 脚本与 `python -m pixelclaw` 调用关系；新增 §8.4.1a「主机档位：Pi 5 vs Windows（历史）」对比表与切换命令；§7 数据模型列出三份 devices 配置文件；§5 模块文档表加入三份 devices 配置文件 + 项目根 `pixelclaw` launcher + `memory/`（取代旧的 `pixelclaw/memory/`）
+- `docs/GETTING_STARTED.md` — 修正第 3 节连接步骤：原占位 IP `172.19.0.1:45373` → 真实 `10.32.7.125:42527`；新增「每次重开无线调试必须重配」说明；新增 `./pixelclaw --service` 后台启动示例；`adb pair` / `adb connect` 命令示例同步更新；新增 §3.1「主机环境与配置档位」说明 Pi 5 是当前默认 + Windows 是历史档；新增 §3.10「切换到 Windows 主机档（历史 / 默认值）」记录 `cp` 切换命令和 `pairing_port: null` 的回退行为
+- `README.md` — 同步三处过期引用：§2 Configure Your Device / §Configuration 中的 `config/devices.json` 示例（`172.19.0.1:45373:444047` → `10.32.7.125:42527:988963`，并新增 `pairing_port: 36111`）；§2 加入 Pi 5 vs Windows 双主机档对比表 + `cp` 切换示例；§4 Connect and Test 的 `adb pair` / `adb connect` 命令换成实际值；§Monitor Connection 的 `python -m pixelclaw` 全部替换为 `./pixelclaw` launcher 形式；§Device Setup 第 3 步拆分为「ADB 端口 vs 配对端口」两段；§Testing 删去 `scripts/test_connection.py --full`（该脚本存在相对导入 bug，被 `./pixelclaw --connect --test` 取代）；项目结构图加入 `pixelclaw` launcher 和 `memory/` 包；测试期望数 162 → 246 passed（5 failed / 2 collection error 均为既有遗留）
+
 ### Added（新增）
 - `api/routers/debug.py` — 新增跨环境日志接收端点 `POST /api/log`，接收 AutoX.js 等外部脚本的错误日志并写入 `logs/autox_debug/`；同时支持 `GET /api/log/files` 列出日志文件、`GET /api/log/files/{filename}` 读取指定日志内容
 - `utils/autox_logger.py` — 新增 `AutoXLogger` 日志客户端，供场景脚本统一接入日志系统：自动发送日志到 `/api/log`，API 失败时回退写入本地文件，支持 `exc_info=True` 自动捕获堆栈

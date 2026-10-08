@@ -96,9 +96,13 @@ flowchart LR
 | `config/app_knowledge/` | 各 App 的 AppAgent 格式知识库 JSON |
 | `tasks/` | 通用任务脚本（微信、测试等） |
 | `scripts/` | 通用环境安装与连接测试脚本 |
+| `config/devices.json` | 设备配置（当前默认：Raspberry Pi 5 主机档） |
+| `config/devices.raspberrypi.example.json` | Pi 5 主机档参考快照（用于跨档位切换） |
+| `config/devices.windows.example.json` | Windows 主机档参考快照（历史/默认占位，2026-10 起已不维护） |
 | `config/` | 设备与系统配置文件 |
 | `docs/` | 通用项目文档 |
-| `pixelclaw/memory/` | 三层记忆系统（capture → store → recall） |
+| `memory/` | 三层记忆系统（capture → store → recall） |
+| `pixelclaw` (项目根 launcher) | `os.chdir(parent)` 后调 `python -m pixelclaw <args>`，从任意目录运行 |
 | `tests/` | 单元测试（pytest，193 tests，无真机依赖） |
 
 ### WeCom 数据库 Schema（`scenarios/wecom/output/wecom_messages.db`）
@@ -331,13 +335,13 @@ flowchart TD
 
 ## 7. 数据模型
 
-- 设备配置：`config/devices.json`
+- 设备配置：`config/devices.json`（当前 Pi 5 主机档）；备查：`config/devices.raspberrypi.example.json` / `config/devices.windows.example.json`
 - 系统设置：`config/settings.yaml`
 - 记忆存储：见 `docs/MEMORY_SYSTEM_README.md`
 
 ## 8. 核心流程
 
-CLI 入口：`python -m pixelclaw`
+CLI 入口：`./pixelclaw <args>`（项目根目录下的 launcher 脚本）或从项目根父目录执行 `python -m pixelclaw <args>`
 
 子命令：
 - `--connect`：连接设备
@@ -345,8 +349,98 @@ CLI 入口：`python -m pixelclaw`
 - `--task <name>`：执行指定任务
 - `--interactive`：交互模式
 - `--service`：守护进程模式
+- `--service --status`：查看守护进程状态
+- `--service --stop`：停止守护进程
 
 完整使用指南：[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)
+
+### 8.4 设备连接与 Keepalive 服务
+
+#### 8.4.1 无线 ADB 三端口关系
+
+Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三者不能混用**：
+
+| 角色 | 字段（`config/devices.json`） | 生命周期 | 示例（Pi 5 实测） |
+|---|---|---|---|
+| 配对地址 | `ip` + `pairing_port` | 每次「使用配对码配对」对话框刷新即变（~30s 过期） | `10.32.7.125:36111` |
+| 配对码 | `pairing_code` | 同上 | `988963` |
+| 接入地址 | `ip` + `port` | 配对成功后手机端新开的 ADB 监听端口；只要无线调试保持开启就稳定 | `10.32.7.125:42527` |
+
+工作流：
+1. 手机「设置 → 系统 → 开发者选项 → 无线调试 → 使用配对码配对」会显示「IP address & Port」和「Pairing code」
+2. 把 IP/配对端口/配对码写入 `config/devices.json`
+3. `adb pair <ip>:<pairing_port> <pairing_code>` — 手机弹出「允许 USB 调试」需点同意
+4. `adb connect <ip>:<port>` — 此时「接入端口」才真正暴露（往往是 5 位随机端口，与配对端口不同）
+
+> ⚠️ 真实 IP 取决于主机和手机当前所在的 WiFi 子网，**不是固定值**。本次实测 Pi 在 `10.32.7.0/24`，手机 `10.32.7.125`。换网或换手机时必须重新确认。
+
+#### 8.4.1a 主机档位：Pi 5 vs Windows（历史）
+
+`config/devices.json` 当前是 **Raspberry Pi 5** 主机档（2026-10 起的实际运行环境）；**Windows** 主机档已不再维护，仅在 `config/devices.windows.example.json` 保留为参考。两套值差异如下：
+
+| 主机 | 档位文件 | `ip` | `port` | `pairing_port` | `pairing_code` |
+|---|---|---|---|---|---|
+| **Raspberry Pi 5**（当前默认） | `config/devices.json` | `10.32.7.125` | `42527` | `36111` | `988963` |
+| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | `null`（回退 `port`） | `444047` |
+
+切换主机档：
+```bash
+# 切到 Windows 档
+cp config/devices.json config/devices.raspberrypi.json.bak
+cp config/devices.windows.example.json config/devices.json
+# 改 IP / 配对码（Windows 上 Pi 的值会变；反之亦然）
+
+# 切回 Pi 档
+cp config/devices.json config/devices.windows.json.bak
+cp config/devices.raspberrypi.example.json config/devices.json
+# 改 IP / 配对码
+```
+
+**`pairing_port: null` 的回退行为**：Windows 档的历史值 `pairing_port=null`，`DeviceConnector.pair()` 内部检测到缺失时回退使用 `port`（即 `45373`）。这是 2026-10 之前的行为，**未经 Android 11+ 实测**——若配对失败，先临时把 `pairing_port` 写成手机屏幕显示的端口。
+
+#### 8.4.2 Keepalive 服务架构
+
+`./pixelclaw --service` 启动后由三层组成：
+
+```
+┌──────────────────────────────────────────────────┐
+│ KeepaliveService  (services/keepalive_service.py) │
+│   • PID: /tmp/pixelclaw_keepalive.pid             │
+│   • 日志: logs/keepalive.log                      │
+│   • 状态: logs/keepalive_status.json              │
+│   • 周期: 30s 健康检查；每 10 次保存状态           │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│ ConnectionMonitor  (monitors/connection_monitor.py)│
+│   • 健康检查: is_device_connected() + adb shell   │
+│   • 自动重连: 指数退避，max_reconnect_attempts=10 │
+└──────────────┬───────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────────────────┐
+│ ADBManager  (monitors/adb_manager.py)            │
+│   • adb pair / adb connect 封装                    │
+│   • shell / screenshot / input 等原子操作          │
+└──────────────────────────────────────────────────┘
+```
+
+异常路径：
+- 健康检查失败 → 记录 reconnect 计数 → 调 `monitor.connect()` 重连 → 成功/失败分别记 INFO/ERROR
+- 收到 SIGTERM/SIGINT → 写 PID 清理 → 打印 uptime/health_checks/reconnections 总览
+
+#### 8.4.3 CLI 入口与 launcher 脚本
+
+`python -m pixelclaw` 的运行条件：CWD 必须是 `pixelclaw/` 的父目录（即 `/home/averypi/Projects/`），因为 Python 沿 `sys.path` 找名为 `pixelclaw` 的子目录。**从项目根 `/home/averypi/Projects/pixelclaw/` 直接 `python -m pixelclaw` 会失败**（找不到 `pixelclaw/` 子目录）。
+
+解决方案：项目根的 `pixelclaw` launcher 脚本内部 `os.chdir(parent)` 后再调 `python -m pixelclaw`，让用户无论在哪个目录都能用 `./pixelclaw --xxx` 形式调用。
+
+`__main__.py` 的两个内部优化支撑 `--service` / `--monitor` 不需要重型依赖：
+1. 文件首部把项目根 + 父目录 push 进 `sys.path`，兼容 `python __main__.py` 直跑
+2. `VisionAgent` / `FallbackManager` 改为在 `cmd_task` / `cmd_interactive` 内 lazy import（这两个会触发 `cv2` / `torch` import）
+
+历史包袱：2026-10 之前 `__main__.py` 顶层 `from .core.vision_agent import VisionAgent`，启动 `--service` 也会被迫加载 cv2；同期项目根还有一个空的 inner `pixelclaw/` 命名空间包（仅 `memory/` 有真实代码），遮蔽外层 `pixelclaw` package，导致 `python -m pixelclaw` 报 `No module named pixelclaw.__main__`。本次修复已把 inner 目录删除、`memory/` 移至根。
 
 ## 9. 依赖图谱
 

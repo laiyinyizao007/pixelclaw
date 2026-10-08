@@ -1,14 +1,16 @@
 {
+  "_comment": "Example device profile for Windows host. Copy to devices.json to activate. The Raspberry Pi setup is the current default in devices.json — see devices.raspberrypi.example.json for the values used on Pi.",
+  "_use_case": "Windows host debugging Pixel over wireless ADB (historical / pre-Pi setup)",
   "devices": [
     {
       "id": "pixel8a_001",
-      "name": "Pixel 8a",
+      "name": "Pixel 8a (Windows)",
       "type": "android",
       "model": "Pixel 8a",
-      "ip": "10.32.7.125",
-      "port": 42527,
-      "pairing_code": "988963",
-      "pairing_port": 36111,
+      "ip": "172.19.0.1",
+      "port": 45373,
+      "pairing_code": "444047",
+      "pairing_port": null,
       "status": "disconnected",
       "capabilities": {
         "wireless_adb": true,

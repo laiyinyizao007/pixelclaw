@@ -54,19 +54,14 @@ bash scripts/setup.sh
 
 ### 2. Configure Your Device
 
-Edit `config/devices.json` with your Pixel 8a details:
+The committed `config/devices.json` holds the **Raspberry Pi 5** profile (current default host). For the **Windows** host profile, see [`config/devices.windows.example.json`](config/devices.windows.example.json) — copy it over `devices.json` to switch.
 
-```json
-{
-  "devices": [{
-    "id": "pixel8a_001",
-    "name": "Pixel 8a",
-    "ip": "172.19.0.1",
-    "port": 45373,
-    "pairing_code": "444047"
-  }]
-}
-```
+| Host | `ip` | `port` (ADB) | `pairing_port` | `pairing_code` | Notes |
+|---|---|---|---|---|---|
+| **Raspberry Pi 5** (default in `devices.json`) | `10.32.7.125` | `42527` | `36111` | `988963` | Snapshot from 2026-10; re-check on every session — pairing port/code change every time wireless debugging is re-enabled |
+| **Windows** (historical, in `devices.windows.example.json`) | `172.19.0.1` | `45373` | — (not set) | `444047` | Pre-Pi setup; `pairing_port` falls back to `port` per `DeviceConnector.pair()` |
+
+To swap hosts: `cp config/devices.<host>.example.json config/devices.json` and edit the IP / pairing code from your phone's current "Wireless debugging" screen. See [docs/GETTING_STARTED.md §3](docs/GETTING_STARTED.md) for the three-port lifecycle.
 
 ### 3. Configure API Keys
 
@@ -90,13 +85,16 @@ Edit `config/api_keys.json` with your Step-1V API key:
 pip install -r requirements.txt
 
 # Connect device (Pixel 8a wireless debugging)
-adb pair <ip:pairing-port> <pairing-code>
-adb connect <ip:port>
-adb devices -l  # Verify: should show "device"
+#   1. On the phone: Settings → System → Developer Options → Wireless debugging
+#      → "Pair device with pairing code" → note the IP:port and 6-digit code
+#   2. Run adb pair / adb connect with those values:
+adb pair 10.32.7.125:36111 988963    # pairing port + code from phone
+adb connect 10.32.7.125:42527         # ADB port (re-check after pairing)
+adb devices -l                        # Verify: should show "device"
 
 # Run tests (no device or GPU required)
 python -m pytest tests/ -v --import-mode=importlib
-# Expected: 162 passed
+# Expected: 246 passed, 5 failed (boss skill regressions — pre-existing), 2 collection errors (missing fastapi — pre-existing)
 ```
 
 > **Raspberry Pi users**: `bash scripts/setup.sh` installs ADB and generates an `activate` script (`source ./activate`).
@@ -147,8 +145,9 @@ Level 4: Human Intervention
 
 ```
 pixelclaw/
+├── pixelclaw                 # Launcher script (run `./pixelclaw --service`, etc.)
 ├── config/
-│   ├── devices.json          # Device configuration
+│   ├── devices.json          # Device configuration (IP / pairing port / ADB port)
 │   ├── api_keys.json         # API keys (gitignored)
 │   ├── settings.yaml         # Global settings
 │   ├── app_knowledge/        # Per-app UI element knowledge bases (JSON)
@@ -171,18 +170,18 @@ pixelclaw/
 │   ├── connection_monitor.py # Health monitoring
 │   ├── adb_manager.py        # ADB operations
 │   └── shizuku_manager.py    # Shizuku integration
+├── memory/                   # Cross-session agent memory
 ├── skills/
 │   ├── boss/                 # Boss直聘 UIAutomator-based skill
 │   └── xhs/                  # XHS (Little Red Book) skill
 ├── scenarios/
 │   ├── boss/tasks/           # Boss job search & apply scripts
 │   └── xhs/tasks/            # XHS automation scripts
-├── tests/                    # Unit tests (162 tests, no device/GPU needed)
+├── tests/                    # Unit tests (246 passing, 5 pre-existing failures, 2 collection errors)
 ├── services/
 │   └── keepalive_service.py  # Background service
 ├── scripts/
 │   ├── setup.sh              # Raspberry Pi installation script
-│   ├── test_connection.py    # Connection testing
 │   └── install_minicpm.py    # MiniCPM-V installer
 └── logs/                     # Log files
 ```
@@ -191,7 +190,7 @@ pixelclaw/
 
 ### Device Configuration
 
-`config/devices.json`:
+`config/devices.json` (Raspberry Pi 5 default — see [`config/devices.windows.example.json`](config/devices.windows.example.json) for the Windows profile):
 
 ```json
 {
@@ -200,9 +199,10 @@ pixelclaw/
     "name": "Pixel 8a",
     "type": "android",
     "model": "Pixel 8a",
-    "ip": "172.19.0.1",
-    "port": 45373,
-    "pairing_code": "444047",
+    "ip": "10.32.7.125",
+    "port": 42527,
+    "pairing_code": "988963",
+    "pairing_port": 36111,
     "screen": {
       "width": 1080,
       "height": 2400,
@@ -211,6 +211,18 @@ pixelclaw/
   }],
   "active_device": "pixel8a_001"
 }
+```
+
+> The four network-related fields change when wireless debugging is toggled off/on. See [docs/GETTING_STARTED.md §3.2](docs/GETTING_STARTED.md) for the lifecycle of each.
+
+#### Switching between Pi and Windows profiles
+
+```bash
+# Switch to Windows profile
+cp config/devices.windows.example.json config/devices.json
+# Switch back to Pi profile
+cp config/devices.raspberrypi.example.json config/devices.json
+# After switching, edit the IP / pairing code to match your phone's current screen
 ```
 
 ### Strategy Configuration
@@ -274,18 +286,20 @@ asyncio.run(main())
 ### Monitor Connection
 
 ```bash
-# Start monitoring with live status panel
-python -m pixelclaw --monitor --panel
+# Use the project-root launcher (recommended — no need to cd into the parent):
+./pixelclaw --monitor --panel
 
 # Run background service
-python -m pixelclaw --service
+./pixelclaw --service
 
 # Check service status
-python -m pixelclaw --service --status
+./pixelclaw --service --status
 
 # Stop service
-python -m pixelclaw --service --stop
+./pixelclaw --service --stop
 ```
+
+> The launcher wraps `python -m pixelclaw` after `cd`-ing into the parent of the project root. From there you can also call `python -m pixelclaw <args>` directly. PID file: `/tmp/pixelclaw_keepalive.pid`. Log: `logs/keepalive.log`.
 
 ## Optional Components
 
@@ -318,8 +332,10 @@ pip install paddlepaddle paddleocr
    - Tap "Pair code with QR code" or "Pair with pairing code"
 
 3. **Note the IP and Port**:
-   - IP and port will be displayed (e.g., `172.19.0.1:45373`)
-   - Note the pairing code (e.g., `444047`)
+   - The "IP address & Port" shown on the wireless-debugging home screen is the ADB port (after pairing). Tap "Pair device with pairing code" for the pairing port + 6-digit code.
+   - Example (Raspberry Pi 5): home shows `10.32.7.125:42527`, pairing dialog shows `10.32.7.125:36111` + code `988963`
+   - Example (Windows, historical): home shows `172.19.0.1:45373`, pairing code `444047` (no separate pairing port — see `config/devices.windows.example.json`)
+   - The IP depends on your WiFi subnet; values change whenever wireless debugging is toggled off/on
 
 4. **Update Configuration**:
    - Add IP, port, and pairing code to `config/devices.json`
@@ -336,15 +352,13 @@ pip install paddlepaddle paddleocr
 
 ```bash
 # Run all tests
-pytest tests/
+python -m pytest tests/ -v --import-mode=importlib
 
-# Run connection test
-python scripts/test_connection.py --full
-
-# Test specific components
-python scripts/test_connection.py --pair
-python scripts/test_connection.py --connect
-python scripts/test_connection.py --monitor
+# Connection checks via the launcher (replaces scripts/test_connection.py,
+# which has a known relative-import bug — see CHANGELOG "Unreleased"):
+./pixelclaw --connect --test       # connect + run the 6-item connection suite
+./pixelclaw --service --status     # query the running keepalive service
+./pixelclaw --monitor --panel      # live status panel
 ```
 
 ## Troubleshooting
@@ -358,11 +372,11 @@ adb version
 # List connected devices
 adb devices -l
 
-# Manual connection
-adb connect 172.19.0.1:45373
+# Manual connection (use YOUR phone's current IP / port / code)
+adb connect 10.32.7.125:42527
 
-# Pair device
-adb pair 172.19.0.1:45373 444047
+# Pair device (pairing port + code from the "Pair device with pairing code" dialog)
+adb pair 10.32.7.125:36111 988963
 ```
 
 ### Common Problems

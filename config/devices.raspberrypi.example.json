@@ -1,8 +1,10 @@
 {
+  "_comment": "Reference snapshot of the Raspberry Pi device profile. The active values live in devices.json — re-check IP / port / pairing code from the phone before each debugging session (see docs/GETTING_STARTED.md §3.2).",
+  "_use_case": "Raspberry Pi 5 host (current default in devices.json)",
   "devices": [
     {
       "id": "pixel8a_001",
-      "name": "Pixel 8a",
+      "name": "Pixel 8a (Raspberry Pi 5)",
       "type": "android",
       "model": "Pixel 8a",
       "ip": "10.32.7.125",
