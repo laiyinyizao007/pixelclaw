@@ -187,6 +187,62 @@ cp config/devices.windows.example.json config/devices.json
 
 **配对码在 Windows 档下**：原 `pairing_port` 字段为 `null`，`DeviceConnector.pair()` 会回退使用 `port`（即 `45373`）。这个回退是 2026-10 之前的行为，是否仍能在 Android 11+ 上配对成功**未经实测**——可能需要按 Pi 档那样手动补一个 `pairing_port`。如果配对一直失败，先临时把 `pairing_port` 写成手机屏幕显示的端口。
 
+### 3.11 Tailscale 远程控制（跨子网 / 跨公网）
+
+§3.2–§3.6 描述的无线 ADB 流程要求 Pi 与 Pixel 在**同一 WiFi 子网**。当两者不在同一网络（甚至跨公网）时，通过 Tailscale + Pixel 上的 Linux 虚拟机可建立加密隧道，ADB over WireGuard 远程控制物理设备。
+
+**拓扑**：
+
+```
+Pi 主机 (baverypi, 100.86.255.34)
+       │
+       │ WireGuard / DERP 中继
+       ▼
+Pixel 上的 Linux 虚拟机 (Termux + proot, localhost-0, 100.108.209.0)
+       │
+       │ adb 5555
+       ▼
+Pixel 8a 物理 Android 设备
+```
+
+**前提**：
+- Pixel 上已安装 **Termux** + `proot-distro`（Debian/Ubuntu）
+- 虚拟机内已安装 Tailscale 并登录到与 Pi 主机相同的 tailnet（同一账号 / MagicDNS 后缀）
+- Android 系统层 ADB 监听 `0.0.0.0:5555`（开发者选项 → 无线调试 → 「IP 地址 & 端口」）
+
+**连接命令**：
+
+```bash
+# 在 Pi 主机执行 —— 不依赖同一 WiFi
+# 1. 查 Pixel 节点 IP
+tailscale status
+# 找到类似: localhost-0  100.108.209.0  linux  ...
+
+# 2. adb connect tailnet IP
+adb connect 100.108.209.0:5555
+
+# 3. 验证
+adb devices -l
+# 预期: 100.108.209.0:5555    device product:akita model:Pixel_8a ...
+```
+
+**实测验证（2026-10-09）**：
+- 主机：Pi 5（`baverypi`，`100.86.255.34`）
+- Pixel 节点：`localhost-0`（`100.108.209.0`）
+- 操作：`am start -n com.tencent.mm/com.tencent.mm.ui.LauncherUI` → `exec-out screencap -p > wechat.png`
+- 结果：截图成功（1080×2400 PNG，157 KB），内容为微信主界面，时间戳与主机一致
+
+**适用场景**：
+- Pi 与 Pixel 不在同一 WiFi（公司网 + 家庭网）
+- 旅行 / 远程调试（公网下走 DERP 中继，仍免自建中转）
+- 多设备跨地域集中调度
+
+**与 §3.2–§3.6 关系**：Tailscale 链路是「同一 WiFi 无线 ADB」的**超集**——两者可同时存在，按场景切换：
+- 同一 WiFi 优先走内网 IP（如 `10.32.7.204.127:42527`），延迟 1–2 ms
+- 不在同一网络走 tailnet IP（如 `100.108.209.0:5555`），跨子网 5–10 ms / 跨公网 50–150 ms
+
+详见 `PROJECTWIKI.md` §8.4.4（含 Mermaid 拓扑图）。
+
 ---
 
 ## 4. 验证项目正常运行
