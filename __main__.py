@@ -13,6 +13,7 @@ Usage:
 import argparse
 import asyncio
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -20,11 +21,24 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
 
+# Ensure the directory containing this package is on sys.path so this file
+# can be invoked as either:
+#   - `python -m pixelclaw`        (from the parent of the project root)
+#   - `python __main__.py`         (from inside the project root)
+_PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+_PARENT = os.path.dirname(_PROJECT_ROOT)
+for _p in (_PROJECT_ROOT, _PARENT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
 from .core.device_connector import DeviceConnector
-from .core.vision_agent import VisionAgent
 from .monitors.connection_monitor import ConnectionMonitor
 from .services.keepalive_service import KeepaliveService
-from .strategies.fallback_manager import FallbackManager
+
+# Lazy-loaded inside cmd_task / cmd_interactive to avoid requiring cv2/torch
+# just to start --service or --monitor.
+# from .core.vision_agent import VisionAgent
+# from .strategies.fallback_manager import FallbackManager
 
 
 console = Console()
@@ -155,6 +169,9 @@ async def cmd_monitor(args):
 
 async def cmd_task(args):
     """Execute a task command."""
+    from .strategies.fallback_manager import FallbackManager
+    from .core.vision_agent import VisionAgent
+
     config = load_config()
 
     # Initialize components
@@ -210,6 +227,9 @@ async def cmd_task(args):
 
 async def cmd_interactive(args):
     """Interactive mode command."""
+    from .strategies.fallback_manager import FallbackManager
+    from .core.vision_agent import VisionAgent
+
     print_banner()
 
     config = load_config()

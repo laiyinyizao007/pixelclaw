@@ -55,43 +55,110 @@ pip install -r requirements.txt
 
 ## 3. 连接 Pixel 8a
 
-### 3.1 开启无线调试
+### 3.1 主机环境与配置档位
+
+`config/devices.json` 当前默认是 **Raspberry Pi 5** 主机档（2026-10 起的实际运行环境）。如要在 **Windows** 主机上跑，参见 §3.10「切换到 Windows 主机档」。
+
+| 主机 | 档位文件 | `ip` | `port`（ADB） | `pairing_port` | `pairing_code` | 备注 |
+|---|---|---|---|---|---|---|
+| **Raspberry Pi 5**（默认） | `config/devices.json` | `10.32.7.125` | `42527` | `36111` | `988963` | 当前值；每次重开无线调试都要重读手机屏幕 |
+| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | —（沿用 `port`） | `444047` | 切换到 Pi 之前的旧值；`pairing_port` 字段缺失时 `DeviceConnector.pair()` 会回退用 `port` |
+
+### 3.2 开启无线调试（Raspberry Pi 5 主机）
 
 1. 设置 → 关于手机 → 连续点击"版本号"7 次，开启开发者选项
 2. 设置 → 系统 → 开发者选项 → 开启"无线调试"
-3. 进入"无线调试"页面，记录屏幕上显示的 **IP 地址和端口**（如 `172.19.0.1:45373`）
+3. 进入"无线调试"页面，记录屏幕上显示的 **IP 地址和端口**（如 `10.32.7.125:xxxxx`）
 
-### 3.2 ADB 配对（首次）
+> ⚠️ **IP 地址取决于手机和 Pi 当前所在的 WiFi 子网**，不是固定值。本次实测 Pi 在 `10.32.7.0/24`，手机 `10.32.7.125`。换网或换手机时必须重新确认。
 
-在"无线调试"页面点击"使用配对码配对设备"，记录配对码：
+### 3.3 同步配置到 `config/devices.json`（Pi 档）
 
-```bash
-adb pair 172.19.0.1:<配对端口> <配对码>
-# 示例：adb pair 172.19.0.1:37589 444047
+把屏幕上的值写进配置：
+
+```json
+{
+  "ip": "10.32.7.125",
+  "port": 42527,
+  "pairing_code": "988963",
+  "pairing_port": 36111
+}
 ```
 
-### 3.3 ADB 连接
+| 字段 | 来源 |
+|---|---|
+| `ip` | 手机"无线调试"主页 IP 地址 |
+| `pairing_port` | 点击"使用配对码配对"后弹窗的端口（与主页端口不同，~30s 过期） |
+| `pairing_code` | 同上弹窗的 6 位配对码 |
+| `port` | **配对成功后**手机主页会刷新出新的"IP 地址 & 端口"，那是 ADB 接入端口 |
+
+### 3.4 ADB 配对（首次 / 重连）
+
+在手机"无线调试"页面点"使用配对码配对设备"，**保持弹窗不退出**，然后：
 
 ```bash
-adb connect 172.19.0.1:45373
+adb pair 10.32.7.125:<配对端口> <配对码>
+# 示例：adb pair 10.32.7.125:36111 988963
 ```
 
-### 3.4 验证连接
+成功输出：`Successfully paired to 10.32.7.125:36111 [guid=...]`
+
+### 3.5 ADB 连接
+
+配对成功后回到"无线调试"主页，会看到新刷出的"IP 地址 & 端口"（如 `10.32.7.125:42527`），用它：
+
+```bash
+adb connect 10.32.7.125:42527
+```
+
+### 3.6 验证连接
 
 ```bash
 adb devices -l
 ```
 
-预期输出（设备序列号因设备而异）：
+预期输出：
 
 ```
 List of devices attached
-42231JEKB04971         device product:husky model:Pixel_8a ...
+10.32.7.125:42527      device product:akita model:Pixel_8a ...
 ```
 
-看到 `device`（而非 `unauthorized`）即表示连接成功。
+看到 `device`（而非 `offline` / `unauthorized`）即表示连接成功。
 
-### 3.5 Shizuku（可选，提升权限）
+### 3.7 启动 Keepalive 后台服务（可选）
+
+`./pixelclaw` 是项目根的 launcher 脚本，让 `python -m pixelclaw` 不必切目录也能用：
+
+```bash
+# 启动后台守护进程
+./pixelclaw --service
+
+# 查看状态
+./pixelclaw --service --status
+
+# 查看日志
+tail -f logs/keepalive.log
+
+# 停止
+./pixelclaw --service --stop
+```
+
+或从项目根父目录直接：
+
+```bash
+cd /home/averypi/Projects
+python -m pixelclaw --service
+```
+
+PID 文件：`/tmp/pixelclaw_keepalive.pid`
+状态文件：`logs/keepalive_status.json`（每 10 次健康检查刷新）
+
+### 3.8 重新配对的时机
+
+只要手机端无线调试**保持开启**，连接会一直存活。**关闭再打开无线调试**则必须重走 §3.4 + §3.5，因为配对端口和配对码会重新生成。
+
+### 3.9 Shizuku（可选，提升权限）
 
 Shizuku 允许在不 root 的情况下通过 ADB shell 执行高权限操作：
 
@@ -101,6 +168,24 @@ Shizuku 允许在不 root 的情况下通过 ADB shell 执行高权限操作：
    adb shell sh /sdcard/Android/data/moe.shizuku.privileged.api/start.sh
    ```
 3. 在手机上打开 Shizuku 应用，点击"通过无线调试启动"
+
+### 3.10 切换到 Windows 主机档（历史 / 默认值）
+
+> ⚠️ 这套档位已不再维护（2026-10 起项目默认在 Pi 上跑）。仅当你需要在 Windows 主机上临时调试时参考。
+
+`config/devices.windows.example.json` 是切换前的占位默认值（`ip: 172.19.0.1`，`port: 45373`，`pairing_code: 444047`）。要把项目跑回 Windows 主机：
+
+```bash
+# 备份当前 Pi 档
+cp config/devices.json config/devices.raspberrypi.json.bak
+
+# 用 Windows 档覆盖
+cp config/devices.windows.example.json config/devices.json
+
+# 然后按需改 IP / 配对码（Windows 上 Pi 的值会变；反之亦然）
+```
+
+**配对码在 Windows 档下**：原 `pairing_port` 字段为 `null`，`DeviceConnector.pair()` 会回退使用 `port`（即 `45373`）。这个回退是 2026-10 之前的行为，是否仍能在 Android 11+ 上配对成功**未经实测**——可能需要按 Pi 档那样手动补一个 `pairing_port`。如果配对一直失败，先临时把 `pairing_port` 写成手机屏幕显示的端口。
 
 ---
 

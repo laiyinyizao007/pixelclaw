@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""PixelClaw launcher — invokes `python -m pixelclaw` from the parent dir.
+
+Usage:
+    ./pixelclaw --service
+    ./pixelclaw --monitor
+    ./pixelclaw --task "Open Settings"
+
+This wrapper exists because `python -m pixelclaw` requires the CWD to be the
+parent of the `pixelclaw/` package (the project root's parent). Running it
+from inside the project root would fail with "No module named pixelclaw"
+because the inner `pixelclaw/` directory does not exist there.
+"""
+import os
+import subprocess
+import sys
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_PARENT = os.path.dirname(_HERE)
+os.chdir(_PARENT)
+sys.exit(subprocess.call([sys.executable, "-m", "pixelclaw", *sys.argv[1:]]))

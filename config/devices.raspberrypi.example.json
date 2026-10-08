@@ -1,0 +1,36 @@
+{
+  "_comment": "Reference snapshot of the Raspberry Pi device profile. The active values live in devices.json — re-check IP / port / pairing code from the phone before each debugging session (see docs/GETTING_STARTED.md §3.2).",
+  "_use_case": "Raspberry Pi 5 host (current default in devices.json)",
+  "devices": [
+    {
+      "id": "pixel8a_001",
+      "name": "Pixel 8a (Raspberry Pi 5)",
+      "type": "android",
+      "model": "Pixel 8a",
+      "ip": "10.32.7.125",
+      "port": 42527,
+      "pairing_code": "988963",
+      "pairing_port": 36111,
+      "status": "disconnected",
+      "capabilities": {
+        "wireless_adb": true,
+        "shizuku": true,
+        "root": false,
+        "screen_record": true,
+        "shell_access": true
+      },
+      "screen": {
+        "width": 1080,
+        "height": 2400,
+        "dpi": 430
+      },
+      "connection": {
+        "timeout": 30,
+        "reconnect_interval": 30,
+        "max_reconnect_attempts": 10
+      }
+    }
+  ],
+  "active_device": "pixel8a_001",
+  "default_device": "pixel8a_001"
+}
