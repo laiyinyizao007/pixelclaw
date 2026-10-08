@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from api.routers import device, scenarios, boss, command
+from api.routers import device, scenarios, boss, command, debug
 from api.services import process_manager as pm
 
 app = FastAPI(title="PixelClaw API", version="0.1.0")
@@ -55,6 +55,7 @@ app.include_router(device.router)
 app.include_router(scenarios.router)
 app.include_router(boss.router)
 app.include_router(command.router)
+app.include_router(debug.router)
 
 
 # --- WebSocket: 实时任务日志 ---

@@ -310,6 +310,25 @@ flowchart TD
 - **出参**：JSON 响应
 - 详见 `docs/skill_usage.md`
 
+### 调试 API（跨环境日志）
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/log` | POST | 接收外部日志并写入 `logs/autox_debug/` |
+| `/api/log/files` | GET | 列出可用日志文件 |
+| `/api/log/files/{filename}` | GET | 读取指定日志文件内容 |
+
+**POST /api/log** 入参示例：
+```json
+{
+  "level": "ERROR",
+  "message": "操作失败",
+  "source": "autox",
+  "stack_trace": "Error: test\n at test.js:10",
+  "context": {"device": "Pixel 8a"}
+}
+```
+
 ## 7. 数据模型
 
 - 设备配置：`config/devices.json`

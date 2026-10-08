@@ -1,0 +1,255 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[prompt] 加载 resume_extract (mtime=1789562303)
+ 完成
+
+🤖 单阶段循环（关键词：产品经理，阈值：6，标准模式，最多发送 5 条）
+21:27:57 INFO    [1/3] 启动 Boss直聘…
+21:28:15 INFO    [2/3] 搜索职位：「产品经理」…
+21:28:39 INFO    [3/3] 采集职位列表…
+21:29:56 INFO      ✓ 采集到 60 条职位卡片
+21:29:56 INFO      [1/60] → 产品经理（晶泰科技XtalPi）
+[prompt] 加载 match_score (mtime=1789564469)
+21:30:21 ERROR     评分失败：产品经理 — name 'logger' is not defined
+21:30:28 INFO      [2/60] → AI产品经理（上海百型智能科技）
+21:30:34 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海百型智能科技，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:30:40 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海百型智能科技，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:30:46 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海百型智能科技，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:30:54 INFO      [3/60] → 产品经理（A93738）（分叉智能科技）
+21:31:00 WARNING   详情页不匹配（期望 title=产品经理（A93738）/company=分叉智能科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:31:06 WARNING   详情页不匹配（期望 title=产品经理（A93738）/company=分叉智能科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:31:12 WARNING   详情页不匹配（期望 title=产品经理（A93738）/company=分叉智能科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:31:13 INFO      [4/60] 跳过（已打过招呼）：高级ai产品经理
+21:31:13 INFO      [5/60] 跳过（已打过招呼）：高级ai产品经理
+21:31:20 INFO      [6/60] → 产品经理（GTM)（矩阵起源）
+21:31:26 WARNING   详情页不匹配（期望 title=产品经理（GTM)/company=矩阵起源，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:31:32 WARNING   详情页不匹配（期望 title=产品经理（GTM)/company=矩阵起源，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:31:38 WARNING   详情页不匹配（期望 title=产品经理（GTM)/company=矩阵起源，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:31:47 INFO      [7/60] → app产品经理（优思美地）
+21:31:52 WARNING   详情页不匹配（期望 title=app产品经理/company=优思美地，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:31:58 WARNING   详情页不匹配（期望 title=app产品经理/company=优思美地，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:32:05 WARNING   详情页不匹配（期望 title=app产品经理/company=优思美地，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:32:13 INFO      [8/60] → 产品经理（营销类产品）（爱创科技）
+21:32:18 WARNING   详情页不匹配（期望 title=产品经理（营销类产品）/company=爱创科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:32:25 WARNING   详情页不匹配（期望 title=产品经理（营销类产品）/company=爱创科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:32:31 WARNING   详情页不匹配（期望 title=产品经理（营销类产品）/company=爱创科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:32:39 INFO      [9/60] → 产品经理（营销类产品）（爱创科技）
+21:33:04 ERROR     评分失败：产品经理（营销类产品） — name 'logger' is not defined
+21:33:11 INFO      [10/60] → AI产品经理（业务提效方向）（上美股份）
+21:33:17 WARNING   详情页不匹配（期望 title=AI产品经理（业务提效方向）/company=上美股份，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:33:23 WARNING   详情页不匹配（期望 title=AI产品经理（业务提效方向）/company=上美股份，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:33:29 WARNING   详情页不匹配（期望 title=AI产品经理（业务提效方向）/company=上美股份，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:33:37 INFO      [11/60] → AI产品经理（基煜基金）
+21:33:42 WARNING   详情页不匹配（期望 title=AI产品经理/company=基煜基金，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:33:49 WARNING   详情页不匹配（期望 title=AI产品经理/company=基煜基金，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:33:55 WARNING   详情页不匹配（期望 title=AI产品经理/company=基煜基金，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:34:03 INFO      [12/60] → 平台产品经理(A249058)（可普朗智）
+21:34:09 WARNING   详情页不匹配（期望 title=平台产品经理(A249058)/company=可普朗智，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:34:15 WARNING   详情页不匹配（期望 title=平台产品经理(A249058)/company=可普朗智，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:34:21 WARNING   详情页不匹配（期望 title=平台产品经理(A249058)/company=可普朗智，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:34:29 INFO      [13/60] → 平台产品经理(A249058)（可普朗智）
+21:34:56 ERROR     评分失败：平台产品经理(A249058) — name 'logger' is not defined
+21:34:56 INFO      [14/60] 跳过（已打过招呼）：AI产品经理
+21:35:03 INFO      [15/60] → B端Saas产品经理（CEM方向）（华客科技）
+21:35:08 WARNING   详情页不匹配（期望 title=B端Saas产品经理（CEM方向）/company=华客科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:35:14 WARNING   详情页不匹配（期望 title=B端Saas产品经理（CEM方向）/company=华客科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:35:22 WARNING   详情页不匹配（期望 title=B端Saas产品经理（CEM方向）/company=华客科技，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:35:29 INFO      [16/60] → AI产品经理（nb）（）
+21:35:36 WARNING   详情页不匹配（期望 title=AI产品经理（nb）/company=，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 1/3
+21:35:42 WARNING   详情页不匹配（期望 title=AI产品经理（nb）/company=，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 2/3
+21:35:48 WARNING   详情页不匹配（期望 title=AI产品经理（nb）/company=，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 3/3
+21:35:56 INFO      [17/60] → AI产品经理（nb）（云象）
+21:36:25 ERROR     评分失败：AI产品经理（nb） — name 'logger' is not defined
+21:36:32 INFO      [18/60] → 产品经理（纳恩博）
+21:36:58 ERROR     评分失败：产品经理 — name 'logger' is not defined
+21:37:05 INFO      [19/60] → 产品经理 (MJ001289)（上海悠星网络）
+21:37:11 WARNING   详情页不匹配（期望 title=产品经理 (MJ001289)/company=上海悠星网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:37:17 WARNING   详情页不匹配（期望 title=产品经理 (MJ001289)/company=上海悠星网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:37:23 WARNING   详情页不匹配（期望 title=产品经理 (MJ001289)/company=上海悠星网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:37:31 INFO      [20/60] → 产品经理（私域小程序）（淼宇MCN）
+21:37:57 ERROR     评分失败：产品经理（私域小程序） — name 'logger' is not defined
+21:38:04 INFO      [21/60] → AI产品经理8248（紫光展锐）
+21:38:10 WARNING   详情页不匹配（期望 title=AI产品经理8248/company=紫光展锐，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:38:16 WARNING   详情页不匹配（期望 title=AI产品经理8248/company=紫光展锐，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:38:23 WARNING   详情页不匹配（期望 title=AI产品经理8248/company=紫光展锐，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:38:31 INFO      [22/60] → AI 应用推广产品经理（易鑫）
+21:38:37 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:38:44 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:38:50 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:38:58 INFO      [23/60] → AI 应用推广产品经理（易鑫）
+21:39:03 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 1/3
+21:39:10 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 2/3
+21:39:16 WARNING   详情页不匹配（期望 title=AI 应用推广产品经理/company=易鑫，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 3/3
+21:39:24 INFO      [24/60] → 产品经理(J10050)（翼菲科技）
+21:39:49 ERROR     评分失败：产品经理(J10050) — name 'logger' is not defined
+21:39:56 INFO      [25/60] → 产品经理（AI视觉+机器人）（移远quectel）
+21:40:02 WARNING   详情页不匹配（期望 title=产品经理（AI视觉+机器人）/company=移远quectel，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:40:08 WARNING   详情页不匹配（期望 title=产品经理（AI视觉+机器人）/company=移远quectel，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:40:14 WARNING   详情页不匹配（期望 title=产品经理（AI视觉+机器人）/company=移远quectel，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:40:22 INFO      [26/60] → AI 社区产品经理（中富通）
+21:40:28 WARNING   详情页不匹配（期望 title=AI 社区产品经理/company=中富通，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:40:34 WARNING   详情页不匹配（期望 title=AI 社区产品经理/company=中富通，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:40:40 WARNING   详情页不匹配（期望 title=AI 社区产品经理/company=中富通，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:40:48 INFO      [27/60] → AI产品经理（上海邓白氏商业信...）
+21:41:13 ERROR     评分失败：AI产品经理 — name 'logger' is not defined
+21:41:21 INFO      [28/60] → AI产品经理（上海萃绩科技有限公司）
+21:41:26 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海萃绩科技有限公司，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:41:33 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海萃绩科技有限公司，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:41:39 WARNING   详情页不匹配（期望 title=AI产品经理/company=上海萃绩科技有限公司，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:41:47 INFO      [29/60] → AI产品经理（数智世界）
+21:41:53 WARNING   详情页不匹配（期望 title=AI产品经理/company=数智世界，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:41:59 WARNING   详情页不匹配（期望 title=AI产品经理/company=数智世界，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:42:05 WARNING   详情页不匹配（期望 title=AI产品经理/company=数智世界，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:42:14 INFO      [30/60] → ai产品经理（上海钢联）
+21:42:38 ERROR     评分失败：ai产品经理 — name 'logger' is not defined
+21:42:45 INFO      [31/60] → AI产品经理（凯淳股份）
+21:42:51 WARNING   详情页不匹配（期望 title=AI产品经理/company=凯淳股份，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:42:57 WARNING   详情页不匹配（期望 title=AI产品经理/company=凯淳股份，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:43:04 WARNING   详情页不匹配（期望 title=AI产品经理/company=凯淳股份，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:43:05 INFO      [32/60] 跳过（已打过招呼）：gis产品经理
+21:43:12 INFO      [33/60] → 软件产品经理（上纬机器人）
+21:43:37 INFO      分数 5/10  ['具备完整产品规划与PRD撰写、系统功能设计经验，匹配岗位职责1的功能设计与文档撰写要求', '具备跨职能协调、方案落地跟进与验收能力，匹配岗位职责2、3的沟通推进与功能验收要求']
+21:43:37 INFO      → 跳过（5 < 6）
+21:43:44 INFO      [34/60] → CAD产品经理（泊松软件）
+21:43:50 WARNING   详情页不匹配（期望 title=CAD产品经理/company=泊松软件，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:43:56 WARNING   详情页不匹配（期望 title=CAD产品经理/company=泊松软件，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:44:02 WARNING   详情页不匹配（期望 title=CAD产品经理/company=泊松软件，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:44:10 INFO      [35/60] → 数字零售产品经理（英语能力要求）（联恩）
+21:44:16 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:44:22 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:44:29 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:44:37 INFO      [36/60] → 数字零售产品经理（英语能力要求）（联恩）
+21:44:43 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:44:49 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:44:55 WARNING   详情页不匹配（期望 title=数字零售产品经理（英语能力要求）/company=联恩，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:45:04 INFO      [37/60] → AI用户产品经理（北京演语科技有限公司）
+21:45:09 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 1/3
+21:45:15 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 2/3
+21:45:21 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=AI 产品经理｜企业智能方案与交付/company=），重试 3/3
+21:45:30 INFO      [38/60] → AI用户产品经理（北京演语科技有限公司）
+21:45:55 INFO      分数 5/10  ['产品规划与PRD撰写、系统策划能力', '跨职能协同与功能落地跟进经验']
+21:45:55 INFO      → 跳过（5 < 6）
+21:46:02 INFO      [39/60] → AI产品经理（设序科技）
+21:46:07 WARNING   详情页不匹配（期望 title=AI产品经理/company=设序科技，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:46:14 WARNING   详情页不匹配（期望 title=AI产品经理/company=设序科技，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:46:20 WARNING   详情页不匹配（期望 title=AI产品经理/company=设序科技，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:46:28 INFO      [40/60] → 产品经理（京东工业）
+21:46:54 INFO      分数 7/10  ['AI Agent产品化与MCP协议集成、Task Routing/Fallback机制设计经验，与机车智能体Agent核心架构高度契合', '能碳管理平台从0到1主导经验（含PRD撰写、跨职能协同、技术方案评审），匹配智能体产品从定义到落地的全流程要求']
+21:46:54 INFO      ✓ 达标！打招呼：韩女士您好，看到京东工业「机车智能体Agent」方向开放高级产品经理岗，我近期正好在为医疗仪器客户做Prism AI的智…
+21:47:05 ERROR     聊天页内容不匹配 — 目标 title=产品经理 company=京东工业 hr=韩晴晴，实际 chat_position=高级产品经理（AI 智能体 机车智能 Agent） chat_company=NextVPU chat_hr=韩晴晴。
+21:47:16 INFO      [41/60] → 解决方案交付项目经理（上海大晓无限机器人）
+21:47:22 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:47:28 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:47:34 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:47:42 INFO      [42/60] → 解决方案交付项目经理（上海大晓无限机器人）
+21:47:48 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 1/3
+21:47:54 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 2/3
+21:48:00 WARNING   详情页不匹配（期望 title=解决方案交付项目经理/company=上海大晓无限机器人，实际 title=AI产品经理（智能视频剪辑方向）/company=），重试 3/3
+21:48:09 INFO      [43/60] → AI产品经理（建筑/景观方向）（知末）
+21:48:36 INFO      分数 5/10  ['产品规划与PRD撰写、系统功能设计的核心能力直接匹配JD工作职责', '跨职能协同与项目统筹Ownership经验匹配JD对资源统筹的要求']
+21:48:36 INFO      → 跳过（5 < 6）
+21:48:43 INFO      [44/60] → 产品经理（上海游幕网络科技）
+21:49:08 INFO      分数 4/10  ['具备产品规划、PRD撰写、跨职能协同等完整产品经理能力', '有从0到1主导产品建设并交付闭环的实际经验']
+21:49:08 INFO      → 跳过（4 < 6）
+21:49:16 INFO      [45/60] → B端客户成功经理（特赞|Tezign）
+21:49:21 WARNING   详情页不匹配（期望 title=B端客户成功经理/company=特赞|Tezign，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:49:27 WARNING   详情页不匹配（期望 title=B端客户成功经理/company=特赞|Tezign，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:49:34 WARNING   详情页不匹配（期望 title=B端客户成功经理/company=特赞|Tezign，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:49:35 INFO      [46/60] 跳过（已打过招呼）：B端客户成功经理
+21:49:42 INFO      [47/60] → 产品经理（活动中台与AI方向）（莉莉丝游戏）
+21:50:06 INFO      分数 5/10  ['具备产品规划与PRD撰写能力，覆盖从0到1产品全流程', '有跨职能协同与资源统筹经验，熟悉开发流程']
+21:50:06 INFO      → 跳过（5 < 6）
+21:50:14 INFO      [48/60] → ai产品经理（圆通速递）
+21:50:19 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:50:26 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:50:32 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:50:40 INFO      [49/60] → AI产品经理（连尚网络）
+21:50:46 WARNING   详情页不匹配（期望 title=AI产品经理/company=连尚网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:50:52 WARNING   详情页不匹配（期望 title=AI产品经理/company=连尚网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:50:58 WARNING   详情页不匹配（期望 title=AI产品经理/company=连尚网络，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:51:07 INFO      [50/60] → AI产品经理（连尚网络）
+21:51:33 INFO      分数 7/10  ['AI Native特征高度契合：JD要求深度使用Cursor/v0/Claude Code等工具快速做Demo，王洁的Vibe Coding快速Demo交付能力直接对应', '独立完成Figma高保真原型+UI/UX设计能力：JD明确要求独立完成核心页面设计，王洁的Prism Design System 42个原子组件经验完全匹配']
+21:51:33 INFO      ✓ 达标！打招呼：吴女士您好，看到你们在做的AI长视频智能剪辑产品，正好契合我最近的方向——从0到1把AI能力装进一个好用的产品。我曾独立…
+21:51:44 ERROR     聊天页内容不匹配 — 目标 title=AI产品经理 company=连尚网络 hr=吴女士，实际 chat_position=AI产品经理（智能视频剪辑方向） chat_company=闪剪智能 chat_hr=吴女士。
+21:51:55 INFO      [51/60] → AI视觉融合产品经理（千寻位置）
+21:52:21 ERROR     评分失败：AI视觉融合产品经理 — name 'logger' is not defined
+21:52:28 INFO      [52/60] → 星系计划｜产品方向(A106172)（Soul App）
+21:52:34 WARNING   详情页不匹配（期望 title=星系计划｜产品方向(A106172)/company=Soul App，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:52:40 WARNING   详情页不匹配（期望 title=星系计划｜产品方向(A106172)/company=Soul App，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:52:46 WARNING   详情页不匹配（期望 title=星系计划｜产品方向(A106172)/company=Soul App，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:52:55 INFO      [53/60] → AI产品经理（奇妙思维）
+21:53:00 WARNING   详情页不匹配（期望 title=AI产品经理/company=奇妙思维，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:53:07 WARNING   详情页不匹配（期望 title=AI产品经理/company=奇妙思维，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:53:13 WARNING   详情页不匹配（期望 title=AI产品经理/company=奇妙思维，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:53:21 INFO      [54/60] → AI产品经理（奇妙思维）
+21:53:46 ERROR     评分失败：AI产品经理 — name 'logger' is not defined
+21:53:54 INFO      [55/60] → AI云平台产品经理（趋动科技）
+21:53:59 WARNING   详情页不匹配（期望 title=AI云平台产品经理/company=趋动科技，实际 title=产品经理（Kosmo）/company=），重试 1/3
+21:54:05 WARNING   详情页不匹配（期望 title=AI云平台产品经理/company=趋动科技，实际 title=产品经理（Kosmo）/company=），重试 2/3
+21:54:12 WARNING   详情页不匹配（期望 title=AI云平台产品经理/company=趋动科技，实际 title=产品经理（Kosmo）/company=），重试 3/3
+21:54:20 INFO      [56/60] → AI产品经理（智能视频剪辑方向）（闪剪智能）
+21:54:26 WARNING   详情页不匹配（期望 title=AI产品经理（智能视频剪辑方向）/company=闪剪智能，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 1/3
+21:54:32 WARNING   详情页不匹配（期望 title=AI产品经理（智能视频剪辑方向）/company=闪剪智能，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 2/3
+21:54:38 WARNING   详情页不匹配（期望 title=AI产品经理（智能视频剪辑方向）/company=闪剪智能，实际 title=高级产品经理（AI 智能体 机车智能 Agent）/company=），重试 3/3
+21:54:39 INFO      [57/60] 跳过（已打过招呼）：产品经理
+21:54:47 INFO      [58/60] → 产品经理（子雄科技）
+21:55:11 ERROR     评分失败：产品经理 — name 'logger' is not defined
+21:55:19 INFO      [59/60] → 产品经理（Kosmo）（上海禾赛科技有限公司）
+21:55:46 ERROR     评分失败：产品经理（Kosmo） — name 'logger' is not defined
+21:55:53 INFO      [60/60] → 高级产品经理（AI 智能体 机车智能 Agent）（NextVPU）
+21:56:20 ERROR     评分失败：高级产品经理（AI 智能体 机车智能 Agent） — name 'logger' is not defined
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：0 条
+- 跳过：11 条
+✗ 错误：49 个
+  · 产品经理：评分失败（name 'logger' is not defined）
+  · AI产品经理：详情页加载超时或内容不匹配
+  · 产品经理（A93738）：详情页加载超时或内容不匹配
+  · 产品经理（GTM)：详情页加载超时或内容不匹配
+  · app产品经理：详情页加载超时或内容不匹配
+  · 产品经理（营销类产品）：详情页加载超时或内容不匹配
+  · 产品经理（营销类产品）：评分失败（name 'logger' is not defined）
+  · AI产品经理（业务提效方向）：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · 平台产品经理(A249058)：详情页加载超时或内容不匹配
+  · 平台产品经理(A249058)：评分失败（name 'logger' is not defined）
+  · B端Saas产品经理（CEM方向）：详情页加载超时或内容不匹配
+  · AI产品经理（nb）：详情页加载超时或内容不匹配
+  · AI产品经理（nb）：评分失败（name 'logger' is not defined）
+  · 产品经理：评分失败（name 'logger' is not defined）
+  · 产品经理 (MJ001289)：详情页加载超时或内容不匹配
+  · 产品经理（私域小程序）：评分失败（name 'logger' is not defined）
+  · AI产品经理8248：详情页加载超时或内容不匹配
+  · AI 应用推广产品经理：详情页加载超时或内容不匹配
+  · AI 应用推广产品经理：详情页加载超时或内容不匹配
+  · 产品经理(J10050)：评分失败（name 'logger' is not defined）
+  · 产品经理（AI视觉+机器人）：详情页加载超时或内容不匹配
+  · AI 社区产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：评分失败（name 'logger' is not defined）
+  · AI产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · ai产品经理：评分失败（name 'logger' is not defined）
+  · AI产品经理：详情页加载超时或内容不匹配
+  · CAD产品经理：详情页加载超时或内容不匹配
+  · 数字零售产品经理（英语能力要求）：详情页加载超时或内容不匹配
+  · 数字零售产品经理（英语能力要求）：详情页加载超时或内容不匹配
+  · AI用户产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · 产品经理：聊天页 HR/职位/公司不匹配 （hr='韩晴晴', pos='高级产品经理（AI 智能体 机车智能 Agent）', co='NextVPU'）
+  · 解决方案交付项目经理：详情页加载超时或内容不匹配
+  · 解决方案交付项目经理：详情页加载超时或内容不匹配
+  · B端客户成功经理：详情页加载超时或内容不匹配
+  · ai产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：聊天页 HR/职位/公司不匹配 （hr='吴女士', pos='AI产品经理（智能视频剪辑方向）', co='闪剪智能'）
+  · AI视觉融合产品经理：评分失败（name 'logger' is not defined）
+  · 星系计划｜产品方向(A106172)：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · AI产品经理：评分失败（name 'logger' is not defined）
+  · AI云平台产品经理：详情页加载超时或内容不匹配
+  · AI产品经理（智能视频剪辑方向）：详情页加载超时或内容不匹配
+  · 产品经理：评分失败（name 'logger' is not defined）
+  · 产品经理（Kosmo）：评分失败（name 'logger' is not defined）
+  · 高级产品经理（AI 智能体 机车智能 Agent）：评分失败（name 'logger' is not defined）

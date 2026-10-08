@@ -1,0 +1,182 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[prompt] 加载 resume_extract (mtime=1789562303)
+ 完成
+
+🤖 单阶段循环（关键词：产品经理，阈值：6，标准模式，最多发送 10 条）
+14:02:31 INFO    [1/3] 启动 Boss直聘…
+14:02:49 INFO    [2/3] 搜索职位：「产品经理」…
+14:03:13 INFO    [3/3] 采集职位列表（基线，用于补全字段）…
+14:04:31 INFO      ✓ 采集到 60 条职位卡片
+14:04:38 INFO      [1] 跳过（已打过招呼）：Voice Agent 平台产品经理(A96982)
+14:04:44 INFO      [2] 跳过（已打过招呼）：B端客户成功经理
+14:04:50 INFO      [3] → AI产品经理（AIGC方向）（千图网）
+[prompt] 加载 match_score (mtime=1789564469)
+14:05:14 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:05:19 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:05:28 INFO      分数 8/10  ['Vibe Coding + AI工具快速验证方案的实战经验——已在未来方舟用Figma + Vibe Coding搭建Design System并构建可运行Demo支持售前演示', 'AI产品化的系统性思维——设计过Agent OS三层产品形态、三类业务节点编排模型，理解AI能力的产品化转译']
+14:05:28 INFO      ✓ 达标！打招呼：高佳您好，我注意到你们正在寻找能用Vibe Coding和AI工具快速验证方案的产品经理。我在未来方舟用Figma搭建D…
+14:06:00 INFO      ✓ 打招呼成功 — 高佳您好，我注意到你们正在寻找能用Vibe Coding和AI工具快速验证方案的
+14:06:21 INFO      [4] → ai agent产品经理（）
+14:06:47 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:06:50 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:07:00 INFO      分数 6/10  ['Agent产品化经验：设计过Agent OS三层形态、三类业务节点编排模型、统一AI网关，直接对应agentic AI产品架构能力', '端到端产品交付：从0-1业务解构、蓝图设计、工程取舍到Demo落地，具备将复杂需求转化为生产级产品的完整闭环经验']
+14:07:00 INFO      ✓ 达标！打招呼：汪女士您好，我注意到职位需要从问题框架到生产级产品的端到端交付能力——我在未来方舟设计的Agent OS产品形态（流程中…
+14:07:32 INFO      ✓ 打招呼成功 — 汪女士您好，我注意到职位需要从问题框架到生产级产品的端到端交付能力——我在未来方
+14:07:53 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:08:01 INFO      [5] → CRM 产品经理（鑫互联）
+14:08:27 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:08:30 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:08:39 INFO      分数 6/10  ['复杂业务规则抽象与标准化方案设计能力强——EHS系统三视角正交架构经验直接对应CRM的流程、权限、数据模型抽象', '跨职能团队协调与全程项目主导——作为唯一的产品/设计/售前角色，具备与研发、业务深度合作推进交付的完整主导权']
+14:08:39 INFO      ✓ 达标！打招呼：赵女士您好，我看到CRM产品经理这个岗位需要将复杂业务规则抽象为标准化解决方案。我在未来方舟负责的EHS平台正是通过「流…
+14:09:11 INFO      ✓ 打招呼成功 — 赵女士您好，我看到CRM产品经理这个岗位需要将复杂业务规则抽象为标准化解决方案。
+14:09:32 INFO      [6] → 海外双语项目经理（AI 出海赛道）20K-40K（珍岛集团）
+14:09:57 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:10:00 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:10:09 INFO      分数 4/10  ['AI出海领域的产品理解与Demo交付能力（Vibe Coding构建可运行Demo）', '跨职能协调与项目统筹能力（虽非传统PM但具备完整项目主导权）']
+14:10:09 INFO      → 跳过（4 < 6）
+14:10:21 INFO      [7] → Assistant Program Manager 初级项目经理（荷瑞国际物流(上...）
+14:10:46 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:10:50 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:10:59 INFO      分数 5/10  ['跨职能协调与需求转化能力——能将复杂业务需求翻译为清晰的技术规范', '项目端到端主导经验——2年内独立统筹多条产品线与并发项目的交付']
+14:10:59 INFO      → 跳过（5 < 6）
+14:11:11 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:11:19 INFO      [8] → AI产品经理（刷脸时代）
+14:11:44 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:11:48 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:12:00 INFO      分数 8/10  ['AI Agent产品化设计经验——已主导Agent OS三层产品形态+业务节点编排模型+统一AI网关，直接对标职位「业务智能Agent核心模块设计」需求', '工业SaaS领域AI落地实战——2年ToB工业SaaS核心经验，具备从0-1闭环能力和复杂业务规则产品化能力，完全符合「工业软件PLM领域AI应用」背景要求']
+14:12:00 INFO      ✓ 达标！打招呼：冯女士您好，我是王洁。看到刷脸时代招AI产品经理负责工业软件PLM领域智能体应用，这与我过往2年的经历高度契合——我已在…
+14:12:31 INFO      ✓ 打招呼成功 — 冯女士您好，我是王洁。看到刷脸时代招AI产品经理负责工业软件PLM领域智能体应用
+14:12:53 INFO      [9] → 售前解决方案顾问（ONES）
+14:13:18 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:13:22 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:13:32 INFO      分数 8/10  ['FDE型产品经理背景完美对标售前解决方案顾问的核心职能——深挖客户需求、设计可落地方案、支持演示与交付', '2年ToB工业SaaS实战经验与企业级应用理解高度吻合，具备研发管理与项目管理方法论沉淀']
+14:13:32 INFO      ✓ 达标！打招呼：唐女士您好，我是王洁。ONES的售前解决方案岗很吸引我——过往2年我以FDE身份独立输出EHS、能碳等复杂场景的完整解决…
+14:14:04 INFO      ✓ 打招呼成功 — 唐女士您好，我是王洁。ONES的售前解决方案岗很吸引我——过往2年我以FDE身份
+14:14:25 INFO      [10] → 产品经理（AI 教育方向）（趣申请）
+14:14:50 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:14:54 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:15:00 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 32 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:15:04 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 31 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:15:07 ERROR     评分失败：产品经理（AI 教育方向） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 31 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 31}
+14:15:19 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:15:27 INFO      [11] → ai产品经理（圆通速递）
+14:15:53 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:15:56 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:16:02 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 30 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:16:07 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 30 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:16:10 ERROR     评分失败：ai产品经理 — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 30 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 30}
+14:16:22 INFO      [12] → AI 项目经理（工业智能体方向）（上海羚数智能科技...）
+14:16:47 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:16:50 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:16:58 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 30 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:17:02 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 29 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:17:05 ERROR     评分失败：AI 项目经理（工业智能体方向） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 29 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 29}
+14:17:17 INFO      [13] 跳过（已打过招呼）：高级产品经理
+14:17:23 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:17:31 INFO      [14] → 行业解决方案经理-libtv（北京演语科技有限公司）
+14:17:58 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:18:02 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:18:09 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 28 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:18:13 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 28 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:18:16 ERROR     评分失败：行业解决方案经理-libtv — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 28 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 28}
+14:18:28 INFO      [15] → GEO产品经理（上海播知）
+14:18:54 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:18:57 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:19:03 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 27 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:19:07 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 27 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:19:10 ERROR     评分失败：GEO产品经理 — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 27 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 27}
+14:19:23 INFO      [16] → Product Owner(固定收益/结构化产品）（塔塔）
+14:19:48 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:19:52 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:19:58 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 27 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:20:02 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:20:05 ERROR     评分失败：Product Owner(固定收益/结构化产品） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 26}
+14:20:18 INFO      [17] → 产品经理（J14446）（）
+14:20:47 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:20:51 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:20:57 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:21:01 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:21:04 ERROR     评分失败：产品经理（J14446） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 26}
+14:21:16 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:21:24 INFO      [18] → AI高级产品经理（上海中城交科技）
+14:21:51 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:21:54 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:22:00 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 25 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:22:04 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:22:07 ERROR     评分失败：AI高级产品经理 — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 24}
+14:22:20 INFO      [19] → 跨境电商产品经理（欧美节庆装饰产品线）（中软国际）
+14:22:46 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:22:50 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:22:57 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:23:01 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:23:04 ERROR     评分失败：跨境电商产品经理（欧美节庆装饰产品线） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 24}
+14:23:17 INFO      [20] 跳过（已打过招呼）：海外产品经理
+14:23:23 INFO      [21] → AI解决方案项目经理（Agent交付方向）（）
+14:23:49 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:23:53 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:24:00 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 23 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:24:04 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 22 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:24:07 ERROR     评分失败：AI解决方案项目经理（Agent交付方向） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 22 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 22}
+14:24:20 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:24:28 INFO      [22] → AI项目经理（神州数码）
+14:24:53 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:24:57 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:25:05 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 21 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:25:09 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 21 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:25:12 ERROR     评分失败：AI项目经理 — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 21 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 21}
+14:25:24 INFO      [23] → 交付解决方案顾问（售前&实施）（汉得信息）
+14:25:49 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:25:53 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:25:59 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 21 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:26:03 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:26:06 ERROR     评分失败：交付解决方案顾问（售前&实施） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 20}
+14:26:19 INFO      [24] → 项目经理（英文流利）（D1M）
+14:26:45 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:26:49 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:26:56 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:26:59 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:27:02 ERROR     评分失败：项目经理（英文流利） — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 20}
+14:27:15 INFO      当前屏幕无未访问目标，列表下滑 1/3
+14:27:23 INFO      [25] → AI 产品经理（上海元生万物人工...）
+14:27:41 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:27:44 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+14:27:50 WARNING [fallback] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 19 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:27:54 WARNING [fallback] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 19 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-0
+14:27:57 ERROR     评分失败：AI 产品经理 — Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 19 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 19}
+[browse_jobs] search_bar and search icon both not found
+[browse_jobs] search_bar and search icon both not found
+[browse_jobs] search_bar and search icon both not found
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：5 条
+  · AI产品经理（AIGC方向）（千图网）8/10 —— 打招呼成功
+    高佳您好，我注意到你们正在寻找能用Vibe Coding和AI工具快速验证方案的产品经理。我在未来方舟用Figma搭建Design System，结合Vibe 
+  · ai agent产品经理（）6/10 —— 打招呼成功
+    汪女士您好，我注意到职位需要从问题框架到生产级产品的端到端交付能力——我在未来方舟设计的Agent OS产品形态（流程中心+协作编排+工作台）正是通过系统化的架
+  · CRM 产品经理（鑫互联）6/10 —— 打招呼成功
+    赵女士您好，我看到CRM产品经理这个岗位需要将复杂业务规则抽象为标准化解决方案。我在未来方舟负责的EHS平台正是通过「流程+表单+报告」三位一体架构，用少量稳定
+  · AI产品经理（刷脸时代）8/10 —— 打招呼成功
+    冯女士您好，我是王洁。看到刷脸时代招AI产品经理负责工业软件PLM领域智能体应用，这与我过往2年的经历高度契合——我已在工业SaaS领域完整主导过Agent O
+  · 售前解决方案顾问（ONES）8/10 —— 打招呼成功
+    唐女士您好，我是王洁。ONES的售前解决方案岗很吸引我——过往2年我以FDE身份独立输出EHS、能碳等复杂场景的完整解决方案，习惯用Figma+Demo直接支撑
+- 跳过：6 条
+✗ 错误：15 个
+  · 产品经理（AI 教育方向）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 31 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 31}）
+  · ai产品经理：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 30 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 30}）
+  · AI 项目经理（工业智能体方向）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 29 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 29}）
+  · 行业解决方案经理-libtv：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 28 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 28}）
+  · GEO产品经理：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 27 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 27}）
+  · Product Owner(固定收益/结构化产品）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 26}）
+  · 产品经理（J14446）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 26 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 26}）
+  · AI高级产品经理：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 24}）
+  · 跨境电商产品经理（欧美节庆装饰产品线）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 24 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 24}）
+  · AI解决方案项目经理（Agent交付方向）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 22 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 22}）
+  · AI项目经理：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 21 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 21}）
+  · 交付解决方案顾问（售前&实施）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 20}）
+  · 项目经理（英文流利）：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 20 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 20}）
+  · AI 产品经理：评分失败（Error code: 429 - {'error': 'Rate limit exceeded', 'message': '已达到费用限制 ($14.97)，将在 19 分钟后重置', 'currentCost': 14.98230255, 'costLimit': 14.97, 'resetAt': '2026-09-17T06:46:02.363Z', 'remainingMinutes': 19}）
+  · 无法返回职位列表

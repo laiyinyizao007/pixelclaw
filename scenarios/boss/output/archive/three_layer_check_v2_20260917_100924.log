@@ -1,0 +1,294 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[prompt] 加载 resume_extract (mtime=1789562303)
+ 完成
+
+🤖 单阶段循环（关键词：产品经理，阈值：6，标准模式，最多发送 5 条）
+10:09:41 WARNING ⚠️  检测到锁屏，请解锁手机后继续（最多等待 60 秒）…
+10:09:52 INFO    [1/3] 启动 Boss直聘…
+10:10:11 INFO    [2/3] 搜索职位：「产品经理」…
+10:10:35 INFO    [3/3] 采集职位列表…
+10:11:57 INFO      ✓ 采集到 60 条职位卡片
+10:11:57 INFO      [1/60] → 海外交易类金融产品经理（账户模块）（点涨科技）
+10:12:03 WARNING   详情页不匹配（期望 title=海外交易类金融产品经理（账户模块）/company=点涨科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:12:09 WARNING   详情页不匹配（期望 title=海外交易类金融产品经理（账户模块）/company=点涨科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:12:15 WARNING   详情页不匹配（期望 title=海外交易类金融产品经理（账户模块）/company=点涨科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:12:23 INFO      [2/60] → AI产品经理（思创网络）
+10:12:29 WARNING   详情页不匹配（期望 title=AI产品经理/company=思创网络，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:12:35 WARNING   详情页不匹配（期望 title=AI产品经理/company=思创网络，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:12:42 WARNING   详情页不匹配（期望 title=AI产品经理/company=思创网络，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:12:50 INFO      [3/60] → ADAS产品经理 (MJ000339)（智驾科技MAXIEYE）
+10:12:55 WARNING   详情页不匹配（期望 title=ADAS产品经理 (MJ000339)/company=智驾科技MAXIEYE，实际 title=解决方案经理/company=），重试 1/3
+10:13:02 WARNING   详情页不匹配（期望 title=ADAS产品经理 (MJ000339)/company=智驾科技MAXIEYE，实际 title=解决方案经理/company=），重试 2/3
+10:13:08 WARNING   详情页不匹配（期望 title=ADAS产品经理 (MJ000339)/company=智驾科技MAXIEYE，实际 title=解决方案经理/company=），重试 3/3
+10:13:16 INFO      [4/60] → C端AI产品经理（）
+[prompt] 加载 match_score (mtime=1789564469)
+10:13:49 INFO      分数 4/10  ['AI Agent 产品化与售前蓝图规划经验与AI产品方向契合', 'PRD撰写与多团队协作经验可迁移至游戏AIGC产品规划']
+10:13:49 INFO      → 跳过（4 < 6）
+10:13:56 INFO      [5/60] → C端AI产品经理（上海从鲸信息技术）
+10:14:02 WARNING   详情页不匹配（期望 title=C端AI产品经理/company=上海从鲸信息技术，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:14:08 WARNING   详情页不匹配（期望 title=C端AI产品经理/company=上海从鲸信息技术，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:14:14 WARNING   详情页不匹配（期望 title=C端AI产品经理/company=上海从鲸信息技术，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:14:15 INFO      [6/60] 跳过（已打过招呼）：产品经理（J14446）
+10:14:22 INFO      [7/60] → 项目经理（支付）（卡啦卡）
+10:14:28 WARNING   详情页不匹配（期望 title=项目经理（支付）/company=卡啦卡，实际 title=解决方案经理/company=），重试 1/3
+10:14:34 WARNING   详情页不匹配（期望 title=项目经理（支付）/company=卡啦卡，实际 title=解决方案经理/company=），重试 2/3
+10:14:40 WARNING   详情页不匹配（期望 title=项目经理（支付）/company=卡啦卡，实际 title=解决方案经理/company=），重试 3/3
+10:14:49 INFO      [8/60] → 产品经理-海外留学生（2027届）（M…（）
+10:14:54 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=，实际 title=AI产品经理/company=），重试 1/3
+10:15:01 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=，实际 title=AI产品经理/company=），重试 2/3
+10:15:07 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=，实际 title=AI产品经理/company=），重试 3/3
+10:15:15 INFO      [9/60] → 产品经理-海外留学生（2027届）（M…（华勤技术股份有限公司）
+10:15:20 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=华勤技术股份有限公司，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:15:27 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=华勤技术股份有限公司，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:15:34 WARNING   详情页不匹配（期望 title=产品经理-海外留学生（2027届）（M…/company=华勤技术股份有限公司，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:15:42 INFO      [10/60] → 国际支付产品经理(J10132)（天逸集团）
+10:15:47 WARNING   详情页不匹配（期望 title=国际支付产品经理(J10132)/company=天逸集团，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:15:53 WARNING   详情页不匹配（期望 title=国际支付产品经理(J10132)/company=天逸集团，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:16:00 WARNING   详情页不匹配（期望 title=国际支付产品经理(J10132)/company=天逸集团，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:16:08 INFO      [11/60] → 智能硬件产品经理（景立构科技）
+10:16:13 WARNING   详情页不匹配（期望 title=智能硬件产品经理/company=景立构科技，实际 title=解决方案经理/company=），重试 1/3
+10:16:20 WARNING   详情页不匹配（期望 title=智能硬件产品经理/company=景立构科技，实际 title=解决方案经理/company=），重试 2/3
+10:16:26 WARNING   详情页不匹配（期望 title=智能硬件产品经理/company=景立构科技，实际 title=解决方案经理/company=），重试 3/3
+10:16:34 INFO      [12/60] → Agent 产品经理（ITSM / 智能运维方向）（）
+10:16:39 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=，实际 title=AI产品经理/company=），重试 1/3
+10:16:46 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=，实际 title=AI产品经理/company=），重试 2/3
+10:16:52 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=，实际 title=AI产品经理/company=），重试 3/3
+10:17:00 INFO      [13/60] → Agent 产品经理（ITSM / 智能运维方向）（汉得信息）
+10:17:05 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=汉得信息，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:17:12 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=汉得信息，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:17:18 WARNING   详情页不匹配（期望 title=Agent 产品经理（ITSM / 智能运维方向）/company=汉得信息，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:17:19 INFO      [14/60] 跳过（已打过招呼）：AI产品经理(C端)
+10:17:26 INFO      [15/60] → 机器人算法产品经理（开感科技）
+10:17:32 WARNING   详情页不匹配（期望 title=机器人算法产品经理/company=开感科技，实际 title=AI产品经理/company=），重试 1/3
+10:17:38 WARNING   详情页不匹配（期望 title=机器人算法产品经理/company=开感科技，实际 title=AI产品经理/company=），重试 2/3
+10:17:44 WARNING   详情页不匹配（期望 title=机器人算法产品经理/company=开感科技，实际 title=AI产品经理/company=），重试 3/3
+10:17:52 INFO      [16/60] → 产品经理45-75k·15薪（刷脸时代）
+10:17:58 WARNING   详情页不匹配（期望 title=产品经理45-75k·15薪/company=刷脸时代，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:18:04 WARNING   详情页不匹配（期望 title=产品经理45-75k·15薪/company=刷脸时代，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:18:10 WARNING   详情页不匹配（期望 title=产品经理45-75k·15薪/company=刷脸时代，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:18:18 INFO      [17/60] → 产品经理（社招！面试反馈快！）（爱用科技）
+10:18:24 WARNING   详情页不匹配（期望 title=产品经理（社招！面试反馈快！）/company=爱用科技，实际 title=解决方案经理/company=），重试 1/3
+10:18:30 WARNING   详情页不匹配（期望 title=产品经理（社招！面试反馈快！）/company=爱用科技，实际 title=解决方案经理/company=），重试 2/3
+10:18:36 WARNING   详情页不匹配（期望 title=产品经理（社招！面试反馈快！）/company=爱用科技，实际 title=解决方案经理/company=），重试 3/3
+10:18:45 INFO      [18/60] → 产品经理（锦江电商）
+10:19:14 INFO      分数 4/10  ['候选人有AI Agent产品化与售前规划经验，与元境AIGC/AI智能体方向相关', '候选人具备多行业SaaS交付与跨团队协作落地经验']
+10:19:14 INFO      → 跳过（4 < 6）
+10:19:21 INFO      [19/60] → CRM 产品经理（鑫互联）
+10:19:26 WARNING   详情页不匹配（期望 title=CRM 产品经理/company=鑫互联，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:19:32 WARNING   详情页不匹配（期望 title=CRM 产品经理/company=鑫互联，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:19:39 WARNING   详情页不匹配（期望 title=CRM 产品经理/company=鑫互联，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:19:48 INFO      [20/60] → SaaS产品经理（讯兔科技）
+10:19:54 WARNING   详情页不匹配（期望 title=SaaS产品经理/company=讯兔科技，实际 title=解决方案经理/company=），重试 1/3
+10:20:00 WARNING   详情页不匹配（期望 title=SaaS产品经理/company=讯兔科技，实际 title=解决方案经理/company=），重试 2/3
+10:20:07 WARNING   详情页不匹配（期望 title=SaaS产品经理/company=讯兔科技，实际 title=解决方案经理/company=），重试 3/3
+10:20:15 INFO      [21/60] → AI软件产品专家（上海/杭州/北京）（太初）
+10:20:21 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=AI产品经理/company=），重试 1/3
+10:20:27 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=AI产品经理/company=），重试 2/3
+10:20:34 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=AI产品经理/company=），重试 3/3
+10:20:42 INFO      [22/60] → AI软件产品专家（上海/杭州/北京）（太初）
+10:20:47 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:20:54 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:21:00 WARNING   详情页不匹配（期望 title=AI软件产品专家（上海/杭州/北京）/company=太初，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:21:08 INFO      [23/60] → 产品经理-金融网络（XTransfer）
+10:21:14 WARNING   详情页不匹配（期望 title=产品经理-金融网络/company=XTransfer，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:21:20 WARNING   详情页不匹配（期望 title=产品经理-金融网络/company=XTransfer，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:21:26 WARNING   详情页不匹配（期望 title=产品经理-金融网络/company=XTransfer，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:21:35 INFO      [24/60] → 产品经理-AI-不要求每天坐班打卡（三恩利电子）
+10:21:40 WARNING   详情页不匹配（期望 title=产品经理-AI-不要求每天坐班打卡/company=三恩利电子，实际 title=解决方案经理/company=），重试 1/3
+10:21:46 WARNING   详情页不匹配（期望 title=产品经理-AI-不要求每天坐班打卡/company=三恩利电子，实际 title=解决方案经理/company=），重试 2/3
+10:21:53 WARNING   详情页不匹配（期望 title=产品经理-AI-不要求每天坐班打卡/company=三恩利电子，实际 title=解决方案经理/company=），重试 3/3
+10:22:01 INFO      [25/60] → Product Owner(固定收益/结构化产品）（塔塔）
+10:22:07 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=AI产品经理/company=），重试 1/3
+10:22:13 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=AI产品经理/company=），重试 2/3
+10:22:19 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=AI产品经理/company=），重试 3/3
+10:22:28 INFO      [26/60] → Product Owner(固定收益/结构化产品）（塔塔）
+10:22:33 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:22:39 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:22:46 WARNING   详情页不匹配（期望 title=Product Owner(固定收益/结构化产品）/company=塔塔，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:22:54 INFO      [27/60] → OS系统产品经理 (MJ003710)（商米）
+10:23:00 WARNING   详情页不匹配（期望 title=OS系统产品经理 (MJ003710)/company=商米，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:23:06 WARNING   详情页不匹配（期望 title=OS系统产品经理 (MJ003710)/company=商米，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:23:12 WARNING   详情页不匹配（期望 title=OS系统产品经理 (MJ003710)/company=商米，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:23:20 INFO      [28/60] → AI 产品经理（上海元生万物人工...）
+10:23:26 WARNING   详情页不匹配（期望 title=AI 产品经理/company=上海元生万物人工...，实际 title=解决方案经理/company=），重试 1/3
+10:23:32 WARNING   详情页不匹配（期望 title=AI 产品经理/company=上海元生万物人工...，实际 title=解决方案经理/company=），重试 2/3
+10:23:38 WARNING   详情页不匹配（期望 title=AI 产品经理/company=上海元生万物人工...，实际 title=解决方案经理/company=），重试 3/3
+10:23:46 INFO      [29/60] → 产品经理 (MJ017748)（中高级南京上海）（锐捷网络股份有限公司）
+10:23:52 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=AI产品经理/company=），重试 1/3
+10:23:58 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=AI产品经理/company=），重试 2/3
+10:24:04 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=AI产品经理/company=），重试 3/3
+10:24:12 INFO      [30/60] → 产品经理 (MJ017748)（中高级南京上海）（锐捷网络股份有限公司）
+10:24:18 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:24:24 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:24:31 WARNING   详情页不匹配（期望 title=产品经理 (MJ017748)（中高级南京上海）/company=锐捷网络股份有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:24:39 INFO      [31/60] → AI汽车产品经理（弋途科技）
+10:24:45 WARNING   详情页不匹配（期望 title=AI汽车产品经理/company=弋途科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:24:52 WARNING   详情页不匹配（期望 title=AI汽车产品经理/company=弋途科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:24:59 WARNING   详情页不匹配（期望 title=AI汽车产品经理/company=弋途科技，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:25:07 INFO      [32/60] → 高级ai产品经理（机械之家）
+10:25:12 WARNING   详情页不匹配（期望 title=高级ai产品经理/company=机械之家，实际 title=解决方案经理/company=），重试 1/3
+10:25:18 WARNING   详情页不匹配（期望 title=高级ai产品经理/company=机械之家，实际 title=解决方案经理/company=），重试 2/3
+10:25:24 WARNING   详情页不匹配（期望 title=高级ai产品经理/company=机械之家，实际 title=解决方案经理/company=），重试 3/3
+10:25:33 INFO      [33/60] → AIGC产品经理（Gamehaus）
+10:25:38 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=AI产品经理/company=），重试 1/3
+10:25:44 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=AI产品经理/company=），重试 2/3
+10:25:51 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=AI产品经理/company=），重试 3/3
+10:25:59 INFO      [34/60] → AIGC产品经理（Gamehaus）
+10:26:05 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:26:11 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:26:17 WARNING   详情页不匹配（期望 title=AIGC产品经理/company=Gamehaus，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:26:27 INFO      [35/60] → 软件产品经理（上纬机器人）
+10:26:32 WARNING   详情页不匹配（期望 title=软件产品经理/company=上纬机器人，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:26:38 WARNING   详情页不匹配（期望 title=软件产品经理/company=上纬机器人，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:26:45 WARNING   详情页不匹配（期望 title=软件产品经理/company=上纬机器人，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:26:53 INFO      [36/60] → AI 效果产品经理（上海相形无迹科技）
+10:26:59 WARNING   详情页不匹配（期望 title=AI 效果产品经理/company=上海相形无迹科技，实际 title=解决方案经理/company=），重试 1/3
+10:27:05 WARNING   详情页不匹配（期望 title=AI 效果产品经理/company=上海相形无迹科技，实际 title=解决方案经理/company=），重试 2/3
+10:27:11 WARNING   详情页不匹配（期望 title=AI 效果产品经理/company=上海相形无迹科技，实际 title=解决方案经理/company=），重试 3/3
+10:27:19 INFO      [37/60] → 资深产品经理（B端、英语）（群核科技）
+10:27:25 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=AI产品经理/company=），重试 1/3
+10:27:31 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=AI产品经理/company=），重试 2/3
+10:27:37 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=AI产品经理/company=），重试 3/3
+10:27:45 INFO      [38/60] → 资深产品经理（B端、英语）（群核科技）
+10:27:51 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=解决方案经理/company=），重试 1/3
+10:27:57 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=解决方案经理/company=），重试 2/3
+10:28:03 WARNING   详情页不匹配（期望 title=资深产品经理（B端、英语）/company=群核科技，实际 title=解决方案经理/company=），重试 3/3
+10:28:12 INFO      [39/60] → 智能硬件产品经理(C端消费品经验优先)（）
+10:28:17 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=，实际 title=AI产品经理/company=），重试 1/3
+10:28:24 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=，实际 title=AI产品经理/company=），重试 2/3
+10:28:30 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=，实际 title=AI产品经理/company=），重试 3/3
+10:28:38 INFO      [40/60] → 智能硬件产品经理(C端消费品经验优先)（上海鲸鱼机器人）
+10:28:43 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=上海鲸鱼机器人，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:28:50 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=上海鲸鱼机器人，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:28:56 WARNING   详情页不匹配（期望 title=智能硬件产品经理(C端消费品经验优先)/company=上海鲸鱼机器人，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:29:04 INFO      [41/60] → AI产品经理（理工数传）
+10:29:10 WARNING   详情页不匹配（期望 title=AI产品经理/company=理工数传，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:29:16 WARNING   详情页不匹配（期望 title=AI产品经理/company=理工数传，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:29:22 WARNING   详情页不匹配（期望 title=AI产品经理/company=理工数传，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:29:30 INFO      [42/60] → ai产品经理（圆通速递）
+10:29:36 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=解决方案经理/company=），重试 1/3
+10:29:42 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=解决方案经理/company=），重试 2/3
+10:29:48 WARNING   详情页不匹配（期望 title=ai产品经理/company=圆通速递，实际 title=解决方案经理/company=），重试 3/3
+10:29:57 INFO      [43/60] → AI用户产品经理（）
+10:30:02 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=，实际 title=AI产品经理/company=），重试 1/3
+10:30:08 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=，实际 title=AI产品经理/company=），重试 2/3
+10:30:15 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=，实际 title=AI产品经理/company=），重试 3/3
+10:30:23 INFO      [44/60] → AI用户产品经理（北京演语科技有限公司）
+10:30:29 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 1/3
+10:30:35 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 2/3
+10:30:41 WARNING   详情页不匹配（期望 title=AI用户产品经理/company=北京演语科技有限公司，实际 title=产品经理(具身智能教育方向）/company=），重试 3/3
+10:30:42 INFO      [45/60] 跳过（已打过招呼）：SaaS AI工具产品经理
+10:30:49 INFO      [46/60] → AI产品经理（B端 AI Agent 平台方向）（意言科技）
+10:30:55 WARNING   详情页不匹配（期望 title=AI产品经理（B端 AI Agent 平台方向）/company=意言科技，实际 title=解决方案经理/company=），重试 1/3
+10:31:01 WARNING   详情页不匹配（期望 title=AI产品经理（B端 AI Agent 平台方向）/company=意言科技，实际 title=解决方案经理/company=），重试 2/3
+10:31:07 WARNING   详情页不匹配（期望 title=AI产品经理（B端 AI Agent 平台方向）/company=意言科技，实际 title=解决方案经理/company=），重试 3/3
+10:31:15 INFO      [47/60] → AI产品经理（）
+10:31:45 INFO      分数 4/10  ['具备AI Agent产品化、AIGC相关项目经验，与岗位AIGC内容生成方向有领域重叠', '具备PRD撰写、原型设计与跨部门协作经验，具备产品经理基础能力模型']
+10:31:45 INFO      → 跳过（4 < 6）
+10:31:53 INFO      [48/60] → AI产品经理（时代光华）
+10:31:59 WARNING   详情页不匹配（期望 title=AI产品经理/company=时代光华，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:32:05 WARNING   详情页不匹配（期望 title=AI产品经理/company=时代光华，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:32:11 WARNING   详情页不匹配（期望 title=AI产品经理/company=时代光华，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:32:12 INFO      [49/60] 跳过（已打过招呼）：产品工程师（AI 阅读方向）
+10:32:20 INFO      [50/60] → ai agent产品经理（Pacvue 泊客电商）
+10:32:25 WARNING   详情页不匹配（期望 title=ai agent产品经理/company=Pacvue 泊客电商，实际 title=解决方案经理/company=），重试 1/3
+10:32:32 WARNING   详情页不匹配（期望 title=ai agent产品经理/company=Pacvue 泊客电商，实际 title=解决方案经理/company=），重试 2/3
+10:32:38 WARNING   详情页不匹配（期望 title=ai agent产品经理/company=Pacvue 泊客电商，实际 title=解决方案经理/company=），重试 3/3
+10:32:47 INFO      [51/60] → Voice Agent 平台产品经理(A96982)（）
+10:32:52 WARNING   详情页不匹配（期望 title=Voice Agent 平台产品经理(A96982)/company=，实际 title=AI产品经理/company=），重试 1/3
+10:32:58 WARNING   详情页不匹配（期望 title=Voice Agent 平台产品经理(A96982)/company=，实际 title=AI产品经理/company=），重试 2/3
+10:33:05 WARNING   详情页不匹配（期望 title=Voice Agent 平台产品经理(A96982)/company=，实际 title=AI产品经理/company=），重试 3/3
+10:33:06 INFO      [52/60] 跳过（已打过招呼）：Voice Agent 平台产品经理(A96982)
+10:33:06 INFO      [53/60] 跳过（已打过招呼）：高级ai产品经理
+10:33:13 INFO      [54/60] → GEO海外产品经理（微盟）
+10:33:19 WARNING   详情页不匹配（期望 title=GEO海外产品经理/company=微盟，实际 title=解决方案经理/company=），重试 1/3
+10:33:25 WARNING   详情页不匹配（期望 title=GEO海外产品经理/company=微盟，实际 title=解决方案经理/company=），重试 2/3
+10:33:31 WARNING   详情页不匹配（期望 title=GEO海外产品经理/company=微盟，实际 title=解决方案经理/company=），重试 3/3
+10:33:40 INFO      [55/60] → AI 产品设计 -GTM（）
+10:33:45 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=，实际 title=AI产品经理/company=），重试 1/3
+10:33:52 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=，实际 title=AI产品经理/company=），重试 2/3
+10:33:58 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=，实际 title=AI产品经理/company=），重试 3/3
+10:34:07 INFO      [56/60] → AI 产品设计 -GTM（特赞|Tezign）
+10:34:12 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=特赞|Tezign，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 1/3
+10:34:18 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=特赞|Tezign，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 2/3
+10:34:25 WARNING   详情页不匹配（期望 title=AI 产品设计 -GTM/company=特赞|Tezign，实际 title=数字化产品经理（英文流利/工业/制造业）/company=），重试 3/3
+10:34:26 INFO      [57/60] 跳过（已打过招呼）：产品经理
+10:34:33 INFO      [58/60] → 产品经理(具身智能教育方向）（龙旭云）
+10:34:39 WARNING   详情页不匹配（期望 title=产品经理(具身智能教育方向）/company=龙旭云，实际 title=AI产品经理/company=），重试 1/3
+10:34:45 WARNING   详情页不匹配（期望 title=产品经理(具身智能教育方向）/company=龙旭云，实际 title=AI产品经理/company=），重试 2/3
+10:34:52 WARNING   详情页不匹配（期望 title=产品经理(具身智能教育方向）/company=龙旭云，实际 title=AI产品经理/company=），重试 3/3
+10:35:00 INFO      [59/60] → 数字化产品经理（英文流利/工业/制造业）（瞬联科技）
+10:35:30 INFO      分数 5/10  ['具备 PRD 独立编写、Figma 高保真原型与多租户配置化交付能力，与 JD 中原型/PRD/产品设计核心要求直接对口', '覆盖能碳/EHS/医疗/工业等多行业数字化产品交付经验，能快速切入工业设备类项目']
+10:35:30 INFO      → 跳过（5 < 6）
+10:35:37 INFO      [60/60] → 解决方案经理（合合信息）
+10:36:05 INFO      分数 8/10  ['FDE模式有自我理解和落地能力，候选人作为唯一产品/设计/售前角色主导能碳平台UAT闭环，深度践行FDE模式', '需求转化为可演示原型能力突出，Vibe Coding/高保真Demo交付经验直接匹配JD快速搭建技术原型要求']
+10:36:05 INFO      ✓ 达标！打招呼：邱女士您好，看到合合信息B端解决方案经理岗位，要求FDE模式落地与demo快速验证，这与我的经历高度契合。我曾作为团队唯…
+10:36:37 INFO      ✓ 打招呼成功 — 邱女士您好，看到合合信息B端解决方案经理岗位，要求FDE模式落地与demo快速验
+10:36:37 ERROR   处理 '解决方案经理' 异常
+Traceback (most recent call last):
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 946, in _run_loop
+    _last = db_conn.execute(
+            ~~~~~~~~~~~~~~~^
+        "SELECT hr_name, title, company FROM greetings ORDER BY id DESC LIMIT 1"
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ).fetchone()
+    ^
+sqlite3.OperationalError: no such column: hr_name
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：1 条
+  · 解决方案经理（合合信息）8/10 —— 打招呼成功
+    邱女士您好，看到合合信息B端解决方案经理岗位，要求FDE模式落地与demo快速验证，这与我的经历高度契合。我曾作为团队唯一产品/设计/售前角色，主导能碳平台UA
+- 跳过：11 条
+✗ 错误：49 个
+  · 海外交易类金融产品经理（账户模块）：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · ADAS产品经理 (MJ000339)：详情页加载超时或内容不匹配
+  · C端AI产品经理：详情页加载超时或内容不匹配
+  · 项目经理（支付）：详情页加载超时或内容不匹配
+  · 产品经理-海外留学生（2027届）（M…：详情页加载超时或内容不匹配
+  · 产品经理-海外留学生（2027届）（M…：详情页加载超时或内容不匹配
+  · 国际支付产品经理(J10132)：详情页加载超时或内容不匹配
+  · 智能硬件产品经理：详情页加载超时或内容不匹配
+  · Agent 产品经理（ITSM / 智能运维方向）：详情页加载超时或内容不匹配
+  · Agent 产品经理（ITSM / 智能运维方向）：详情页加载超时或内容不匹配
+  · 机器人算法产品经理：详情页加载超时或内容不匹配
+  · 产品经理45-75k·15薪：详情页加载超时或内容不匹配
+  · 产品经理（社招！面试反馈快！）：详情页加载超时或内容不匹配
+  · CRM 产品经理：详情页加载超时或内容不匹配
+  · SaaS产品经理：详情页加载超时或内容不匹配
+  · AI软件产品专家（上海/杭州/北京）：详情页加载超时或内容不匹配
+  · AI软件产品专家（上海/杭州/北京）：详情页加载超时或内容不匹配
+  · 产品经理-金融网络：详情页加载超时或内容不匹配
+  · 产品经理-AI-不要求每天坐班打卡：详情页加载超时或内容不匹配
+  · Product Owner(固定收益/结构化产品）：详情页加载超时或内容不匹配
+  · Product Owner(固定收益/结构化产品）：详情页加载超时或内容不匹配
+  · OS系统产品经理 (MJ003710)：详情页加载超时或内容不匹配
+  · AI 产品经理：详情页加载超时或内容不匹配
+  · 产品经理 (MJ017748)（中高级南京上海）：详情页加载超时或内容不匹配
+  · 产品经理 (MJ017748)（中高级南京上海）：详情页加载超时或内容不匹配
+  · AI汽车产品经理：详情页加载超时或内容不匹配
+  · 高级ai产品经理：详情页加载超时或内容不匹配
+  · AIGC产品经理：详情页加载超时或内容不匹配
+  · AIGC产品经理：详情页加载超时或内容不匹配
+  · 软件产品经理：详情页加载超时或内容不匹配
+  · AI 效果产品经理：详情页加载超时或内容不匹配
+  · 资深产品经理（B端、英语）：详情页加载超时或内容不匹配
+  · 资深产品经理（B端、英语）：详情页加载超时或内容不匹配
+  · 智能硬件产品经理(C端消费品经验优先)：详情页加载超时或内容不匹配
+  · 智能硬件产品经理(C端消费品经验优先)：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · ai产品经理：详情页加载超时或内容不匹配
+  · AI用户产品经理：详情页加载超时或内容不匹配
+  · AI用户产品经理：详情页加载超时或内容不匹配
+  · AI产品经理（B端 AI Agent 平台方向）：详情页加载超时或内容不匹配
+  · AI产品经理：详情页加载超时或内容不匹配
+  · ai agent产品经理：详情页加载超时或内容不匹配
+  · Voice Agent 平台产品经理(A96982)：详情页加载超时或内容不匹配
+  · GEO海外产品经理：详情页加载超时或内容不匹配
+  · AI 产品设计 -GTM：详情页加载超时或内容不匹配
+  · AI 产品设计 -GTM：详情页加载超时或内容不匹配
+  · 产品经理(具身智能教育方向）：详情页加载超时或内容不匹配
+  · 解决方案经理: no such column: hr_name
