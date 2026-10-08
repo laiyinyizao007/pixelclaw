@@ -1,0 +1,41 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[fallback] 暂态错误 InternalServerError (attempt 1)，1.5s 后重试: Error code: 500 - {'error': 'Relay service error', 'message': 'No available Claude accounts support the requested model: MiniMax-M3', 'timestamp': '2026-09-17T0
+[fallback] 暂态错误 InternalServerError (attempt 2)，3.0s 后重试: Error code: 500 - {'error': 'Relay service error', 'message': 'No available Claude accounts support the requested model: MiniMax-M3', 'timestamp': '2026-09-17T0
+[prompt] 加载 resume_extract (mtime=1789562303)
+Traceback (most recent call last):
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 1134, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 1079, in main
+    resume_summary = extract_resume_summary(client, resume_text, fallback=fallback)
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 352, in extract_resume_summary
+    response = _call_with_fallback(
+        primary, fallback,
+    ...<2 lines>...
+        messages=[{"role": "user", "content": prompt}],
+    )
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 342, in _call_with_fallback
+    raise last_exc
+  File "C:\Dev\projects\pixelclaw\scenarios\boss\scripts\smart_match_greet.py", line 329, in _call_with_fallback
+    return client.messages.create(**kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\laiyi\AppData\Roaming\Python\Python313\site-packages\anthropic\_utils\_utils.py", line 282, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\laiyi\AppData\Roaming\Python\Python313\site-packages\anthropic\resources\messages\messages.py", line 930, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/v1/messages",
+        ^^^^^^^^^^^^^^^
+    ...<26 lines>...
+        stream_cls=Stream[RawMessageStreamEvent],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\laiyi\AppData\Roaming\Python\Python313\site-packages\anthropic\_base_client.py", line 1324, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\laiyi\AppData\Roaming\Python\Python313\site-packages\anthropic\_base_client.py", line 1112, in request
+    raise self._make_status_error_from_response(err.response) from None
+anthropic.InternalServerError: Error code: 500 - {'error': 'Relay service error', 'message': 'No available Claude accounts support the requested model: MiniMax-M3', 'timestamp': '2026-09-17T04:57:28.049Z'}

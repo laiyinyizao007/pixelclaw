@@ -1,0 +1,54 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[prompt] 加载 resume_extract (mtime=1789562303)
+ 完成
+
+🤖 单阶段循环（关键词：产品经理，阈值：6，标准模式，最多发送 5 条）
+13:03:06 INFO    [1/3] 启动 Boss直聘…
+13:03:25 INFO    [2/3] 搜索职位：「产品经理」…
+13:03:48 INFO    [3/3] 采集职位列表（基线，用于补全字段）…
+13:05:05 INFO      ✓ 采集到 60 条职位卡片
+13:05:11 INFO      [1] → 海外双语项目经理（AI 出海赛道）20K-40K（珍岛集团）
+[prompt] 加载 match_score (mtime=1789564469)
+13:05:36 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:05:39 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:05:47 INFO      分数 4/10  ['AI产品化经验，设计过Agent OS三层产品形态与统一AI网关', '跨职能协调能力强，主导过从0到1的系统建设项目']
+13:05:47 INFO      → 跳过（4 < 6）
+13:05:59 INFO      [2] → 客户成功经理—AI + RPA 方向(A134065)（分叉智能科技）
+13:06:24 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:06:27 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:06:36 INFO      分数 6/10  ['AI产品化和Agent OS设计经验直接对标RPA+AI方案创新能力', 'EHS/能碳管理中的流程引擎设计和自动化工作流搭建与行业场景理解']
+13:06:36 INFO      ✓ 达标！打招呼：史女士您好，我看到分叉智能在RPA+AI驱动业务价值这块的方向很吸引我。我之前主导过EHS管理系统从0到1的架构设计，用…
+13:07:07 INFO      ✓ 打招呼成功 — 史女士您好，我看到分叉智能在RPA+AI驱动业务价值这块的方向很吸引我。我之前主
+13:07:29 INFO      [3] → FDE工程师/AI智能体需求分析师（外包岗）（鼎茂科技）
+13:07:54 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:07:57 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:08:06 INFO      分数 5/10  ['AI产品化与智能体架构设计经验——设计过Agent OS三层形态与统一AI网关覆盖47+业务路由', '跨职能协调与项目交付能力——主导EHS系统0到1建设与能碳平台3个月UAT交付']
+13:08:06 INFO      → 跳过（5 < 6）
+13:08:18 INFO      [4] → 软件项目经理（可兼职）（上海兴兵容达科技）
+13:08:33 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:08:37 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:08:44 INFO      分数 6/10  ['2年产品/交付经验，具备跨职能协调与需求管理能力', '主导EHS系统0到1落地，具备全流程项目交付意识']
+13:08:44 INFO      ✓ 达标！打招呼：纪晨阳您好，我注意到职位需要承接签约项目的全流程管理与需求范围管控。我在EHS管理系统建设中主导了从0到1的完整落地，包…
+13:09:16 INFO      ✓ 打招呼成功 — 纪晨阳您好，我注意到职位需要承接签约项目的全流程管理与需求范围管控。我在EHS管
+13:09:37 INFO      当前屏幕无未访问目标，列表下滑 1/3
+13:09:45 INFO      [5] → 软件产品经理（上纬机器人）
+13:10:09 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:10:12 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:10:20 INFO      分数 5/10  ['产品架构设计和需求分析能力与岗位核心方向相符', '具备完整的0到1产品交付经验（EHS系统、能碳平台、Agent OS）']
+13:10:20 INFO      → 跳过（5 < 6）
+13:10:32 INFO      当前屏幕无未访问目标，列表下滑 1/3
+13:10:40 INFO      当前屏幕无未访问目标，列表下滑 2/3
+13:10:48 INFO      当前屏幕无未访问目标，列表下滑 3/3
+13:10:55 INFO      列表已无未访问目标（连滑 3 次都没新卡），结束
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：2 条
+  · 客户成功经理—AI + RPA 方向(A134065)（分叉智能科技）6/10 —— 打招呼成功
+    史女士您好，我看到分叉智能在RPA+AI驱动业务价值这块的方向很吸引我。我之前主导过EHS管理系统从0到1的架构设计，用n8n搭建自动化工作流提升用户调研效率7
+  · 软件项目经理（可兼职）（上海兴兵容达科技）6/10 —— 打招呼成功
+    纪晨阳您好，我注意到职位需要承接签约项目的全流程管理与需求范围管控。我在EHS管理系统建设中主导了从0到1的完整落地，包括需求调研、架构设计到客户交付的全链路，
+- 跳过：3 条

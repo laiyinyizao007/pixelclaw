@@ -7,6 +7,8 @@
 ## [Unreleased]
 
 ### Added（新增）
+- `api/routers/debug.py` — 新增跨环境日志接收端点 `POST /api/log`，接收 AutoX.js 等外部脚本的错误日志并写入 `logs/autox_debug/`；同时支持 `GET /api/log/files` 列出日志文件、`GET /api/log/files/{filename}` 读取指定日志内容
+- `utils/autox_logger.py` — 新增 `AutoXLogger` 日志客户端，供场景脚本统一接入日志系统：自动发送日志到 `/api/log`，API 失败时回退写入本地文件，支持 `exc_info=True` 自动捕获堆栈
 - `scenarios/wecom/` — 新建企业微信消息监控场景：
   - `skills/wecom/wecom_automation_skill.py`：企业微信自动化 skill；ELEMENTS 通过 UIAutomator dump 确认（设备 42231JEKB04971，2026-09）；`parse_messages()` 以 `ctw` 行容器为单位解析纯文字与卡片消息，含双向时间继承（前向传播 + 首批消息向后借用）；`_extract_card_url()` 点击卡片读取 WeCom 内置浏览器 `copyhackinput` 节点获取外部链接
   - `scenarios/wecom/scripts/monitor_messages.py`：消息监控脚本；按 contacts.yaml 逐一搜索会话 → UIAutomator dump → 解析 → SHA-256 去重 → 写入 `wecom_messages.db`（含 contact/sender/time_str/text/url 字段）；`--dry-run` 仅解析打印；`device_lock` 与其他 scenario 脚本互斥

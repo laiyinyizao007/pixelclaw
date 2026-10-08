@@ -1,5 +1,5 @@
 """
-PixelClawAgent: 基于 Claude tool_use 的 AI 编排层
+PixelClawAgent: 基于 tool calling 的 AI 编排层（厂商无关）
 
 Agent 接收自然语言任务，通过 tool_use 自主决定：
 - 检查当前 DB 状态（check_boss_stats）
@@ -27,10 +27,8 @@ from api.services import llm_client as llm
 from api.services import db_reader
 from api.services import process_manager as pm
 
-_PRIMARY, _FALLBACK = None, None
+_PROVIDERS: list | None = None
 
-PRIMARY_MODEL = "MiniMax-M3"
-FALLBACK_MODEL = "claude-haiku-4-5-20251001"
 MAX_STEPS = 20
 SCENARIOS_DIR = str(REPO_ROOT / "scenarios" / "boss" / "scripts")
 
@@ -48,24 +46,24 @@ def _done(exit_code: int = 0, duration_s: float = 0.0) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Claude tool definitions
+# 工具元数据（厂商无关的单一 source of truth，由各 Provider 转成自家协议）
 # ──────────────────────────────────────────────────────────────────────────────
 
 TOOLS = [
     {
         "name": "check_boss_stats",
         "description": "查询 Boss直聘数据库：今日打招呼数、今日浏览数、历史总计、平均评分、热门关键词。",
-        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "parameters": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "get_device_status",
         "description": "查询 ADB 设备连接状态：是否有设备在线、设备序列号和型号。",
-        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "parameters": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "get_recent_greetings",
         "description": "查询最近的打招呼记录，包括公司名、职位、评分、发送时间。",
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "limit": {
@@ -80,7 +78,7 @@ TOOLS = [
     {
         "name": "get_config",
         "description": "读取配置文件内容。file_key 可选: boss-keywords, candidate-profile, settings。",
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "file_key": {
@@ -95,7 +93,7 @@ TOOLS = [
     {
         "name": "update_config",
         "description": "更新 Boss 关键词列表或候选人画像权重。data 为 YAML/JSON 字符串。",
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "file_key": {
@@ -113,12 +111,12 @@ TOOLS = [
     {
         "name": "run_boss_scrape",
         "description": "运行 Boss直聘爬取脚本，抓取新职位并存入数据库。需要设备连接。大约需要 5-10 分钟。",
-        "input_schema": {"type": "object", "properties": {}, "required": []},
+        "parameters": {"type": "object", "properties": {}, "required": []},
     },
     {
         "name": "run_smart_greet",
         "description": "运行智能匹配打招呼脚本：对数据库中评分较高的职位发送打招呼。需要设备连接。",
-        "input_schema": {
+        "parameters": {
             "type": "object",
             "properties": {
                 "max_greet": {
@@ -228,14 +226,13 @@ def _exec_update_config(inp: dict) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 class PixelClawAgent:
-    """Claude tool_use agentic loop。"""
+    """tool calling agentic loop（协议差异由 llm_client 的 Provider 封装）。"""
 
     def __init__(self) -> None:
-        global _PRIMARY, _FALLBACK
-        if _PRIMARY is None:
-            _PRIMARY, _FALLBACK = llm.make_client()
-        self._primary = _PRIMARY
-        self._fallback = _FALLBACK
+        global _PROVIDERS
+        if _PROVIDERS is None:
+            _PROVIDERS = llm.make_client()
+        self._providers = _PROVIDERS
 
     async def run(
         self,
@@ -256,51 +253,44 @@ class PixelClawAgent:
             await broadcast(task_id, _done(exit_code=0, duration_s=round(elapsed, 1)))
 
     async def _loop(self, task: str, task_id: str, broadcast: Callable) -> None:
-        messages = [{"role": "user", "content": task}]
+        messages: list[dict] = [{"role": "user", "content": task}]
 
-        for step in range(MAX_STEPS):
-            # 调用 Claude（同步 SDK，放到 executor 避免阻塞事件循环）
-            _model = PRIMARY_MODEL
-            _fallback_model = FALLBACK_MODEL
-            response = await asyncio.get_event_loop().run_in_executor(
+        for _step in range(MAX_STEPS):
+            # 同步 SDK 放到 executor，避免阻塞事件循环
+            response, provider = await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: llm.call_with_fallback(
-                    self._primary,
-                    self._fallback,
-                    fallback_model=_fallback_model,
-                    model=_model,
-                    max_tokens=2048,
-                    system=SYSTEM_PROMPT,
-                    tools=TOOLS,
+                    self._providers,
                     messages=messages,
+                    tools=TOOLS,
+                    system=SYSTEM_PROMPT,
+                    max_tokens=2048,
                 ),
             )
+            parsed = provider.parse_response(response)
 
-            # 输出推理文字
-            for block in response.content:
-                if block.type == "text" and block.text.strip():
-                    await broadcast(task_id, _log("INFO", f"[思考] {block.text.strip()}"))
+            for text in (parsed["reasoning"], parsed["content"]):
+                if text:
+                    await broadcast(task_id, _log("INFO", f"[思考] {text}"))
 
-            tool_calls = [b for b in response.content if b.type == "tool_use"]
-
-            if response.stop_reason == "end_turn" or not tool_calls:
+            if not parsed["tool_calls"]:
                 break
 
-            # 执行所有工具调用
-            tool_results = []
-            for tc in tool_calls:
-                await broadcast(task_id, _log("INFO", f"[工具] {tc.name}"))
-                result = await self._execute_tool(tc.name, tc.input, task_id, broadcast)
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": parsed["content"],
+                    "tool_calls": parsed["tool_calls"],
+                }
+            )
+            for tc in parsed["tool_calls"]:
+                await broadcast(task_id, _log("INFO", f"[工具] {tc['name']}"))
+                result = await self._execute_tool(tc["name"], tc["input"], task_id, broadcast)
                 short = result[:300] + ("…" if len(result) > 300 else "")
                 await broadcast(task_id, _log("INFO", f"[结果] {short}"))
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": tc.id,
-                    "content": result,
-                })
-
-            messages.append({"role": "assistant", "content": response.content})
-            messages.append({"role": "user", "content": tool_results})
+                messages.append(
+                    {"role": "tool", "tool_call_id": tc["id"], "content": result}
+                )
 
         else:
             await broadcast(task_id, _log("WARNING", f"[Agent] 已达最大步数 {MAX_STEPS}，强制结束。"))

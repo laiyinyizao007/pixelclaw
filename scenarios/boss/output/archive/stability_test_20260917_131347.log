@@ -1,0 +1,49 @@
+✓ 简历已加载：current.md（12548 字符）
+⏳ 提取简历画像（Haiku）…[primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+[prompt] 加载 resume_extract (mtime=1789562303)
+ 完成
+
+🤖 单阶段循环（关键词：产品经理，阈值：6，标准模式，最多发送 10 条）
+13:14:12 INFO    [1/3] 启动 Boss直聘…
+13:14:31 INFO    [2/3] 搜索职位：「产品经理」…
+13:14:55 INFO    [3/3] 采集职位列表（基线，用于补全字段）…
+13:16:16 INFO      ✓ 采集到 60 条职位卡片
+13:16:22 INFO      [1] → 产品经理（金融AI智能客服）-国金证券（冠凯软件）
+[prompt] 加载 match_score (mtime=1789564469)
+13:16:46 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:16:50 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:16:58 INFO      分数 4/10  ['AI产品化经验：有Agent OS与AI智能体产品设计背景，理解AI系统的产品形态', '跨部门协调能力：作为唯一PM/设计/售前角色，擅长与研发、后端、AI工程师协作']
+13:16:58 INFO      → 跳过（4 < 6）
+13:17:10 INFO      [2] 跳过（已打过招呼）：AI产品经理
+13:17:16 INFO      [3] → 资深ai产品经理（石磐广告）
+13:17:31 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:17:34 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:17:44 INFO      分数 7/10  ['AI Agent产品0-1设计与落地能力强：有完整的AI产品从0-1闭环经验（能碳、EHS等垂直领域），擅长快速学习陌生业务并主导产品全流程', 'Coding能力与原型验证：掌握Vibe Coding、React+TS，习惯手动搭建Figma设计系统与可运行Demo，能直接支持前端联调与产品验证']
+13:17:44 INFO      ✓ 达标！打招呼：秦女士您好，看到岗位需要每周产出可使用的Agent工具并深入业务场景。我在未来方舟作为唯一的产品/设计/工程师协调角色，…
+13:18:16 INFO      ✓ 打招呼成功 — 秦女士您好，看到岗位需要每周产出可使用的Agent工具并深入业务场景。我在未来方
+13:18:38 INFO      当前屏幕无未访问目标，列表下滑 1/3
+13:18:45 INFO      当前屏幕无未访问目标，列表下滑 2/3
+13:18:53 INFO      [4] 跳过（已打过招呼）：产品经理
+13:18:59 INFO      当前屏幕无未访问目标，列表下滑 1/3
+13:19:06 INFO      当前屏幕无未访问目标，列表下滑 2/3
+13:19:14 INFO      [5] → AI产品经理（）
+13:19:39 WARNING [primary] 暂态错误 RateLimitError (attempt 1)，1.5s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:19:42 WARNING [primary] 暂态错误 RateLimitError (attempt 2)，3.0s 后重试: Error code: 429 - {'error': {'message': '速率限制超出：5小时窗口内的配额已用完：(2502/2500) 请联系商家升级', 'type': 'rate_limit_error'}, 'type': 'error'}
+13:19:51 INFO      分数 8/10  ['Vibe Coding低代码开发能力——已在Figma+React TS中实现高保真Demo与Design System搭建', 'AI智能体产品化设计——完整设计过Agent OS三层形态与三类业务节点编排模型']
+13:19:51 INFO      ✓ 达标！打招呼：羊女士，您好！我特别关注岗位中提到的「Vibe Coding快速验证产品想法」与「AI智能体场景化应用」这两点。我在未来…
+13:20:23 INFO      ✓ 打招呼成功 — 羊女士，您好！我特别关注岗位中提到的「Vibe Coding快速验证产品想法」与
+13:20:45 INFO      当前屏幕无未访问目标，列表下滑 1/3
+13:20:52 INFO      当前屏幕无未访问目标，列表下滑 2/3
+13:21:00 INFO      当前屏幕无未访问目标，列表下滑 3/3
+13:21:08 INFO      列表已无未访问目标（连滑 3 次都没新卡），结束
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：2 条
+  · 资深ai产品经理（石磐广告）7/10 —— 打招呼成功
+    秦女士您好，看到岗位需要每周产出可使用的Agent工具并深入业务场景。我在未来方舟作为唯一的产品/设计/工程师协调角色，已主导EHS、能碳等复杂领域的AI产品从
+  · AI产品经理（）8/10 —— 打招呼成功
+    羊女士，您好！我特别关注岗位中提到的「Vibe Coding快速验证产品想法」与「AI智能体场景化应用」这两点。我在未来方舟用Figma+React TS实现过
+- 跳过：3 条

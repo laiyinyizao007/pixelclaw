@@ -1,0 +1,10 @@
+{
+  "keyword": "AI产品经理",
+  "n_jobs_requested": 10,
+  "scraped_at": "2026-09-04T11:27:47Z",
+  "device_id": "42231JEKB04971",
+  "jobs": [],
+  "errors": [
+    "ensure_ready 失败（设备未连接或致命弹窗）"
+  ]
+}
