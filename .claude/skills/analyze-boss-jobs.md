@@ -27,6 +27,8 @@
   1. `scenarios/boss/output/requirements.db` 的 `job_details` 表（运行过 `scrape_job_details.py` 后自动写入）
   2. `scenarios/boss/output/` 下的 `job_details_*.json` 历史文件（回落路径，不再主动生成）
 
+> 💡 **建议**：先跑 [smart-greet skill](smart-greet/SKILL.md) 的 `scripts/preflight.sh` 验证 5 项前置（ADB / .env / 简历 / LLM endpoint / App 已登录），再跑本分析脚本
+
 ## 输出
 - SQLite 数据库：`scenarios/boss/output/requirements.db`（增量，重复运行自动跳过已处理职位）
 - Markdown 报告：`scenarios/boss/output/requirements_analysis_{keyword}_{date}.md`

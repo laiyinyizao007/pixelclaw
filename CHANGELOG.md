@@ -14,6 +14,10 @@
 - **smart_match_greet.py 简历路径跨主机档（Pi vs Windows）适配（2026-10-09）**：三个 sister 脚本（`scenarios/{boss,zhilian,liepin}/scripts/smart_match_greet.py`）的 `RESUME_DEFAULT` 原本硬编码 Windows 路径 `C:/Dev/projects/resume-renew/resume/current.md`，在 Pi 主机（`$HOME/Projects/resume-renew/resume/current.md`）上每次跑都要 `--resume` 显式传，覆盖默认行为低效。改为优先级解析：`$PIXELCLAW_RESUME_PATH` 环境变量 > Pi 默认回退（`~$HOME/Projects/resume-renew/resume/current.md`）。**关键 bug 修复**：原写法 `os.environ.get(VAR, default)` 在环境变量**设为空字符串**时返回 `""`，再被 `Path("")` 解析成 `.`（当前目录），加载 `extract_resume_summary()` 会 `FileNotFoundError`。改用 `os.environ.get(VAR) or default` 模式后空字符串落到 Pi 回退，覆盖未设/设为空/设为合法路径三种情形全部正常。三脚本均做同样 patch，语法 check 通过
 
 ### Added（新增）
+- **`.claude/skills/smart-greet/`**（2026-10 新增）—— 把 smart_match_greet 工作流封装成正式 Claude skill，替换原非正式 doc `.claude/skills/smart-match-greet.md`（已删除）。SKILL.md 274 行 + 2 个 references（error-fix-table.md 12 行 P0/P1/P2 错误分级、platform-differences.md 9 维度 3 平台对比）+ 2 个 scripts（preflight.sh 5 项前置、diagnose-fail.sh 错误关键词匹配 12 类）+ evals/evals.json 5 test cases。覆盖原 doc 缺失的 6 项内容：preflight 5 项检查、3 平台命令模板、12 行错误→修复、output 字段解读、多日 DB 管理、配额管理。YAML frontmatter description 触发词覆盖"智能打招呼"/"匹配职位"/"发送未确认"/"切到智联"等场景
+- **`~/.claude/skills/job-greet/`**（2026-10 新增）—— 通用版 job-greet skill（不带 PixelClaw 特定命令路径），覆盖 5 阶段工作流（preflight / 浏览 / 评分 / 发送 / 记录去重）+ 跨平台差异 8 维度。供其他项目复用同一模式
+
+### Added（新增）
 - `.env.example`（项目根）—— smart_match_greet.py 等用的环境变量模板：标注 `MINIMAX_CN_API_KEY` 取值来源（`printenv MINIMAX_CN_API_KEY`，值在 `~/.zshenv`） + LLM URL 防混淆警告（`api.minimax.chat` ≠ `api.minimaxi.com`） + `PIXELCLAW_RESUME_PATH` 简历路径跨主机档说明（Windows 主机设此变量；Pi 不设自动走回退）。`.env` 已在 `.gitignore`，真实凭证不入仓
 - `~/.claude/projects/-home-averypi-Projects-pixelclaw/memory/reference_hermes_llm_endpoint.md`（项目 memory）—— 跨会话 reference，固化 hermes URL + 模型可用性矩阵（`MiniMax-M3` ✅ / `MiniMax-Text-01` ✅ / `MiniMax-M2.7` ⚠️ ThinkingBlock 兼容问题 / `claude-3-5-haiku-20241022` ✅）+ 30s 裸 SDK 诊断套路
 
