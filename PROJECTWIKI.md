@@ -100,6 +100,7 @@ flowchart LR
 | `config/devices.json` | 设备配置（当前默认：Raspberry Pi 5 主机档） |
 | `config/devices.raspberrypi.example.json` | Pi 5 主机档参考快照（用于跨档位切换） |
 | `config/devices.windows.example.json` | Windows 主机档参考快照（历史/默认占位，2026-10 起已不维护） |
+| `config/mihomo-config-snapshot.yaml` | mihomo (Clash Meta) 配置归档（脱敏版，2026-10-09）——保留 100.64.0.0/10 tailnet 直连规则 |
 | `config/` | 设备与系统配置文件 |
 | `docs/` | 通用项目文档 |
 | `memory/` | 三层记忆系统（capture → store → recall） |
@@ -539,12 +540,13 @@ adb exec-out screencap -p > wechat.png
    sudo cp /home/averypi/.config/mihomo/geoip.metadb /root/.config/mihomo/
    sudo cp /home/averypi/.config/mihomo/cache.db     /root/.config/mihomo/ 2>/dev/null || true
 
-   # 用真实二进制后台启动（/usr/local/bin/mihomo 软链已坏）
-   nohup /tmp/vm-proxy/mihomo -f /root/.config/mihomo/config.yaml \
+   # 用真实二进制后台启动（/usr/local/bin/mihomo 是软链 → /tmp/vm-proxy/mihomo）
+   nohup /usr/local/bin/mihomo -f /root/.config/mihomo/config.yaml \
          > /tmp/mihomo.log 2>&1 &
 
-   # 验证进程
-   pgrep -fa /tmp/vm-proxy/mihomo
+   # 验证进程 + 版本
+   pgrep -fa /usr/local/bin/mihomo
+   /usr/local/bin/mihomo -v   # 预期: Mihomo Meta v1.19.32 linux arm64
    ```
 
 **验证证据**：
@@ -559,9 +561,11 @@ adb exec-out screencap -p > wechat.png
 
 **遗留事项 / 后续优化**：
 
-- **软链修复**：`sudo ln -sf /tmp/vm-proxy/mihomo /usr/local/bin/mihomo`，把硬编码路径改成可移植软链——否则 `/tmp/vm-proxy/` 目录被清理后 mihomo 再次失踪
-- **mihomo 进程守护**：当前是 `nohup &` 启动，重启后会丢。建议补一个 `mihomo.service` systemd unit（`ExecStart=/tmp/vm-proxy/mihomo -f /root/.config/mihomo/config.yaml`，`Restart=always`），并 `systemctl enable --now mihomo`
-- **rules 备份策略**：mihomo 升级会覆盖 `config.yaml`，建议把 `100.64.0.0/10` 这条规则放到 mihomo 配置文件管理之外的 overlay（如 git 仓管 `/root/.config/mihomo/overrides.yaml`，通过 `merge` 合并规则）
+- ✅ **软链修复（2026-10-09 已完成）**：`sudo ln -sf /tmp/vm-proxy/mihomo /usr/local/bin/mihomo`，现在 `mihomo` 进 PATH，可用 `/usr/local/bin/mihomo` 启动而无需写死 `/tmp/vm-proxy/`
+- ✅ **配置归档（2026-10-09 已完成）**：当前 `config.yaml`（脱敏版，已删除 vless/reality 凭证，保留 `rules` 段）已归档到 `config/mihomo-config-snapshot.yaml`，便于在其他机器复现 100.64.0.0/10 直连规则
+- ✅ **历史备份清理（2026-10-09 已完成）**：`/root/.config/mihomo/` 下 8 个旧 `.bak*` / `.backup.*` / `.before_fix_*` 备份已全部删除，目录现在只剩 `cache.db` + `config.yaml` + `geoip.metadb`
+- ⏳ **mihomo 进程守护**：当前是 `nohup &` 启动，重启后会丢。建议补一个 `mihomo.service` systemd unit（`ExecStart=/usr/local/bin/mihomo -f /root/.config/mihomo/config.yaml`，`Restart=always`），并 `systemctl enable --now mihomo`
+- ⏳ **rules 备份策略**：mihomo 升级会覆盖 `config.yaml`，建议把 `100.64.0.0/10` 这条规则放到 mihomo 配置文件管理之外的 overlay（如 git 仓管 `/root/.config/mihomo/overrides.yaml`，通过 `merge` 合并规则）——目前 `config/mihomo-config-snapshot.yaml` 是 git 备份，自动化同步未做
 - **`config/devices.json` 扩展**：当前只存 WiFi 内网值；建议加 `tailscale_ip` / `tailscale_port` 字段（默认走 WiFi 链路，WiFi 不可达时 `DeviceConnector.connect()` 自动降级到 tailnet）——见 §8.4.4「配置建议」末段
 - **指标与告警**：建议在 keepalive（§8.4.2）的健康检查里加一项「`tailscale status` 是否仍为 direct」，DERP 回落持续 >5 min 即推送提醒（说明 NAT 穿透退化，可能需要重启 tailscaled）
 
