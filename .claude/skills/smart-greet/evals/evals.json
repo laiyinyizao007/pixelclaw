@@ -1,0 +1,35 @@
+{
+  "skill_name": "smart-greet",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我跑 AI产品经理的智能打招呼，10 条",
+      "expected_output": "Skill 应引导：(1) 跑 preflight.sh 验证 5 项前置；(2) 确认用户平台（boss/zhilian/liepin）；(3) 给出完整命令 `python scenarios/boss/scripts/smart_match_greet.py --keyword 'AI产品经理' --max-greet 10 --threshold 7 --strict` 含 PYTHONUTF8=1 前缀；(4) 提示去 PROJECTWIKI §5 查 LLM provider 配置",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "上次跑出现 '两端 API 配额耗尽'，为什么？",
+      "expected_output": "Skill 应解释：(1) 主+fallback relay 都达到限额；(2) 脚本自动 sleep 到 klugai resetAt+10s 后重试当前卡；(3) 这是预期行为不需要手动干预；(4) Ctrl+C 重跑后已发职位会通过 dedup_key 自动跳过；(5) 配等待时间估算（hermes 5h 滚动 / klugai 每日重置）",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "发送未确认 是不是失败了？",
+      "expected_output": "Skill 应明确说明这是 **false negative 高发**：(1) verify_message_sent() 6s 轮询窗口内没抓到气泡（App UI 渲染延迟/网络延迟）；(2) 消息很可能已发；(3) 建议先到 App 聊天列表手动确认；(4) 确认发了 → 加 --no-verify 重跑，避免误判；没发 → 重跑；(5) 不要仅凭 verify 结果判定失败",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "切到智联招聘",
+      "expected_output": "Skill 应识别平台差异：(1) 用 `-m scenarios.zhilian.scripts.smart_match_greet`（包模式，不是直接路径）；(2) 智联是「点先聊聊」即发送默认招呼，无自定义文本；(3) 无 DialogType 系统（不像 boss 那样有 13 种状态）；(4) DB 走 `scenarios/zhilian/output/requirements.db`（不是 boss 的）；(5) 表前缀 `zhilian_*`；(6) 每日上限 150（vs boss 110）",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "先 score-only 看看匹配质量",
+      "expected_output": "Skill 应给出：`PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py --keyword 'AI产品经理' --score-only --max-greet 5 --strict`，并解释：(1) --score-only 仍需打开 App（评分依赖实时 JD）；(2) 重点看输出字段 `top_matches` / `dimension_scores` / `mismatch_concerns`；(3) 调试分数低的原因：top_matches 看 LLM 推理依据，dimension_scores 看具体哪项扣分；(4) 调 --threshold 建议 6-8",
+      "files": []
+    }
+  ]
+}

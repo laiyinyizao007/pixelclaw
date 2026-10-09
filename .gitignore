@@ -77,3 +77,7 @@ tmp_*.xml
 
 # Claude Code personal overrides (settings.json is shared and tracked)
 .claude/settings.local.json
+
+# Skill eval workspace (transient, per-iteration outputs)
+.claude/skills/*/smart-greet-workspace/
+.claude/skills/*/smart-greet-workspace

@@ -310,6 +310,17 @@ RESUME_DEFAULT = Path(
 - 详情页加载超时（偶发网络抖动）会跳过该职位并继续下一个
 - 列表页 `scroll_job_list` 采集坐标后再导航会因滚动偏移而坐标漂移；实测 n_jobs=60 在采集完成后立即循环，暂未发现问题
 
+**Agent 引导 skill（2026-10 新增）**：完整工作流 + preflight + 3 平台差异 + 8+ 错误→修复已封装为 Claude skill，位于 `.claude/skills/smart-greet/SKILL.md`。用户说"智能打招呼"、"匹配职位"、"发送未确认是不是失败了"、"切到智联"等都会自动触发。Skill 包含：
+- 5 项 preflight 检查（ADB / .env / 简历 / LLM endpoint 30s 诊断 / App 已登录）
+- 跨平台命令模板（boss/zhilian/liepin 各举 1 例）
+- `references/error-fix-table.md`（12 行错误→修复，含严重程度 P0/P1/P2 分级）
+- `references/platform-differences.md`（3 平台 9 维度详细对比：打招呼机制 / Dialog / HR 活跃度 / 薪资 / DB / 上限 / Prompt / 入口模式 / 共享 vs 平台特有）
+- `scripts/preflight.sh`（一键 5 项 preflight，4.4 KB）
+- `scripts/diagnose-fail.sh`（错误关键词匹配 12 类，4.4 KB）
+- `evals/evals.json`（5 个 test cases for skill-creator eval 循环）
+
+个人级通用版（不带 PixelClaw 命令路径）见 `~/.claude/skills/job-greet/SKILL.md`。
+
 **Boss直聘页面状态检测流程**（13 种状态）：
 
 ```mermaid
