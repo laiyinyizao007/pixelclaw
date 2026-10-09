@@ -1,11 +1,15 @@
-# mihomo (Clash Meta) 配置快照（脱敏版）
+# mihomo (Clash Meta) 配置快照（脱敏版，lovelive 套）
 #
 # 来源：Pi 5 主机 /root/.config/mihomo/config.yaml（2026-10-09）
-# 用途：归档 mihomo/Tailscale 共存修复后的最小配置，便于回滚或在其他机器复现
+# 用途：归档当前生效的 mihomo 配置，便于回滚或在其他机器复现
 # 完整说明：见 PROJECTWIKI.md §8.4.5「Mihomo/Tailscale 共存配置（2026-10 修复）」
 #
 # ⚠️ 此快照**已脱敏**：`proxies` 段（vless + reality 凭证）已删除，部署时请用
 # 自己的代理节点替换。`rules` 段完整保留（这是修复的关键点）。
+#
+# 🔄 2026-10-09 更新：从 microsoft 套（uuid b600109f）切到 lovelive 套（uuid 2ea271b4）
+# 原因：server 端 systemd xray 在 2026-07-10 已被改成 lovelive 配置
+# 详见 racknerdVPN 项目 README.md「配置变更历史」
 
 # ---- 监听端口（HTTP/SOCKS5/controller）----
 port: 7890              # HTTP 代理
@@ -26,6 +30,23 @@ dns:
     - 8.8.4.4
 
 # ---- proxies 段：vless/reality 凭证已脱敏，部署时请自行填写 ----
+# 模板（lovelive 套，可参考）：
+#   proxies:
+#     - name: "RackNerd-averypi"
+#       type: vless
+#       server: 75.127.13.29
+#       port: 443
+#       uuid: <YOUR_UUID>
+#       network: tcp
+#       tls: true
+#       udp: true
+#       flow: xtls-rprx-vision
+#       servername: <YOUR_SNI>
+#       reality-opts:
+#         public-key: <YOUR_PBK>     # x25519 公钥
+#         short-id: <YOUR_SID>       # hex 8 字节
+#         spider-x: "/"               # 默认路径
+#       client-fingerprint: chrome
 proxies: []
 proxy-groups:
   - name: "Proxy"
