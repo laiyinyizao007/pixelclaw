@@ -168,6 +168,12 @@ PYTHONUTF8=1 python -m scenarios.liepin.scripts.smart_match_greet \
 
 > **greeted vs skipped 之和 ≠ max-greet 是正常的**——`errors` 项独立计数。
 > `requirements.db` 的 `greetings` 表会记所有发送过的，**跨次运行自动跳过**。
+>
+> 跑完会输出**评分分布摘要**（`smart_match_greet.py:1584-1592`）：
+> ```
+> 📊 评分分布（共 N 个职位打分）: ≥8分=X  6-7分=Y  <6分=Z  均分=AVG  跳过=W
+> ```
+> `--score-only` 模式仍会触发同一摘要，且不消耗每日沟通次数（只写 `job_details` 表，不写 `greetings` 表；代码 `smart_match_greet.py:1404-1410`）。
 
 ## 常见错误 → 修复（8+）
 
@@ -175,7 +181,8 @@ PYTHONUTF8=1 python -m scenarios.liepin.scripts.smart_match_greet \
 
 ### 1. `两端 API 配额耗尽` → 自动恢复
 - **症状**：脚本卡在 "sleep until resetAt"，日志倒计时秒数
-- **机制**：两端 relay 都达到限额时，自动 sleep 到 klugai 的 `resetAt` 时间（+10 秒缓冲），然后重试当前卡
+- **机制**：两端 relay（hermes 主 + klugai 备）都达到限额时，自动 sleep 到 klugai 的 `resetAt` 时间（+10 秒缓冲），然后重试当前卡
+- **代码位置**：`scenarios/boss/scripts/smart_match_greet.py:1284-1307`（`_with_screen_heartbeat` 异常处理 + `_extract_reset_at()` + `time.sleep(wait_secs)`）
 - **不需要手动干预**，等就行；如果等太久可以 Ctrl+C 重跑（已发的会去重）
 
 ### 2. `DialogType.DAILY_LIMIT` → 次日重跑
