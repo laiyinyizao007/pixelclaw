@@ -498,6 +498,75 @@ adb exec-out screencap -p > wechat.png
 
 用户操作指引见 `docs/GETTING_STARTED.md` §3.11。
 
+> ⚠️ **mihomo/Tailscale 共存坑（2026-10 实测）**：Tailscale 装好后若发现 GitHub raw 掉到 4 KB/s、apt 装包 28 KB/s、整网速被代理拖垮，几乎一定是 Tailscale CGNAT 段 `100.64.0.0/10` 没在 mihomo 白名单——包走 mihomo 出网，mihomo 又没有去 tailnet 的路由，引发回环。同时首次启用 subnet router 模式时还会因 `ip_forward=0` / IPv6 forwarding off 报 `netcheck: IPv4 UDP disabled`。**必须在装 Tailscale 当天就检查并修复**，否则整个开发体验会不可解释地变慢。完整诊断 + 三步修复见 §8.4.5。
+
+### 8.4.5 Mihomo/Tailscale 共存配置（2026-10 修复）
+
+本节是 §8.4.4「Tailscale 远程控制链路」的**配套排障章节**——链路本身测通了，但「装了 Tailscale 之后整网变慢」的根因是 mihomo 代理 + Tailscale CGNAT 段 + IP 转发的三方冲突，单独处理任一项都不彻底。
+
+**冲突根因（三个独立坑，必须全部修）**：
+
+| # | 坑 | 现象 | 根因 |
+|---|----|------|------|
+| 1 | Tailscale CGNAT 段被代理吃 | GitHub raw 4 KB/s、apt 装包 28 KB /s、境外 HTTPS 普遍卡顿；`tailscale status` 显示 `localhost-0` 长期 `relay "hkg"`（走 DERP 中继） | mihomo 默认 rules 只放行 RFC1918（`10.0.0.0/8` / `172.16.0.0/12` / `192.168.0.0/16`），Tailscale 的 CGNAT 段 `100.64.0.0/10` 不在内，tailnet 流量也被强制走 mihomo 出网；mihomo 又没有到 tailnet 的路由，引发回环 / 代理握手挂死 |
+| 2 | IP 转发未启用 | `tailscaled` 日志反复 `netcheck: IPv4 UDP disabled` / `ipv6 forwarding is off`；`tailscale status` 出现 `subnet router` 警告 | Tailscale subnet router 模式要求内核允许 IPv4/IPv6 转发；Pi 5 默认 `net.ipv4.ip_forward=0` |
+| 3 | mihomo 启动失败 | `mihomo` 启动后 5–10 秒 fatal 退出：`can't download MMDB: TLS handshake timeout` | `/usr/local/bin/mihomo` 是失效软链（指向已删除的旧二进制）；正确路径是 `/tmp/vm-proxy/mihomo`（`v1.19.32`）。另外 `/root/.config/mihomo/` 缺 `geoip.metadb`，MMDB 在线拉取在代理环境下超时 |
+
+**修复配置（2026-10-09 已验证）**：
+
+1. **mihomo rules 放行 tailnet 段**——编辑 `/root/.config/mihomo/config.yaml`，在 `rules:` 段尾追加：
+   ```yaml
+   rules:
+     # ...既有规则...
+     - IP-CIDR,100.64.0.0/10,DIRECT   # Tailscale tailnet 直连，避免回环
+   ```
+   备份：`config.yaml.bak.20261009_012517`。验证：`mihomo -T -f /root/.config/mihomo/config.yaml`（dry-run 校验语法）。
+
+2. **持久化 IP 转发**——新建 `/etc/sysctl.d/99-tailscale-ipforward.conf`：
+   ```conf
+   net.ipv4.ip_forward=1
+   net.ipv6.conf.all.forwarding=1
+   ```
+   立即生效并重启 Tailscale：
+   ```bash
+   sudo sysctl --system
+   sudo systemctl restart tailscaled
+   ```
+
+3. **重启 mihomo（用真实二进制 + 同步 MMDB）**：
+   ```bash
+   # 复制 MMDB（避免启动期下载）
+   sudo cp /home/averypi/.config/mihomo/geoip.metadb /root/.config/mihomo/
+   sudo cp /home/averypi/.config/mihomo/cache.db     /root/.config/mihomo/ 2>/dev/null || true
+
+   # 用真实二进制后台启动（/usr/local/bin/mihomo 软链已坏）
+   nohup /tmp/vm-proxy/mihomo -f /root/.config/mihomo/config.yaml \
+         > /tmp/mihomo.log 2>&1 &
+
+   # 验证进程
+   pgrep -fa /tmp/vm-proxy/mihomo
+   ```
+
+**验证证据**：
+
+| 检查项 | 修复前 | 修复后 |
+|--------|--------|--------|
+| `tailscale status` 中 `localhost-0` 的连接 | `relay "hkg"` (DERP 中继，跨太平洋) | `direct 183.195.17.77:1316` (NAT 穿透成功，P2P) |
+| `tailscaled` netcheck 警告 | `IPv4 UDP disabled`、`ipv6 forwarding is off` | 干净，无警告 |
+| GitHub raw 下载（`https://raw.githubusercontent.com/...`） | 4 KB/s | 80–900 KB/s（视镜像源） |
+| `apt install` 包下载 | 28 KB/s 持续卡顿 | 恢复正常带宽 |
+| 微信截图（`adb exec-out screencap` over tailnet） | 偶发超时 | 稳定 1–2 s 返回 1080×2400 PNG |
+
+**遗留事项 / 后续优化**：
+
+- **软链修复**：`sudo ln -sf /tmp/vm-proxy/mihomo /usr/local/bin/mihomo`，把硬编码路径改成可移植软链——否则 `/tmp/vm-proxy/` 目录被清理后 mihomo 再次失踪
+- **mihomo 进程守护**：当前是 `nohup &` 启动，重启后会丢。建议补一个 `mihomo.service` systemd unit（`ExecStart=/tmp/vm-proxy/mihomo -f /root/.config/mihomo/config.yaml`，`Restart=always`），并 `systemctl enable --now mihomo`
+- **rules 备份策略**：mihomo 升级会覆盖 `config.yaml`，建议把 `100.64.0.0/10` 这条规则放到 mihomo 配置文件管理之外的 overlay（如 git 仓管 `/root/.config/mihomo/overrides.yaml`，通过 `merge` 合并规则）
+- **`config/devices.json` 扩展**：当前只存 WiFi 内网值；建议加 `tailscale_ip` / `tailscale_port` 字段（默认走 WiFi 链路，WiFi 不可达时 `DeviceConnector.connect()` 自动降级到 tailnet）——见 §8.4.4「配置建议」末段
+- **指标与告警**：建议在 keepalive（§8.4.2）的健康检查里加一项「`tailscale status` 是否仍为 direct」，DERP 回落持续 >5 min 即推送提醒（说明 NAT 穿透退化，可能需要重启 tailscaled）
+
+> **何时回查本节**：任何时候观察到「Tailscale 节点突然走 DERP」「装新设备后网速骤降」「mihomo 进程无故消失」——先按本节顺序排查 rules → sysctl → mihomo 启动。
+
 ## 9. 依赖图谱
 
 主要依赖见 `requirements.txt`。关键外部依赖：
