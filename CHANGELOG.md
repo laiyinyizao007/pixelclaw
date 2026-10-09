@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Fixed（修复）
+- **mihomo/Tailscale 共存配置（2026-10-09）**：修复装上 Tailscale 后整个网络变慢（GitHub raw 4 KB/s、apt 28 KB/s、境外 HTTPS 普遍掉到代理延迟上限）的根因——Tailscale CGNAT 段 `100.64.0.0/10` 默认走 mihomo 代理而代理本身没有去往 tailnet 的路由，引发回环；且首次启用 Tailscale subnet router 时 `tailscaled` 报 `netcheck: IPv4 UDP disabled` / `ipv6 forwarding is off`，需要开启 IP 转发。三步修复：① `/root/.config/mihomo/config.yaml` 的 `rules` 段新增 `- IP-CIDR,100.64.0.0/10,DIRECT`（放行 tailnet，避免回环），规则备份于 `config.yaml.bak.20261009_012517`；② 持久化 `net.ipv4.ip_forward=1` + `net.ipv6.conf.all.forwarding=1` 到 `/etc/sysctl.d/99-tailscale-ipforward.conf`（`tailscaled` 自带 subnet router 模式要求），并 `systemctl restart tailscaled`；③ 用真实二进制 `/tmp/vm-proxy/mihomo`（`v1.19.32`）而非失效软链 `/usr/local/bin/mihomo` 重启 mihomo，且把 `/home/averypi/.config/mihomo/geoip.metadb` + `cache.db` 同步到 `/root/.config/mihomo/` 避免启动期 MMDB 下载。修复后 `tailscale status` 显示 `localhost-0` 从 `relay "hkg"` 变为 `direct 183.195.17.77:1316`（NAT 穿透成功，P2P），GitHub raw 恢复 80–900 KB/s。完整诊断与验证见 `PROJECTWIKI.md` §8.4.5
+
+### Documentation（文档）
+- `PROJECTWIKI.md` — §8.4.4 末尾追加 mihomo/Tailscale 共存坑警告（指向 §8.4.5）；§8.4.4 之后新增 §8.4.5「Mihomo/Tailscale 共存配置（2026-10 修复）」，覆盖冲突根因（CGNAT 段被代理 + IP 转发未启用 + mihomo 启动失败）、修复配置（mihomo rules / sysctl / tailscaled 重启 / mihomo 重启 + MMDB）、验证证据（`tailscale status` 切 P2P、GitHub raw 速率恢复）、遗留事项（软链修复 / systemd unit / 备份策略）
+
 ### Added（新增）
 - **远程控制链路（Tailscale over WireGuard，2026-10-09）**：通过 Tailscale 隧道实现跨子网/跨公网远程控制物理 Pixel 设备。Pixel 上的 Linux 虚拟机（Termux + proot）作为 tailnet 节点 `localhost-0`（`100.108.209.0`）暴露 `0.0.0.0:5555` ADB 端口；主机端 `adb connect 100.108.209.0:5555` 即可建立 P2P 控制链路，不再依赖同一 WiFi / USB / 自建中转服务器，所有 ADB 流量经 WireGuard 加密。拓扑、连接命令与实测验证（`am start` + `exec-out screencap` 截图返回微信主界面 1080×2400）详见 `PROJECTWIKI.md` §8.4.4；用户指引见 `docs/GETTING_STARTED.md` §3.11
 - `PROJECTWIKI.md` — §1 运行环境补充「远程控制链路」一行；§8.4.3 后新增 §8.4.4「Tailscale 远程控制链路」，含拓扑 Mermaid 图、链路组件、连接命令、关键优势、与 §8.4.1 关系、2026-10-09 实测验证、配置建议
