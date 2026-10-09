@@ -285,6 +285,26 @@ ANTHROPIC_BACKUP_BASE_URL=
 
 **实测（2026-10-09 修复后）**：`--max-greet 1 --keyword "AI产品经理"` 用时 2 分 40 秒，1 个职位打招呼成功（AI native 产品经理【GEO方向】/PureblueAI，7/10），1 个跳过（AIoT生态产品经理 6 分 < 7）。
 
+**简历路径解析（2026-10-09 新增）**：跨主机档（Pi 5 vs Windows）共用脚本时不希望硬编码 Windows 路径。三个 sister 脚本（`scenarios/{boss,zhilian,liepin}/scripts/smart_match_greet.py`）的 `RESUME_DEFAULT` 解析顺序：
+
+1. `$PIXELCLAW_RESUME_PATH` 环境变量（`.env` 或系统 env）
+2. Pi 默认回退：`~$HOME/Projects/resume-renew/resume/current.md`
+
+```python
+# 实际写法（注意空字符串按"未设"处理，落到 Pi 回退）
+import os as _os_for_default
+RESUME_DEFAULT = Path(
+    _os_for_default.environ.get("PIXELCLAW_RESUME_PATH")
+    or str(Path.home() / "Projects" / "resume-renew" / "resume" / "current.md")
+)
+```
+
+主机档切换方法：
+- Windows：`.env` 里设 `PIXELCLAW_RESUME_PATH=C:/Dev/projects/resume-renew/resume/current.md`
+- Pi：不设，自动走回退路径
+
+`.env.example` 已同步加 `PIXELCLAW_RESUME_PATH=` 占位行。
+
 **已知限制**：
 - `verify_send=True` 的"发送未确认"不代表失败——消息可能已发出，但 `verify_message_sent()` 轮询窗口内未抓到气泡
 - 详情页加载超时（偶发网络抖动）会跳过该职位并继续下一个
