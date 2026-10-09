@@ -16,7 +16,7 @@
     {
       "id": 3,
       "prompt": "发送未确认 是不是失败了？",
-      "expected_output": "Skill 应明确说明这是 **false negative 高发**：(1) verify_message_sent() 6s 轮询窗口内没抓到气泡（App UI 渲染延迟/网络延迟）；(2) 消息很可能已发；(3) 建议先到 App 聊天列表手动确认；(4) 确认发了 → 加 --no-verify 重跑，避免误判；没发 → 重跑；(5) 不要仅凭 verify 结果判定失败",
+      "expected_output": "Skill 应明确说明这是 **false negative 高发**：(1) verify_message_sent() 8s 轮询窗口内没抓到气泡（App UI 渲染延迟/网络延迟；boss_automation_skill.py:966 默认 timeout=8.0 秒）；(2) 消息很可能已发；(3) 建议先到 App 聊天列表手动确认；(4) 确认发了 → 加 --no-verify 重跑，避免误判；没发 → 重跑；(5) 不要仅凭 verify 结果判定失败",
       "files": []
     },
     {
