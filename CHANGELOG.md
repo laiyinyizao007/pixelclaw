@@ -7,6 +7,19 @@
 ## [Unreleased]
 
 ### Fixed（修复）
+- **Tailscale 跨网络链路降级为参考实现（2026-10-09）**：`scenarios/boss/scripts/smart_match_greet.py` 等的远程控制链路原计划走 `PROJECTWIKI.md` §8.4.4 描述的「Pixel AVF Linux VM + tailscaled + socat」方案（暴露 VM tailnet IP `100.108.209.0:5555`，ADB over WireGuard，跨子网/跨公网）。多次会话验证表明 Pixel AVF Linux VM（Android Terminal app 启动的 Debian AVF 镜像）作为宿主稳定性差——单次终端 session 数小时内崩溃、`tailscaled` + `socat` 进程组全部丢失；更严重的是 VM state 是 ephemeral 的，session 之间 `tailscaled` 二进制需要重 `apt install`，且每次都得重 `tailscale up`（点浏览器 auth URL）。运维摩擦远超预期，本节降级为参考实现。**当前生产路径仍走 `docs/GETTING_STARTED.md` §3 同 WiFi 无线 ADB（`10.32.7.105:5555`，与 Pi 同在 `10.32.7.0/24` 子网，延迟 1-2 ms）**；`PROJECTWIKI.md` §8.4.4 末尾追加 ⚠️ 状态备注段说明降级原因，链路代码 + 拓扑说明保留作为跨子网场景参考。后续若重启该方向，建议改用 Pixel 主 Android 端 Tailscale + SSH-tunnel transport（绕过 `VpnService` 单槽冲突），或纯端到端反向隧道方案，避开 AVF VM 这一不稳定层
+
+- **hermes（MiniMax-M3）LLM endpoint 修正（2026-10-09）**：`scenarios/boss/scripts/smart_match_greet.py` 通过 `anthropic.Anthropic` SDK 调外部 LLM provider。原配置指向 `https://api.minimax.chat/v1`，但该域名实际跑的是 OpenAI-Completions 协议（openclaw `minimax-custom` provider 用的），对 Anthropic SDK 持续返回 `404 page not found` 且部分实现会 hang（外部观察者误以为是「LLM 慢」），实测 17 分钟无响应。正确 URL 是 `https://api.minimaxi.com/anthropic`（注意域名是 `minimaxi` 不是 `minimax`）——MiniMax 官方 Anthropic-Messages 兼容入口，模型 `MiniMax-M3` 实测 2-3s 返回。`scenarios/boss/scripts/smart_match_greet.py` 的 `_make_client()` 保持原 Anthropic SDK 调用不变，仅在 `.env` 修环境变量。修复后实测：`--max-greet 1 --keyword "AI产品经理"` 用时 2 分 40 秒，1 个职位打招呼成功（AI native 产品经理【GEO方向】/PureblueAI，7/10），1 个跳过（AIoT生态产品经理 6 分 < 7）
+
+### Added（新增）
+- `.env.example`（项目根）—— smart_match_greet.py 等用的环境变量模板：标注 `MINIMAX_CN_API_KEY` 取值来源（`printenv MINIMAX_CN_API_KEY`，值在 `~/.zshenv`） + LLM URL 防混淆警告（`api.minimax.chat` ≠ `api.minimaxi.com`）。`.env` 已在 `.gitignore`，真实凭证不入仓
+- `~/.claude/projects/-home-averypi-Projects-pixelclaw/memory/reference_hermes_llm_endpoint.md`（项目 memory）—— 跨会话 reference，固化 hermes URL + 模型可用性矩阵（`MiniMax-M3` ✅ / `MiniMax-Text-01` ✅ / `MiniMax-M2.7` ⚠️ ThinkingBlock 兼容问题 / `claude-3-5-haiku-20241022` ✅）+ 30s 裸 SDK 诊断套路
+
+### Documentation（文档）
+- `PROJECTWIKI.md` §8.4.4 末尾追加「状态备注」段（2026-10-09），解释 AVF VM 宿主不可靠导致链路降级 + 当前生产路径（同 WiFi 10.32.7.105:5555）+ 后续改进方向（Pixel 主 Android 端 Tailscale SSH-tunnel transport 等）
+- `PROJECTWIKI.md` §5 smart_match_greet.py 描述节新增「LLM Provider 配置」段：环境变量模板、URL/模型可用性表、域名陷阱警告（`api.minimax.chat` vs `api.minimaxi.com`）、30s 裸 SDK 诊断套路、修复后实测指标（2.5 分钟 / 1 成功 1 跳过）
+
+### Fixed（修复）
 - **mihomo/Tailscale 共存配置（2026-10-09）**：修复装上 Tailscale 后整个网络变慢（GitHub raw 4 KB/s、apt 28 KB/s、境外 HTTPS 普遍掉到代理延迟上限）的根因——Tailscale CGNAT 段 `100.64.0.0/10` 默认走 mihomo 代理而代理本身没有去往 tailnet 的路由，引发回环；且首次启用 Tailscale subnet router 时 `tailscaled` 报 `netcheck: IPv4 UDP disabled` / `ipv6 forwarding is off`，需要开启 IP 转发。三步修复：① `/root/.config/mihomo/config.yaml` 的 `rules` 段新增 `- IP-CIDR,100.64.0.0/10,DIRECT`（放行 tailnet，避免回环），规则备份于 `config.yaml.bak.20261009_012517`；② 持久化 `net.ipv4.ip_forward=1` + `net.ipv6.conf.all.forwarding=1` 到 `/etc/sysctl.d/99-tailscale-ipforward.conf`（`tailscaled` 自带 subnet router 模式要求），并 `systemctl restart tailscaled`；③ 用真实二进制 `/tmp/vm-proxy/mihomo`（`v1.19.32`）而非失效软链 `/usr/local/bin/mihomo` 重启 mihomo，且把 `/home/averypi/.config/mihomo/geoip.metadb` + `cache.db` 同步到 `/root/.config/mihomo/` 避免启动期 MMDB 下载。修复后 `tailscale status` 显示 `localhost-0` 从 `relay "hkg"` 变为 `direct 183.195.17.77:1316`（NAT 穿透成功，P2P），GitHub raw 恢复 80–900 KB/s。完整诊断与验证见 `PROJECTWIKI.md` §8.4.5
 
 ### Documentation（文档）

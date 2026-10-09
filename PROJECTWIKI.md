@@ -259,6 +259,32 @@ python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --
 python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --threshold 7 --strict
 ```
 
+**LLM Provider 配置（Anthropic SDK 兼容，2026-10-09 修复）**：
+
+`smart_match_greet.py` 用 `anthropic.Anthropic` SDK（`_make_client()` 见代码；`load_dotenv(REPO_ROOT/".env", override=True)`），需要外部 Anthropic 兼容 endpoint。当前默认主选 **hermes（MiniMax）**：
+
+```bash
+# .env（项目根；.env.example 同仓）
+ANTHROPIC_API_KEY=<MINIMAX_CN_API_KEY，从 printenv 取值>
+ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic
+ANTHROPIC_BACKUP_API_KEY=             # 不设则 fallback 不启用
+ANTHROPIC_BACKUP_BASE_URL=
+```
+
+| Provider | URL | 模型 | 备注 |
+|---|---|---|---|
+| **hermes（默认主）** | `https://api.minimaxi.com/anthropic` | `MiniMax-M3` | 实测 2-3s/请求；2.5 分钟内完成 2-job 实测循环 |
+| `claude-haiku-4-5-20251001` | 同 URL | 备选标准 Claude 名 | 兼容 MiniMax-M3 暂时不可用时 |
+| klugai（已弃，2026-10） | `https://www.klugai.lol/api` | `claude-*` | klugai 不支持 `MiniMax-M3`，会 `model_not_found` |
+
+> ⚠️ **域名陷阱**：MiniMax 有一对相似但不同的域名——
+> - `api.minimax.chat/v1` —— OpenAI-Completions 协议（openclaw `minimax-custom` / `custom-minnimax-chat` provider 用的）
+> - `api.minimaxi.com/anthropic` —— Anthropic-Messages 协议（openclaw `minimax` provider 用的）
+>
+> Anthropic SDK 配前者会持续 404，部分实现会 hang，让外部观察者误以为是"LLM 慢"。**诊断套路**：先用一个 30s 超时的裸 SDK 测一次 `messages.create(model="MiniMax-M3", max_tokens=16, ...)`——5s 内拿到 200/401/404 都是健康的；30s 才出说明 URL 错了。详见项目 memory `reference_hermes_llm_endpoint.md`。
+
+**实测（2026-10-09 修复后）**：`--max-greet 1 --keyword "AI产品经理"` 用时 2 分 40 秒，1 个职位打招呼成功（AI native 产品经理【GEO方向】/PureblueAI，7/10），1 个跳过（AIoT生态产品经理 6 分 < 7）。
+
 **已知限制**：
 - `verify_send=True` 的"发送未确认"不代表失败——消息可能已发出，但 `verify_message_sent()` 轮询窗口内未抓到气泡
 - 详情页加载超时（偶发网络抖动）会跳过该职位并继续下一个
@@ -498,6 +524,8 @@ adb exec-out screencap -p > wechat.png
 - 后续可考虑在 `config/devices.json` 增加 `tailscale_ip` / `tailscale_port` 字段，`DeviceConnector.connect()` 增加 tailnet 兜底分支
 
 用户操作指引见 `docs/GETTING_STARTED.md` §3.11。
+
+> ⚠️ **本节状态备注（2026-10-09 更新）**：本节链路依赖 Pixel AVF Linux VM（Android Terminal app 启动的 Debian AVF 镜像）作为 tailscaled + socat 宿主。多次会话验证表明 AVF VM 稳定性差——单次终端 session 撑不了几小时就崩溃、tailscaled + socat 全部丢失；而且 VM state 是 ephemeral 的，session 之间丢失 tailscaled 二进制，每次 session 起都得重 `apt install tailscale` + 重 `tailscale up`（每次都要点浏览器 auth URL），运维摩擦过大。**当前生产路径仍走 §3 同 WiFi 无线 ADB（`10.32.7.105:5555`，与 Pi 同在 `10.32.7.0/24` 子网，延迟 1–2 ms）**；本节作为跨子网/跨公网场景的参考实现保留，待找到稳定的 VM/容器方案后（例如 Pixel 主 Android 装 Tailscale + SSH-tunnel transport 而非 WireGuard-VPN，避免 `VpnService` 单槽冲突）再考虑投入生产。
 
 > ⚠️ **mihomo/Tailscale 共存坑（2026-10 实测）**：Tailscale 装好后若发现 GitHub raw 掉到 4 KB/s、apt 装包 28 KB/s、整网速被代理拖垮，几乎一定是 Tailscale CGNAT 段 `100.64.0.0/10` 没在 mihomo 白名单——包走 mihomo 出网，mihomo 又没有去 tailnet 的路由，引发回环。同时首次启用 subnet router 模式时还会因 `ip_forward=0` / IPv6 forwarding off 报 `netcheck: IPv4 UDP disabled`。**必须在装 Tailscale 当天就检查并修复**，否则整个开发体验会不可解释地变慢。完整诊断 + 三步修复见 §8.4.5。
 
