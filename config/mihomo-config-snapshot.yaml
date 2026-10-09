@@ -7,8 +7,9 @@
 # ⚠️ 此快照**已脱敏**：`proxies` 段（vless + reality 凭证）已删除，部署时请用
 # 自己的代理节点替换。`rules` 段完整保留（这是修复的关键点）。
 #
-# 🔄 2026-10-09 更新：从 microsoft 套（uuid b600109f）切到 lovelive 套（uuid 2ea271b4）
+# 🔄 2026-10-09 更新：从 microsoft 套切到 lovelive 套（uuid 2ea271b4）
 # 原因：server 端 systemd xray 在 2026-07-10 已被改成 lovelive 配置
+# microsoft 套旧凭据已从仓库脱敏，仅 server 端 /usr/local/etc/xray 历史备份留存
 # 详见 racknerdVPN 项目 README.md「配置变更历史」
 
 # ---- 监听端口（HTTP/SOCKS5/controller）----
