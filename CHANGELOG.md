@@ -11,6 +11,13 @@
 
 ### Documentation（文档）
 - `PROJECTWIKI.md` — §8.4.4 末尾追加 mihomo/Tailscale 共存坑警告（指向 §8.4.5）；§8.4.4 之后新增 §8.4.5「Mihomo/Tailscale 共存配置（2026-10 修复）」，覆盖冲突根因（CGNAT 段被代理 + IP 转发未启用 + mihomo 启动失败）、修复配置（mihomo rules / sysctl / tailscaled 重启 / mihomo 重启 + MMDB）、验证证据（`tailscale status` 切 P2P、GitHub raw 速率恢复）、遗留事项（软链修复 / systemd unit / 备份策略）
+- `PROJECTWIKI.md` — §8.4.5「遗留事项」前 3 项标记 ✅ 已完成（软链修复 / 配置归档 / 历史备份清理），剩 2 项标记 ⏳（mihomo systemd unit / rules 自动同步）；§8.4.5 修复步骤 3 的启动命令从写死 `/tmp/vm-proxy/mihomo` 改为软链 `/usr/local/bin/mihomo`，加 `mihomo -v` 版本验证；§5 模块文档表新增一行 `config/mihomo-config-snapshot.yaml` 描述
+
+### Fixed（修复）
+- **mihomo 历史残留清理（2026-10-09）**：完成 §8.4.5「遗留事项」前 3 项——①建软链 `sudo ln -sf /tmp/vm-proxy/mihomo /usr/local/bin/mihomo`，让 mihomo 进 PATH（之前软链已坏，需写死绝对路径启动）；②清理 `/root/.config/mihomo/` 下 8 个旧备份（`config.yaml.bak.*` / `config.yaml.backup.*` / `config.yaml.before_fix_*` / `config.yaml.broken`，共 ~627 KB），目录现在只剩 `cache.db` + `config.yaml` + `geoip.metadb`；③清理 Maestro/Tailscale 调试残留——`/home/averypi/.local/jdk/`（309 MB，Maestro 依赖，Maestro 已删）、`/tmp/mihomo.log`（6.1 MB nohup 日志）、`/tmp/wechat_test.png`（Tailscale ADB 首次验证截图）、`/tmp/vm-proxy/{install.sh,mihomo-config.yaml,start-proxy.sh}`（3 个安装/启动脚本）。**mihomo 主进程 PID 未中断**，进程仍以 `/usr/local/bin/mihomo` 启动；释放磁盘 ~315 MB
+
+### Added（新增）
+- `config/mihomo-config-snapshot.yaml` — 当前 mihomo `config.yaml` 的脱敏归档版（2026-10-09）：删除 `proxies` 段（vless/reality 凭证，含 server/uuid/public-key/short-id），保留 `rules` 段（关键 `IP-CIDR,100.64.0.0/10,DIRECT` 直连规则）+ 顶部端口/DNS/外部控制器配置 + 注释说明来源与用途。便于在其他机器复现 tailnet 直连修复 + 防止 mihomo 升级丢失关键规则（vless 凭证不上仓，符合 G7）
 
 ### Added（新增）
 - **远程控制链路（Tailscale over WireGuard，2026-10-09）**：通过 Tailscale 隧道实现跨子网/跨公网远程控制物理 Pixel 设备。Pixel 上的 Linux 虚拟机（Termux + proot）作为 tailnet 节点 `localhost-0`（`100.108.209.0`）暴露 `0.0.0.0:5555` ADB 端口；主机端 `adb connect 100.108.209.0:5555` 即可建立 P2P 控制链路，不再依赖同一 WiFi / USB / 自建中转服务器，所有 ADB 流量经 WireGuard 加密。拓扑、连接命令与实测验证（`am start` + `exec-out screencap` 截图返回微信主界面 1080×2400）详见 `PROJECTWIKI.md` §8.4.4；用户指引见 `docs/GETTING_STARTED.md` §3.11
