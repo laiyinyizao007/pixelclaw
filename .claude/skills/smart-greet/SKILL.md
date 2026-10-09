@@ -189,7 +189,7 @@ PYTHONUTF8=1 python -m scenarios.liepin.scripts.smart_match_greet \
 
 ### 4. `发送未确认` → **false negative**（极常见）
 - **症状**：`verify=False` 或日志显示「消息可能已发出，但未确认」
-- **原因**：`verify_message_sent()` 6s 轮询窗口内没抓到气泡（App UI 渲染延迟/网络延迟）
+- **原因**：`verify_message_sent()` 8s 轮询窗口内没抓到气泡（App UI 渲染延迟/网络延迟；详见 `skills/boss/boss_automation_skill.py:966`，默认 `timeout=8.0` 秒）
 - **判定**：先到 App 聊天列表**手动看**消息是否真发了
   - 真发了 → 加 `--no-verify` 重跑，避免误判
   - 没发 → 重跑

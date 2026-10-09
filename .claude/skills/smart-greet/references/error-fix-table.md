@@ -8,7 +8,7 @@
 | 1 | `两端 API 配额耗尽` + 倒计时 | 主+fallback relay 都满 | 等 resetAt+10s 自动重试 | ✅ 是 |
 | 2 | `DialogType.DAILY_LIMIT` 触发退出 | App 当日沟通名额满 | 次日 0 点重置 | ❌ 否（等） |
 | 3 | `无法返回职位列表` 失败 3 次 | App 不在列表页 | 手动回搜索页重跑 | ❌ 否 |
-| 4 | `发送未确认` / `verify=False` | 6s 轮询漏抓气泡 | **App 手动确认**；确认发出去就加 `--no-verify` | ❌ 否 |
+| 4 | `发送未确认` / `verify=False` | 8s 轮询漏抓气泡（`boss_automation_skill.py:966` 默认 `timeout=8.0`） | **App 手动确认**；确认发出去就加 `--no-verify` | ❌ 否 |
 | 5 | `API 404 + hang 30s+` | `minimax.chat` vs `minimaxi.com` 错 | `.env` 改 `https://api.minimaxi.com/anthropic` | ❌ 否 |
 | 6 | `手机锁屏未解` | 屏幕锁定 | 解锁（脚本等 120s） | ✅ 是 |
 | 7 | `DeviceBusyError` | 互斥锁被其他脚本占 | 杀其他 smart_match_greet / monitor 进程 | ❌ 否 |
