@@ -6,6 +6,9 @@
 
 ## [Unreleased]
 
+### Documentation（文档）
+- **smart-greet skill 评分调优段新增（2026-10-10）**：`.claude/skills/smart-greet/SKILL.md` 在「输出字段解读」和「常见错误 → 修复」之间新增「评分调优：title 不是降分理由」一节。Why：FDE/PM 复合背景候选人 title="产品经理"但实际 PM+前端+设计师+全栈；`前端工程师`关键词 10 条实测中 9 分的 3 个都是 title 含"FDE/创始工程师"但 JD 写"AI 前端架构/客户现场交付"，被跳过的 5-6 分岗位里多条是 title 表面不像但 JD 实质高度吻合。调优信号：`mismatch_concerns` 出现"title 是 X 不是 Y"类扣分要警觉；`dimension_scores.role_fit` 偏低但 `top_matches` 有强匹配 → 提示 title 拖累；提示词改造方向：title 仅用于 dedup，不参与 `role_fit` 评分。反向信号：title="FDE"但 JD 核心是 Linux/K8s/DevOps 运维深度该跳就跳（与"title 不重要"不冲突）。验证方法：`--score-only` 跑同一批 JD 对比 score。`PROJECTWIKI.md` §5 smart_match_greet.py 描述节同步追加「评分调优」子节 + 指向 SKILL 引用
+
 ### Fixed（修复）
 - **Tailscale 跨网络链路降级为参考实现（2026-10-09）**：`scenarios/boss/scripts/smart_match_greet.py` 等的远程控制链路原计划走 `PROJECTWIKI.md` §8.4.4 描述的「Pixel AVF Linux VM + tailscaled + socat」方案（暴露 VM tailnet IP `100.108.209.0:5555`，ADB over WireGuard，跨子网/跨公网）。多次会话验证表明 Pixel AVF Linux VM（Android Terminal app 启动的 Debian AVF 镜像）作为宿主稳定性差——单次终端 session 数小时内崩溃、`tailscaled` + `socat` 进程组全部丢失；更严重的是 VM state 是 ephemeral 的，session 之间 `tailscaled` 二进制需要重 `apt install`，且每次都得重 `tailscale up`（点浏览器 auth URL）。运维摩擦远超预期，本节降级为参考实现。**当前生产路径仍走 `docs/GETTING_STARTED.md` §3 同 WiFi 无线 ADB（`10.32.7.105:5555`，与 Pi 同在 `10.32.7.0/24` 子网，延迟 1-2 ms）**；`PROJECTWIKI.md` §8.4.4 末尾追加 ⚠️ 状态备注段说明降级原因，链路代码 + 拓扑说明保留作为跨子网场景参考。后续若重启该方向，建议改用 Pixel 主 Android 端 Tailscale + SSH-tunnel transport（绕过 `VpnService` 单槽冲突），或纯端到端反向隧道方案，避开 AVF VM 这一不稳定层
 

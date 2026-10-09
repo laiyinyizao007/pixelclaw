@@ -259,6 +259,25 @@ python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --
 python scenarios/boss/scripts/smart_match_greet.py --keyword "AI产品经理" --threshold 7 --strict
 ```
 
+**评分调优：title 不是降分理由（2026-10-10 实测）**：
+
+LLM 评分时，**title 字面相似度不应该是 `role_fit` 的主依据**。重点是 JD 正文写的实际工作内容（职责/要求技能/day-to-day）跟候选人实际能力匹不匹配。
+
+**Why**：`前端工程师`关键词 10 条实测（2026-10-10 凌晨），9 分的 3 个都是 title 含"FDE/创始工程师"但 JD 写"AI 前端架构/客户现场交付"；被跳过的 5-6 分岗位里多条是 title 表面不像（"前端（小红书）"/"资深平台软件产品经理"）但 JD 实质高度吻合。FDE/PM 复合背景的候选人，title 写"产品经理"但实际是 PM+前端+设计师+全栈，按 title 筛会漏掉最高分匹配。
+
+**调优信号**：
+- `mismatch_concerns` 出现"title 是 X 不是 Y"类扣分 → 警觉，可能误判
+- `dimension_scores.role_fit` 偏低但 `top_matches` 有强匹配 → 提示 title 拖累
+- 提示词改造方向：title 仅用于 dedup，不参与 `role_fit` 评分
+
+**反向信号**（这些该跳就跳，与"title 不重要"不冲突）：
+- title="FDE"但 JD 核心是 Linux/K8s/DevOps 运维深度 → content 不匹配，跳
+- title="前端"但 JD 核心是 ECharts 报表/数据可视化深度 → content 不匹配，跳
+
+**验证方法**：用 `--score-only` 跑同一批 JD，对比 score 与 content-only 重评分；title 拖累的条目会升分，content 不匹配的条目分数不变。
+
+详见 SKILL `smart-greet` §"评分调优"节。
+
 **LLM Provider 配置（Anthropic SDK 兼容，2026-10-09 修复）**：
 
 `smart_match_greet.py` 用 `anthropic.Anthropic` SDK（`_make_client()` 见代码；`load_dotenv(REPO_ROOT/".env", override=True)`），需要外部 Anthropic 兼容 endpoint。当前默认主选 **hermes（MiniMax）**：

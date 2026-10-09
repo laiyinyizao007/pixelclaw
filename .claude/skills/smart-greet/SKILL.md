@@ -175,6 +175,29 @@ PYTHONUTF8=1 python -m scenarios.liepin.scripts.smart_match_greet \
 > ```
 > `--score-only` 模式仍会触发同一摘要，且不消耗每日沟通次数（只写 `job_details` 表，不写 `greetings` 表；代码 `smart_match_greet.py:1404-1410`）。
 
+## 评分调优：title 不是降分理由
+
+LLM 评分时，**title 字面相似度不应该是 `role_fit` 的主依据**。重点是 JD 正文写的实际工作内容（职责/要求技能/day-to-day）跟候选人实际能力匹不匹配。
+
+**Why**: FDE/PM 复合背景的候选人，title 写"产品经理"但实际是 PM+前端+设计师+全栈；如果按 title 筛会漏掉大量 title="前端工程师"但 JD 写的是 FDE/AI 应用/Agent 开发的岗位——而这些反而是最高分的匹配。10 条实测：9 分的 3 个都是 title 含"FDE/创始工程师"但 JD 写"AI 前端架构/客户现场交付"；被跳过的 5-6 分岗位里，多条是 title 表面不像（"前端（小红书）"/"资深平台软件产品经理"）但 JD 实质高度吻合。
+
+**调优信号**：
+- 看 `mismatch_concerns` 时，**凡是 "title 是 X 不是 Y" 类的扣分要警觉**
+- 看 `dimension_scores.role_fit` 时，让 LLM 多看 JD 实质内容，少看 title 字面
+- 提示词改造方向：title 仅用于 dedup，不参与 `role_fit` 评分
+
+**反向信号**（这些该跳就跳）：
+- title 是"FDE"但 JD 核心是 Linux/K8s/DevOps 运维 → content 不匹配，跳
+- title 是"前端"但 JD 核心是 ECharts 报表/数据可视化深度 → content 不匹配，跳
+
+**验证方法**：
+```bash
+# 用 score-only 跑同一批 JD，把 title 从 prompt 屏蔽，对比分数变化
+PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
+  --keyword "前端工程师" --score-only --max-greet 5 --strict
+# 然后人工 grep 看：title 拖累的条目升分 vs content 不匹配的条目分数不变
+```
+
 ## 常见错误 → 修复（8+）
 
 > 完整表见 `references/error-fix-table.md`。本节是高频 5 项。
