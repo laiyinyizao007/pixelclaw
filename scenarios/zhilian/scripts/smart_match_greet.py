@@ -50,7 +50,15 @@ logger = logging.getLogger("zhilian_smart_match_greet")
 # ─── 路径 ─────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parents[3]
 DB_PATH = REPO_ROOT / "scenarios" / "zhilian" / "output" / "requirements.db"
-RESUME_DEFAULT = Path("C:/Dev/projects/resume-renew/resume/current.md")
+# 简历路径优先级：$PIXELCLAW_RESUME_PATH 环境变量 > Pi 路径回退 (~$HOME/Projects/resume-renew/resume/current.md)
+# Windows 端用法：在 .env 或系统环境变量里设 PIXELCLAW_RESUME_PATH=C:/Dev/projects/resume-renew/resume/current.md
+import os as _os_for_default
+RESUME_DEFAULT = Path(
+    (
+        _os_for_default.environ.get("PIXELCLAW_RESUME_PATH")
+        or str(Path.home() / "Projects" / "resume-renew" / "resume" / "current.md")
+    )
+)
 
 # ─── Prompt 加载 ─────────────────────────────────────────────────────────────
 _PROMPT_DIR = Path(__file__).parents[1] / "config" / "prompts"
