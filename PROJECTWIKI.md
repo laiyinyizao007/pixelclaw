@@ -404,6 +404,8 @@ RESUME_DEFAULT = Path(
 
 `.env.example` 已同步加 `PIXELCLAW_RESUME_PATH=` 占位行。
 
+**当前 active 版本（2026-10-10）**：v3 精简版（12KB / 173 行），FDE 定位突出，详见 `CHANGELOG.md` [Unreleased] Changed 段与 `resume-renew/resume/README.md` 「当前版本」表。旧 50KB 百科级版本已备份为 `resume-renew/resume/base-v3.md`（📦 历史归档），PixelClaw 代码引用未变
+
 **已知限制**：
 - `verify_send=True` 的"发送未确认"不代表失败——消息可能已发出，但 `verify_message_sent()` 轮询窗口内未抓到气泡
 - 详情页加载超时（偶发网络抖动）会跳过该职位并继续下一个
