@@ -1005,6 +1005,51 @@ def _wait_for_list_card_data(
     return last_seen
 
 
+def _try_auto_unlock(skill) -> bool:
+    """Auto-unlock via PIN from PIXELCLAW_DEVICE_PIN env var.
+
+    适用：
+    - 仅数字 PIN（4-6 位），不支持图案 / 指纹 / 面部
+    - env var 未设或非数字 → 跳过自动解锁，返回 False（调用方需走手动等待路径）
+
+    Pixel 设备 unlock 流程（2026-10-10 实测）：
+    1. KEYCODE_WAKEUP → 屏幕亮，但只显示 AOD clock
+    2. **关键**：必须 `input tap 540 1200`（中点 tap）才能让 keyguard 取得焦点，
+       否则后续 swipe 会被 AOD 吞掉不响应——单 WAKEUP+swipe 是不行的
+    3. **fast swipe (30ms duration) 从底部 (540, 2400) 到上方 (540, 200)**
+       ——慢 swipe 会被 AOD 吞掉不响应，必须 ≤100ms 才触发 PIN pad
+    4. `input text $PIN` 输 PIN
+    5. KEYCODE_ENTER 提交
+    6. 等待 3s 系统验证 + 跳转到 launcher（mDreamingLockscreen=false 才是真解锁成功）
+
+    Returns:
+        True if PIN 解锁已尝试（不论成功与否，调用方需自己验证解锁状态）
+        False if 未启用自动解锁（env 未设 / 非数字 PIN）
+    """
+    pin = _os_for_default.environ.get("PIXELCLAW_DEVICE_PIN", "").strip()
+    if not pin:
+        return False
+    if not pin.isdigit():
+        logger.warning(
+            "  PIXELCLAW_DEVICE_PIN 含非数字字符，跳过自动解锁（仅支持数字 PIN）"
+        )
+        return False
+    logger.info("  尝试用 PIN 自动解锁（%d 位）", len(pin))
+    skill._adb("shell input keyevent KEYCODE_WAKEUP")
+    time.sleep(1.0)
+    # **关键**：tap 让 keyguard 取得焦点，否则后续 swipe 会被 AOD 吞掉
+    skill._adb("shell input tap 540 1200")
+    time.sleep(0.8)
+    # Fast swipe 揭示 PIN pad（慢 swipe 被 AOD 吞掉，不响应）
+    skill._adb("shell input swipe 540 2400 540 200 30")
+    time.sleep(1.5)
+    skill._adb(f"shell input text '{pin}'")
+    time.sleep(0.5)
+    skill._adb("shell input keyevent KEYCODE_ENTER")
+    time.sleep(3.0)
+    return True
+
+
 def _run_loop(
     skill: "BOSSAutomationSkill",
     resume: str,
@@ -1031,22 +1076,43 @@ def _run_loop(
     daily_hard_limit: int = 110,
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
-    if not skill._is_screen_on():
+    # 注意：若 PIN 自动解锁已配置，**先尝试自动解锁**再走 fallback 路径。
+    # 因为 `skill._wake_screen()` 内部用 `wm dismiss-keyguard`，会把设备
+    # 留在一个特殊状态（mWakefulness=Awake 但 mDreamingLockscreen=true），
+    # 后续 PIN 解锁序列（tap + fast swipe）会失效。所以顺序很重要：
+    # PIN 配置 → 直接 _try_auto_unlock（它自带 KEYCODE_WAKEUP，无需预唤醒）。
+    _pin_configured = bool(_os_for_default.environ.get("PIXELCLAW_DEVICE_PIN", "").strip())
+    if _pin_configured and not skill._is_screen_on():
+        # PIN 已配置时，跳过 _wake_screen，直接交给 _try_auto_unlock 处理唤醒+解锁
+        if _try_auto_unlock(skill) and skill._is_screen_on():
+            logger.info("  ✓ PIN 自动唤醒成功")
+        else:
+            logger.warning("⚠️  PIN 自动唤醒失败，等待手动解锁（最多 120 秒）…")
+            _unlocked = False
+            for _ in range(12):
+                time.sleep(10)
+                if _try_auto_unlock(skill) and skill._is_screen_on():
+                    _unlocked = True
+                    break
+            if not _unlocked:
+                result["errors"].append("手机锁屏未解，无法启动")
+                return result
+    elif not skill._is_screen_on():
         skill._wake_screen()
         time.sleep(2.0)
-    if not skill._is_screen_on():
-        logger.warning("⚠️  手机未唤醒，等待解锁（最多 120 秒）…")
-        _unlocked = False
-        for _ in range(12):
-            time.sleep(10)
-            skill._wake_screen()
-            time.sleep(2.0)
-            if skill._is_screen_on():
-                _unlocked = True
-                break
-        if not _unlocked:
-            result["errors"].append("手机锁屏未解，无法启动")
-            return result
+        if not skill._is_screen_on():
+            logger.warning("⚠️  手机未唤醒，等待解锁（最多 120 秒）…")
+            _unlocked = False
+            for _ in range(12):
+                time.sleep(10)
+                skill._wake_screen()
+                time.sleep(2.0)
+                if skill._is_screen_on():
+                    _unlocked = True
+                    break
+            if not _unlocked:
+                result["errors"].append("手机锁屏未解，无法启动")
+                return result
 
     # Extra check: screen may be "Awake" but the lock screen is still in front.
     # The lock screen's root window is always "legacy_window_root" (com.android.systemui).
@@ -1056,18 +1122,22 @@ def _run_loop(
 
     _ui_xml = skill.get_ui_hierarchy()
     if _is_lock_screen(_ui_xml):
-        logger.warning("⚠️  检测到锁屏，请解锁手机后继续（最多等待 60 秒）…")
-        _unlocked2 = False
-        for _ in range(12):
-            time.sleep(5)
-            skill._wake_screen()
-            time.sleep(1.0)
-            if not _is_lock_screen(skill.get_ui_hierarchy()):
-                _unlocked2 = True
-                break
-        if not _unlocked2:
-            result["errors"].append("手机锁屏未解，无法启动")
-            return result
+        # 锁屏界面在前。尝试 PIN 自动解锁
+        if _try_auto_unlock(skill) and not _is_lock_screen(skill.get_ui_hierarchy()):
+            logger.info("  ✓ PIN 自动解锁成功")
+        else:
+            logger.warning("⚠️  检测到锁屏，请解锁手机后继续（最多等待 60 秒）…")
+            _unlocked2 = False
+            for _ in range(12):
+                time.sleep(5)
+                skill._wake_screen()
+                time.sleep(1.0)
+                if not _is_lock_screen(skill.get_ui_hierarchy()):
+                    _unlocked2 = True
+                    break
+            if not _unlocked2:
+                result["errors"].append("手机锁屏未解，无法启动")
+                return result
 
     logger.info("[1/2] 启动 Boss直聘…")
     skill._adb(f"shell am force-stop {skill.APP_PACKAGE}")
