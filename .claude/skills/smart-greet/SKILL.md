@@ -262,22 +262,19 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - **log 标志**：`greeting 兜底修正` warning 表示第 2 道防线触发了；`greeting 含禁用开头` error 表示第 3 道防线拦截了
 - **判定**：如果第 3 道防线频繁拦截，说明 prompt 仍不够强，需进一步强化或换模型
 
-### 11. `列表卡 hr_name/company 缺失` → 60s 异步等待 + 超时跳过（2026-10-10 加）
-- **症状**：Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空
-- **后果**：空字段破坏 Layer 1-4 dedup（详见 5 层去重逻辑），可能导致重复打招呼
-- **机制**（`_wait_for_list_card_data()`，`smart_match_greet.py:954-1010`）：
-  - **触发**：`_find_next_job` 返回的 target 任一字段为空
-  - **轮询**：每 2s 重 dump + 解析 list，找到同 normalized title 的卡片检查字段
-  - **成功**：补全到 target（保留原 tap 坐标）继续
-  - **超时 60s**：仍空 → 记 `skip_reason="列表卡hr/company异步60s未返回"` + 加入 visited_keys 跳过
-  - **dump 异常**：单次失败不中断，继续轮询
-  - **卡片消失**：60s 内从 dump 消失 → 记 `skip_reason="列表卡60s内消失"` 跳过
-- **log 标志**：
-  - `列表卡异步数据补全（第 N 次轮询）` info → 等到了
-  - `列表卡异步 60s 未补全` warning → 超时
-  - `列表卡 60s 内从 dump 消失` warning → 卡片被回收
-  - `跳过（60s 后 hr/company 仍缺失）` warning → 已记 skip
-- **已知未覆盖**：详情页 `tv_boss_name` 异步未返回时仍可能存空（依赖 `detail.get("hr_name") or hr_name` fallback），若 visit 95/129 这种 case 频繁出现需加同款详情页等待
+### 11. `列表卡 hr_name/company 缺失` → 直接进详情，detail 必返回完整（2026-10-10 重构）
+- **症状**：Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空 hr_name / company
+- **原方案（已废弃）**：`_wait_for_list_card_data()` 每 2s 轮询列表 dump 补全字段，最多 30 dumps/卡 + 60s 等待
+- **新方案**：列表卡字段空就**直接 tap 进详情**。详情页是单 job 全屏视图，`get_job_detail()` 从 `tv_job_name` / `tv_company_name` / `tv_boss_name` 等稳定 ID 取值，**必返回完整字段**
+- **机制**（`smart_match_greet.py:1218-1364`）：
+  1. `_find_next_job` 返回 target（hr_name/company 可能空，正常）
+  2. 立即 tap 进详情（不再轮询列表）
+  3. 详情页验证通过后用 `get_job_detail()` 字段**覆盖** `title/company/hr_name`
+  4. `effective_hr_name` 优先 detail；list 的 hr_name 仅 fallback
+  5. 第二次 `_is_already_greeted` 用 `effective_hr_name` 兜底，捕获首次空字段查不到的 duplicate
+  6. visited_keys 用 detail 数据刷新（`title\treal_company` + `title\t` 双 key，幂等）
+- **dump 数量**：旧最多 32 dumps/卡 → 新 2 dumps/卡（不含 chat 校验）
+- **已知未覆盖**：详情页 `tv_boss_name` 异步未返回时 detail.get("hr_name") 也为空（实测 < 1%），依赖 LLM 评分仍能正常处理（缺 hr_name 不影响分数）
 
 ### 12. `聊天页 HR/职位/公司不匹配（死循环）` → visited_keys 双向对称（2026-10-10 加）
 - **症状**：run log 出现 `聊天页内容不匹配 — 目标 title=X company=Y hr=Z，实际 chat_position=A chat_company=B chat_hr=C` 反复 10+ 次（同一卡不同 visit index），跑 120 jobs 触发 22 次 mismatch + 死循环
@@ -287,7 +284,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
   - 当 RecyclerView 复用位置在下一次 dump 时 company=""（懒加载异步未填充），`title\t` 不在 visited_keys → 同 target 再选 → INFINITE LOOP
 - **修复**：让 ADD/CHECK 双向都覆盖 `title\t` —— 不管 company 是否为空，ADD 都注册 `title\t`，CHECK 都查 `title\t`
 - **误杀风险（可接受）**：极少见「同屏两个不同公司的同名职位 + 后者 dump company 为空」会被 over-skip；死循环 vs over-skip 优先前者
-- **代码**：`smart_match_greet.py:932-941`（CHECK）+ `:1334-1338`（ADD）
+- **代码**：`smart_match_greet.py:932-941`（CHECK）+ `:1230-1233`（ADD 首次）+ `:1353-1354`（ADD detail 刷新幂等）
 - **log 标志**：`聊天页内容不匹配 — ...` error 一次性出现 1 次即正常；之前连续出现 ≥3 次同卡就是死循环
 - **验证**：`--max-greet 5 --threshold 7` 跑 2 个关键词（前端工程师 + AI产品经理），人工 review log 无 `同卡 ≥3 次 mismatch` 模式
 
