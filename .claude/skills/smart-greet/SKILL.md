@@ -279,7 +279,19 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
   - `跳过（60s 后 hr/company 仍缺失）` warning → 已记 skip
 - **已知未覆盖**：详情页 `tv_boss_name` 异步未返回时仍可能存空（依赖 `detail.get("hr_name") or hr_name` fallback），若 visit 95/129 这种 case 频繁出现需加同款详情页等待
 
-### 12. `手机锁屏` → PIN 自动解锁（2026-10-10 加）
+### 12. `聊天页 HR/职位/公司不匹配（死循环）` → visited_keys 双向对称（2026-10-10 加）
+- **症状**：run log 出现 `聊天页内容不匹配 — 目标 title=X company=Y hr=Z，实际 chat_position=A chat_company=B chat_hr=C` 反复 10+ 次（同一卡不同 visit index），跑 120 jobs 触发 22 次 mismatch + 死循环
+- **根因**：除 5 层去重外，`live_greet_loop` 内的 `visited_keys: set[str]`（per-run 内存级去重）ADD/CHECK 协议不对称——
+  - **ADD 侧**（line 1334-1338）：target company 非空时只加 `title\tcompany`，不加 `title\t`
+  - **CHECK 侧**（line 932-941）：visible card company 为空时才查 `title\t`
+  - 当 RecyclerView 复用位置在下一次 dump 时 company=""（懒加载异步未填充），`title\t` 不在 visited_keys → 同 target 再选 → INFINITE LOOP
+- **修复**：让 ADD/CHECK 双向都覆盖 `title\t` —— 不管 company 是否为空，ADD 都注册 `title\t`，CHECK 都查 `title\t`
+- **误杀风险（可接受）**：极少见「同屏两个不同公司的同名职位 + 后者 dump company 为空」会被 over-skip；死循环 vs over-skip 优先前者
+- **代码**：`smart_match_greet.py:932-941`（CHECK）+ `:1334-1338`（ADD）
+- **log 标志**：`聊天页内容不匹配 — ...` error 一次性出现 1 次即正常；之前连续出现 ≥3 次同卡就是死循环
+- **验证**：`--max-greet 5 --threshold 7` 跑 2 个关键词（前端工程师 + AI产品经理），人工 review log 无 `同卡 ≥3 次 mismatch` 模式
+
+### 13. `手机锁屏` → PIN 自动解锁（2026-10-10 加）
 - **症状**：启动时 `mDreamingLockscreen=true`，原本要走 120s 手动解锁等待窗口
 - **修复**：在 `.env` 设 `PIXELCLAW_DEVICE_PIN=4892`（4-6 位数字 PIN）→ 启动时自动执行 Pixel 解锁序列
 - **Pixel 关键序列**（实测 2026-10-10）：

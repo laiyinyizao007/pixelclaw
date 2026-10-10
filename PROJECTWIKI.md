@@ -269,6 +269,20 @@ Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿�
 - **dump 异常**：单次 `get_ui_hierarchy()` 失败不中断，继续下一次轮询
 - **卡片消失**：60s 内从 dump 消失（被回收 / 滑出）→ 记 `skip_reason="列表卡60s内消失"` + 跳过
 
+**visited_keys 懒加载对称性（2026-10-10 加）**：
+
+除 5 层去重外，`live_greet_loop` 内 `_find_next_job` 还有一个 per-screen 的内存级去重 `visited_keys: set[str]`，key 格式 `normalize_card_title(title) + "\t" + company`。原 ADD/CHECK 协议**不对称**（公司非空时只加 `title\tcompany` 不加 `title\t`；visible card company 为空时才查 `title\t`），导致「visit 时 company 已填充 + 下次循环 RecyclerView 复用位置 company 又空」的不对称场景无法命中——`smart_match_greet.py:932-941` 会无限选中同一 target 进入下一轮。
+
+**修复**：让 ADD/CHECK 双向都覆盖 `title\t`：
+- **ADD**（`smart_match_greet.py:1334-1338`）：无论 company 是否空都加 `title\t`
+- **CHECK**（`smart_match_greet.py:932-941`）：无论 visible card company 是否空都查 `title\t`
+
+**误杀风险评估（可接受）**：
+- 不同公司同名卡 + visible dump company 为空 → title-only 命中会跳过（极少见：同屏两个不同公司的同名职位 + 后者 lazy-load 未填充）
+- 实测 120-job run 跑出 22 次「聊天页 HR/职位/公司不匹配」+ 死循环；修复后 run 第一次试就该 break loop 继续往下推
+
+> **Why 是独立 bug 不在 Layer 5**：Layer 5 是 DB 跨次去重（`greeted=1` 跳过）；visited_keys 是 per-run per-screen 内存级去重（已经 visit 过的卡本屏不再试）。前者靠 `greetings` 表，后者靠 set 集合。
+
 **已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回（visit 95/129 的 hr_name 仍空，company 已拿到）。当前依赖 `detail.get("hr_name") or hr_name` 的 fallback，详情页若持续空可加同款等待逻辑（独立改动）。
 
 **PIN 自动解锁（2026-10-10 新增）**：
