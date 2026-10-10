@@ -1,0 +1,1910 @@
+{
+  "exit_reason": "max_iterations (5)",
+  "original_description": "USE WHEN user wants to run automated job-application greeting with resume matching in PixelClaw (\"\u667a\u80fd\u6253\u62db\u547c\", \"\u5339\u914d\u804c\u4f4d\", \"\u53d1\u6253\u62db\u547c\", \"smart greet\", \"AI\u4ea7\u54c1\u7ecf\u7406\u5339\u914d\", \"\u7b80\u5386\u6253\u62db\u547c\"), OR user just ran smart_match_greet and asks \"why did it fail\" / \"what does '\u53d1\u9001\u672a\u786e\u8ba4' mean\" / \"why score 0\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\", OR user wants to switch platforms (\u667a\u8054/\u730e\u8058/Boss). Covers preflight (ADB / .env / resume / LLM endpoint), 3 platform differences (boss/zhilian/liepin), all CLI flags, output field interpretation, 8+ common error\u2192fix mappings, multi-day DB management, and quota limits. Does NOT execute any ADB / send any greeting itself \u2014 guides the user to run the right command. References `PROJECTWIKI.md` \u00a75 (single-stage design) and the `smart_match_greet.py` sister scripts under `scenarios/{boss,zhilian,liepin}/scripts/`.",
+  "best_description": "USE WHEN user wants to run automated job-application greeting with resume matching in PixelClaw (\"\u667a\u80fd\u6253\u62db\u547c\", \"\u5339\u914d\u804c\u4f4d\", \"\u53d1\u6253\u62db\u547c\", \"smart greet\", \"AI\u4ea7\u54c1\u7ecf\u7406\u5339\u914d\", \"\u7b80\u5386\u6253\u62db\u547c\"), OR user just ran smart_match_greet and asks \"why did it fail\" / \"what does '\u53d1\u9001\u672a\u786e\u8ba4' mean\" / \"why score 0\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\", OR user wants to switch platforms (\u667a\u8054/\u730e\u8058/Boss). Covers preflight (ADB / .env / resume / LLM endpoint), 3 platform differences (boss/zhilian/liepin), all CLI flags, output field interpretation, 8+ common error\u2192fix mappings, multi-day DB management, and quota limits. Does NOT execute any ADB / send any greeting itself \u2014 guides the user to run the right command. References `PROJECTWIKI.md` \u00a75 (single-stage design) and the `smart_match_greet.py` sister scripts under `scenarios/{boss,zhilian,liepin}/scripts/`.",
+  "best_score": "5/11",
+  "best_train_score": "8/17",
+  "best_test_score": "5/11",
+  "final_description": "USE WHEN user wants to \u667a\u80fd\u6253\u62db\u547c / \u5339\u914d\u804c\u4f4d / \u53d1\u6253\u62db\u547c \u2014 running, dry-running, or debugging the Boss\u76f4\u8058 / \u667a\u8054\u62db\u8058 / \u730e\u8058 auto-greet workflow. Triggers on \"\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406 10 \u6761\u6253\u62db\u547c\", \"\u7b80\u5386\u5339\u914d \u8dd1 5 \u4e2a\", \"\u5207\u5230\u667a\u8054\u62db\u8058\", \"\u730e\u8058\u53ef\u4ee5\u53d1\u5417\", \"\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417\", \"\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf\", or after a failed run asking \"\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u5931\u8d25\u4e86\u5417\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\" / \"score 0\" / \"\u4e3a\u4ec0\u4e48\u5931\u8d25\". Covers preflight (ADB / .env / resume / LLM endpoint), CLI flags, 3-platform differences, quota limits, and common error\u2192fix mappings. Guides user to run the right command; does NOT execute ADB or send greetings itself.",
+  "iterations_run": 5,
+  "holdout": 0.4,
+  "train_size": 17,
+  "test_size": 11,
+  "history": [
+    {
+      "iteration": 1,
+      "description": "USE WHEN user wants to run automated job-application greeting with resume matching in PixelClaw (\"\u667a\u80fd\u6253\u62db\u547c\", \"\u5339\u914d\u804c\u4f4d\", \"\u53d1\u6253\u62db\u547c\", \"smart greet\", \"AI\u4ea7\u54c1\u7ecf\u7406\u5339\u914d\", \"\u7b80\u5386\u6253\u62db\u547c\"), OR user just ran smart_match_greet and asks \"why did it fail\" / \"what does '\u53d1\u9001\u672a\u786e\u8ba4' mean\" / \"why score 0\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\", OR user wants to switch platforms (\u667a\u8054/\u730e\u8058/Boss). Covers preflight (ADB / .env / resume / LLM endpoint), 3 platform differences (boss/zhilian/liepin), all CLI flags, output field interpretation, 8+ common error\u2192fix mappings, multi-day DB management, and quota limits. Does NOT execute any ADB / send any greeting itself \u2014 guides the user to run the right command. References `PROJECTWIKI.md` \u00a75 (single-stage design) and the `smart_match_greet.py` sister scripts under `scenarios/{boss,zhilian,liepin}/scripts/`.",
+      "train_passed": 8,
+      "train_failed": 9,
+      "train_total": 17,
+      "train_results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 5,
+      "test_failed": 6,
+      "test_total": 11,
+      "test_results": [
+        {
+          "query": "verify=False \u4ec0\u4e48\u610f\u601d\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "AI \u5339\u914d \u667a\u80fd\u6253\u62db\u547c",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "Boss \u76f4\u8058 \u6253\u62db\u547c\u53d1\u4e0d\u51fa\u53bb",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "smart_match_greet.py \u62a5\u9519\u4e86\uff0c\u5e2e\u6211\u770b\u770b",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e3a\u4ec0\u4e48 smart_match_greet \u5361\u4f4f\u4e86",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u6253\u62db\u547c \u7ed9 HR",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5728 scenarios/boss/scripts/smart_match_greet.py \u52a0\u4e00\u4e2a\u65b0\u53c2\u6570",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "git commit \u5f53\u524d\u6539\u52a8",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ADBForegroundService \u600e\u4e48\u7528",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_greet.py \u8dd1\u5b8c\u4e86\u5f52\u6863 DB",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a hermes \u7684 endpoint \u6539\u56de minimax.chat \u8bd5\u8bd5",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 8,
+      "failed": 9,
+      "total": 17,
+      "results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "description": "Use this skill when user wants to run, debug, or switch between PixelClaw smart_match_greet scripts on Boss/\u667a\u8054/\u730e\u8058 \u2014 matching jobs (\u5339\u914d\u804c\u4f4d, \u667a\u80fd\u6253\u62db\u547c, \u53d1\u6253\u62db\u547c, AI\u4ea7\u54c1\u7ecf\u7406\u5339\u914d, \u7b80\u5386\u6253\u62db\u547c), switching platforms, troubleshooting recent runs (\u53d1\u9001\u672a\u786e\u8ba4, \u4e24\u7aef API \u914d\u989d\u8017\u5c3d, score 0, \u4e3a\u4ec0\u4e48\u5931\u8d25), checking daily quotas, dry-running with --score-only, or asking about CLI flags. Covers preflight, 3 platform differences, output field interpretation, and 8+ error\u2192fix mappings. Guides the user to run the right command; does NOT execute ADB or send greetings itself.",
+      "train_passed": 8,
+      "train_failed": 9,
+      "train_total": 17,
+      "train_results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 5,
+      "test_failed": 6,
+      "test_total": 11,
+      "test_results": [
+        {
+          "query": "verify=False \u4ec0\u4e48\u610f\u601d\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "AI \u5339\u914d \u667a\u80fd\u6253\u62db\u547c",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "Boss \u76f4\u8058 \u6253\u62db\u547c\u53d1\u4e0d\u51fa\u53bb",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "smart_match_greet.py \u62a5\u9519\u4e86\uff0c\u5e2e\u6211\u770b\u770b",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e3a\u4ec0\u4e48 smart_match_greet \u5361\u4f4f\u4e86",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u6253\u62db\u547c \u7ed9 HR",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5728 scenarios/boss/scripts/smart_match_greet.py \u52a0\u4e00\u4e2a\u65b0\u53c2\u6570",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "git commit \u5f53\u524d\u6539\u52a8",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ADBForegroundService \u600e\u4e48\u7528",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_greet.py \u8dd1\u5b8c\u4e86\u5f52\u6863 DB",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a hermes \u7684 endpoint \u6539\u56de minimax.chat \u8bd5\u8bd5",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 8,
+      "failed": 9,
+      "total": 17,
+      "results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "description": "Use this skill to run, dry-run, debug, or switch the smart_match_greet workflow \u2014 auto-greet recruiters with LLM-personalized, resume-matched openers (\u667a\u80fd\u6253\u62db\u547c / \u53d1\u6253\u62db\u547c / \u5339\u914d\u804c\u4f4d / AI\u4ea7\u54c1\u7ecf\u7406\u5339\u914d / \u7b80\u5386\u5339\u914d) on Boss\u76f4\u8058 / \u667a\u8054\u62db\u8058 / \u730e\u8058. Also for: switching platforms (\u5207\u5230\u667a\u8054\u62db\u8058 / \u730e\u8058\u53ef\u4ee5\u53d1\u5417), checking daily quotas (\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417), --score-only dry runs, debugging recent failures (\u53d1\u9001\u672a\u786e\u8ba4 / \u4e24\u7aef API \u914d\u989d\u8017\u5c3d / score 0 / \u4e3a\u4ec0\u4e48\u5931\u8d25), CLI flags, and preflight (ADB / .env / resume / LLM endpoint). Covers 3-platform differences, output fields, 8+ error\u2192fix mappings. Does NOT execute ADB or send greetings itself \u2014 guides user to the right command.",
+      "train_passed": 8,
+      "train_failed": 9,
+      "train_total": 17,
+      "train_results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 5,
+      "test_failed": 6,
+      "test_total": 11,
+      "test_results": [
+        {
+          "query": "verify=False \u4ec0\u4e48\u610f\u601d\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "AI \u5339\u914d \u667a\u80fd\u6253\u62db\u547c",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "Boss \u76f4\u8058 \u6253\u62db\u547c\u53d1\u4e0d\u51fa\u53bb",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "smart_match_greet.py \u62a5\u9519\u4e86\uff0c\u5e2e\u6211\u770b\u770b",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e3a\u4ec0\u4e48 smart_match_greet \u5361\u4f4f\u4e86",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u6253\u62db\u547c \u7ed9 HR",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5728 scenarios/boss/scripts/smart_match_greet.py \u52a0\u4e00\u4e2a\u65b0\u53c2\u6570",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "git commit \u5f53\u524d\u6539\u52a8",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ADBForegroundService \u600e\u4e48\u7528",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a hermes \u7684 endpoint \u6539\u56de minimax.chat \u8bd5\u8bd5",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_greet.py \u8dd1\u5b8c\u4e86\u5f52\u6863 DB",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 8,
+      "failed": 9,
+      "total": 17,
+      "results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "description": "\u5339\u914d\u804c\u4f4d / \u667a\u80fd\u6253\u62db\u547c / \u53d1\u6253\u62db\u547c / \u7b80\u5386\u5339\u914d \u2014 Run, dry-run, switch platforms, or debug the auto-greet workflow on Boss\u76f4\u8058 / \u667a\u8054\u62db\u8058 / \u730e\u8058. Use this skill when the user wants to greet recruiters with LLM-personalized, resume-matched openers (e.g. \"\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406 10 \u6761\u6253\u62db\u547c\", \"\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a\"), wants to switch to another platform (\"\u5207\u5230\u667a\u8054\u62db\u8058\" / \"\u730e\u8058\u53ef\u4ee5\u53d1\u5417\"), check daily quotas (\"\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417\"), run a score-only dry run, or debug recent failures (\"\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u5931\u8d25\u4e86\u5417\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\" / \"score 0\" / \"\u4e3a\u4ec0\u4e48\u5931\u8d25\"). Covers preflight (ADB / .env / resume / LLM endpoint), all CLI flags, 3-platform differences, and 8+ error\u2192fix mappings. Guides user to run the right command; does NOT execute ADB or send greetings itself.",
+      "train_passed": 8,
+      "train_failed": 9,
+      "train_total": 17,
+      "train_results": [
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 5,
+      "test_failed": 6,
+      "test_total": 11,
+      "test_results": [
+        {
+          "query": "verify=False \u4ec0\u4e48\u610f\u601d\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "AI \u5339\u914d \u667a\u80fd\u6253\u62db\u547c",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "Boss \u76f4\u8058 \u6253\u62db\u547c\u53d1\u4e0d\u51fa\u53bb",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "smart_match_greet.py \u62a5\u9519\u4e86\uff0c\u5e2e\u6211\u770b\u770b",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e3a\u4ec0\u4e48 smart_match_greet \u5361\u4f4f\u4e86",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u6253\u62db\u547c \u7ed9 HR",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5728 scenarios/boss/scripts/smart_match_greet.py \u52a0\u4e00\u4e2a\u65b0\u53c2\u6570",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "git commit \u5f53\u524d\u6539\u52a8",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ADBForegroundService \u600e\u4e48\u7528",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_greet.py \u8dd1\u5b8c\u4e86\u5f52\u6863 DB",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a hermes \u7684 endpoint \u6539\u56de minimax.chat \u8bd5\u8bd5",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 8,
+      "failed": 9,
+      "total": 17,
+      "results": [
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    },
+    {
+      "iteration": 5,
+      "description": "USE WHEN user wants to \u667a\u80fd\u6253\u62db\u547c / \u5339\u914d\u804c\u4f4d / \u53d1\u6253\u62db\u547c \u2014 running, dry-running, or debugging the Boss\u76f4\u8058 / \u667a\u8054\u62db\u8058 / \u730e\u8058 auto-greet workflow. Triggers on \"\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406 10 \u6761\u6253\u62db\u547c\", \"\u7b80\u5386\u5339\u914d \u8dd1 5 \u4e2a\", \"\u5207\u5230\u667a\u8054\u62db\u8058\", \"\u730e\u8058\u53ef\u4ee5\u53d1\u5417\", \"\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417\", \"\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf\", or after a failed run asking \"\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u5931\u8d25\u4e86\u5417\" / \"\u4e24\u7aef API \u914d\u989d\u8017\u5c3d\" / \"score 0\" / \"\u4e3a\u4ec0\u4e48\u5931\u8d25\". Covers preflight (ADB / .env / resume / LLM endpoint), CLI flags, 3-platform differences, quota limits, and common error\u2192fix mappings. Guides user to run the right command; does NOT execute ADB or send greetings itself.",
+      "train_passed": 8,
+      "train_failed": 9,
+      "train_total": 17,
+      "train_results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "test_passed": 5,
+      "test_failed": 6,
+      "test_total": 11,
+      "test_results": [
+        {
+          "query": "verify=False \u4ec0\u4e48\u610f\u601d\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "AI \u5339\u914d \u667a\u80fd\u6253\u62db\u547c",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "Boss \u76f4\u8058 \u6253\u62db\u547c\u53d1\u4e0d\u51fa\u53bb",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "smart_match_greet.py \u62a5\u9519\u4e86\uff0c\u5e2e\u6211\u770b\u770b",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e3a\u4ec0\u4e48 smart_match_greet \u5361\u4f4f\u4e86",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u6253\u62db\u547c \u7ed9 HR",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5728 scenarios/boss/scripts/smart_match_greet.py \u52a0\u4e00\u4e2a\u65b0\u53c2\u6570",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "git commit \u5f53\u524d\u6539\u52a8",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "daily_greet.py \u8dd1\u5b8c\u4e86\u5f52\u6863 DB",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ADBForegroundService \u600e\u4e48\u7528",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a hermes \u7684 endpoint \u6539\u56de minimax.chat \u8bd5\u8bd5",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ],
+      "passed": 8,
+      "failed": 9,
+      "total": 17,
+      "results": [
+        {
+          "query": "\u5339\u914d\u804c\u4f4d AI\u4ea7\u54c1\u7ecf\u7406 10 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u53d1\u9001\u672a\u786e\u8ba4 \u662f\u4e0d\u662f\u5931\u8d25\u4e86\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4eca\u65e5\u6c9f\u901a\u6b21\u6570\u8fd8\u80fd\u7528\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5148 score-only \u770b\u770b\u5339\u914d\u8d28\u91cf",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5207\u5230\u667a\u8054\u62db\u8058",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u730e\u8058\u53ef\u4ee5\u53d1\u6253\u62db\u547c\u5417",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5e2e\u6211\u8dd1 AI\u4ea7\u54c1\u7ecf\u7406\u7684\u667a\u80fd\u6253\u62db\u547c\uff0c10 \u6761",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u4e0a\u6b21\u8dd1\u51fa\u73b0 '\u4e24\u7aef API \u914d\u989d\u8017\u5c3d'\uff0c\u4e3a\u4ec0\u4e48\uff1f",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u7b80\u5386\u5339\u914d PM \u5c97\u4f4d \u8dd1 5 \u4e2a",
+          "should_trigger": true,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": false
+        },
+        {
+          "query": "\u5206\u6790 Boss \u6293\u53d6\u5230\u7684\u5c97\u4f4d JSON",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "PixelClaw \u9879\u76ee\u7ed3\u6784\u662f\u4ec0\u4e48\u6837\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "device_lock \u4e92\u65a5\u9501\u662f\u54ea\u4e2a\u6587\u4ef6\u5b9e\u73b0\u7684",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "why does smart_match_greet fail on Liepin",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u628a .env.example \u6539\u4e00\u4e0b\u52a0\u4e0a backup API key",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u5e2e\u6211\u5199\u4e2a Python \u51fd\u6570\u89e3\u6790 JD \u6587\u672c",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "ad click automation for Boss",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        },
+        {
+          "query": "\u66f4\u65b0 PROJECTWIKI.md \u00a75 LLM provider \u90a3\u4e00\u8282",
+          "should_trigger": false,
+          "trigger_rate": 0.0,
+          "triggers": 0,
+          "runs": 3,
+          "pass": true
+        }
+      ]
+    }
+  ]
+}

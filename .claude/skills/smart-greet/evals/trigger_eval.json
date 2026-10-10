@@ -1,0 +1,32 @@
+[
+  {"query": "帮我跑 AI产品经理的智能打招呼，10 条", "should_trigger": true},
+  {"query": "上次跑出现 '两端 API 配额耗尽'，为什么？", "should_trigger": true},
+  {"query": "发送未确认 是不是失败了？", "should_trigger": true},
+  {"query": "切到智联招聘", "should_trigger": true},
+  {"query": "先 score-only 看看匹配质量", "should_trigger": true},
+
+  {"query": "匹配职位 AI产品经理 10 个", "should_trigger": true},
+  {"query": "smart_match_greet.py 报错了，帮我看看", "should_trigger": true},
+  {"query": "Boss 直聘 打招呼发不出去", "should_trigger": true},
+  {"query": "verify=False 什么意思？", "should_trigger": true},
+  {"query": "今日沟通次数还能用吗", "should_trigger": true},
+  {"query": "简历匹配 PM 岗位 跑 5 个", "should_trigger": true},
+  {"query": "猎聘可以发打招呼吗", "should_trigger": true},
+  {"query": "发打招呼 给 HR", "should_trigger": true},
+  {"query": "AI 匹配 智能打招呼", "should_trigger": true},
+  {"query": "为什么 smart_match_greet 卡住了", "should_trigger": true},
+
+  {"query": "更新 PROJECTWIKI.md §5 LLM provider 那一节", "should_trigger": false},
+  {"query": "把 .env.example 改一下加上 backup API key", "should_trigger": false},
+  {"query": "在 scenarios/boss/scripts/smart_match_greet.py 加一个新参数", "should_trigger": false},
+  {"query": "帮我写个 Python 函数解析 JD 文本", "should_trigger": false},
+  {"query": "PixelClaw 项目结构是什么样的", "should_trigger": false},
+  {"query": "git commit 当前改动", "should_trigger": false},
+  {"query": "把 hermes 的 endpoint 改回 minimax.chat 试试", "should_trigger": false},
+  {"query": "ADBForegroundService 怎么用", "should_trigger": false},
+  {"query": "daily_greet.py 跑完了归档 DB", "should_trigger": false},
+  {"query": "why does smart_match_greet fail on Liepin", "should_trigger": false},
+  {"query": "分析 Boss 抓取到的岗位 JSON", "should_trigger": false},
+  {"query": "device_lock 互斥锁是哪个文件实现的", "should_trigger": false},
+  {"query": "ad click automation for Boss", "should_trigger": false}
+]
