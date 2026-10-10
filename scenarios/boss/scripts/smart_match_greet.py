@@ -216,6 +216,20 @@ def _is_already_greeted(
         ).fetchone()
         if row4 and row4[0] > 0:
             return True
+    # Fifth layer: title-only match for unique titles (length >= 10 chars after normalize).
+    # Catches the "both empty on first visit + populated on second visit" gap.
+    # Example: visit 36 stored (title, company='', hr_name=''); visit 37 stored
+    # (title, company='ATB', hr_name='沈女士') → all four previous layers miss it.
+    # Risk: over-dedup for common short titles like "产品经理" (4 chars). Mitigated
+    # by length >= 10 — common short titles all < 10 chars after normalize.
+    norm_title = normalize_card_title(title)
+    if len(norm_title) >= 10:
+        row5 = conn.execute(
+            "SELECT COUNT(*) FROM job_visits WHERE title = ? AND greeted = 1",
+            (norm_title,),
+        ).fetchone()
+        if row5 and row5[0] > 0:
+            return True
     return False
 
 
@@ -484,6 +498,13 @@ def score_job(
     )
     text = _strip_json_fences(response.content[0].text.strip())
     result = json.loads(text)
+    # 兜底修正 LLM 漏姓 / 用字面 "HR" 的情况（即便 prompt 已强化仍偶发）
+    import re as _re
+    greeting_raw = result.get("greeting", "") or ""
+    greeting_fixed = _re.sub(r"^(总好|HR好|老师好|XX总好)", "您好", greeting_raw)
+    if greeting_fixed != greeting_raw:
+        logger.warning("  greeting 兜底修正：%r → %r", greeting_raw[:20], greeting_fixed[:20])
+        result["greeting"] = greeting_fixed
     return {**job, **result}
 
 
@@ -930,6 +951,60 @@ def _find_next_job(
     return None
 
 
+def _wait_for_list_card_data(
+    skill: "BOSSAutomationSkill",
+    title: str,
+    timeout_sec: float = 60.0,
+    poll_interval: float = 2.0,
+) -> object | None:
+    """Wait for async load of hr_name/company on a list card.
+
+    Boss 列表卡 RecyclerView 懒加载 + 异步拉 HR/公司信息，dump 时常拿到空。
+    这里轮询 `get_ui_hierarchy()` + `get_job_list()` 直到目标 title 的
+    hr_name AND company 都有值，或超时。
+
+    Args:
+        skill: BOSSAutomationSkill 实例。
+        title: 要等待的列表卡标题。
+        timeout_sec: 总超时秒数（默认 60）。
+        poll_interval: 轮询间隔秒数（默认 2）。
+
+    Returns:
+        更新后的 JobInfo（至少补到一边字段）。若 60s 内都拿不到：
+        - 卡片在 dump 中出现过 → 返回 last_seen（哪怕两字段都空）
+        - 卡片从 dump 消失 → 返回 None
+    """
+    norm = normalize_card_title(title)
+    deadline = time.time() + timeout_sec
+    last_seen = None
+    poll_count = 0
+    while time.time() < deadline:
+        time.sleep(poll_interval)
+        poll_count += 1
+        try:
+            xml = skill.get_ui_hierarchy()
+            for job in skill.get_job_list(xml=xml):
+                if normalize_card_title(job.title) == norm:
+                    last_seen = job
+                    if job.hr_name and job.company:
+                        logger.info(
+                            "  列表卡异步数据补全（第 %d 次轮询 %.0fs）：hr=%r company=%r",
+                            poll_count, poll_count * poll_interval, job.hr_name, job.company,
+                        )
+                        return job
+                    break  # 找到卡片但数据仍不全，继续轮询
+        except Exception as exc:
+            logger.warning("  轮询 dump 异常（继续）：%s", exc)
+    if last_seen is not None:
+        logger.warning(
+            "  列表卡异步 %.0fs 未补全：title=%r 当前 hr=%r company=%r",
+            timeout_sec, title, last_seen.hr_name, last_seen.company,
+        )
+    else:
+        logger.warning("  列表卡 %.0fs 内从 dump 消失：title=%r", timeout_sec, title)
+    return last_seen
+
+
 def _run_loop(
     skill: "BOSSAutomationSkill",
     resume: str,
@@ -1129,6 +1204,58 @@ def _run_loop(
             time.sleep(1.5)
             continue
         no_target_scrolls = 0
+
+        # ── 保证拿到 hr_name / company：列表卡异步加载等待 ≤60s ─────────────
+        # 背景：Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空。
+        # 第一次空 + 第二次空（不同 RecyclerView 状态）→ Layer 1-4 dedup 全部失效。
+        # 这里保证至少补到一边；两边仍空则记 skip + 加入 visited_keys 跳过。
+        if not target.hr_name or not target.company:
+            logger.info(
+                "  列表卡 hr/company 缺失，等待异步加载（≤60s）：title=%r hr=%r company=%r",
+                target.title, target.hr_name, target.company,
+            )
+            waited = _wait_for_list_card_data(skill, target.title, timeout_sec=60.0)
+            if waited is None:
+                # 60s 内卡片从 dump 消失（被回收 / 滑出）
+                result["skipped"].append(f"{target.title}：列表卡 60s 内消失")
+                _record_visit(db_conn, target.title, target.company or "", "",
+                              keyword, None, skip_reason="列表卡60s内消失")
+                visited_keys.add(f"{normalize_card_title(target.title)}\t{target.company or ''}")
+                if not target.company:
+                    visited_keys.add(f"{normalize_card_title(target.title)}\t")
+                processed += 1
+                continue
+            # 合并：保留原 tap 坐标 + waited 的字段（空字段用 target 兜底）
+            target = replace(
+                target,
+                company=waited.company or target.company,
+                hr_name=waited.hr_name or target.hr_name,
+                hr_title=waited.hr_title or target.hr_title,
+                hr_active=waited.hr_active or target.hr_active,
+            )
+            if not target.hr_name or not target.company:
+                logger.warning(
+                    "  跳过（60s 后 hr/company 仍缺失）：%s  hr=%r company=%r",
+                    target.title, target.hr_name, target.company,
+                )
+                _company_sk = target.company or ""
+                _hr_sk = target.hr_name or ""
+                result["skipped"].append(
+                    f"{target.title}（{_company_sk}）：hr_name/company 异步 60s 未返回"
+                    f"（hr={_hr_sk!r}, company={_company_sk!r}）"
+                )
+                _record_visit(
+                    db_conn, target.title, _company_sk, _hr_sk, keyword, None,
+                    skip_reason="列表卡hr/company异步60s未返回",
+                )
+                visited_keys.add(f"{normalize_card_title(target.title)}\t{_company_sk}")
+                if not _company_sk:
+                    visited_keys.add(f"{normalize_card_title(target.title)}\t")
+                processed += 1
+                continue
+            logger.info(
+                "  列表卡补全：hr=%r company=%r", target.hr_name, target.company,
+            )
 
         processed += 1
         title = target.title or ""
@@ -1519,6 +1646,15 @@ def _run_loop(
                     _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                                   skip_reason=f"弹窗跳过({dialog2})", job_dict=job_dict, scored_result=scored)
                     continue
+
+            # 最终兜底：招呼开头不允许「总好」「HR好」「老师好」
+            import re as _re_final
+            if _re_final.match(r"^(总好|HR好|老师好)", greeting):
+                logger.error("  greeting 仍含禁用开头，跳过发送：%r", greeting[:20])
+                result["errors"].append(f"{title}：greeting 含禁用开头「{greeting[:6]}」")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                              skip_reason="greeting禁用开头", job_dict=job_dict, scored_result=scored)
+                continue
 
             ok = skill.send_greeting(greeting, verify=verify_send)
 
