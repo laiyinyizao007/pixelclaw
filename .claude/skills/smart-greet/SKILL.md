@@ -59,16 +59,17 @@ adb devices
 - 手机必须解锁、Adaptive Sleep 关闭
 - 同 WiFi 无线 ADB 走 `10.32.7.105:5555`（参见 `docs/GETTING_STARTED.md` §3）
 
-### 2. .env 已配置（4 个关键变量）
+### 2. .env 已配置（5 个关键变量）
 ```bash
 cd /home/averypi/Projects/pixelclaw
 [ -f .env ] || cp .env.example .env
-grep -E "^(ANTHROPIC_API_KEY|ANTHROPIC_BASE_URL|ANTHROPIC_BACKUP_API_KEY|PIXELCLAW_RESUME_PATH)" .env
+grep -E "^(ANTHROPIC_API_KEY|ANTHROPIC_BASE_URL|ANTHROPIC_BACKUP_API_KEY|PIXELCLAW_RESUME_PATH|PIXELCLAW_DEVICE_PIN)" .env
 ```
 
 - `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL`：主 LLM relay（hermes）
 - `ANTHROPIC_BACKUP_API_KEY` / `ANTHROPIC_BACKUP_BASE_URL`：fallback（不设则不启用）
 - `PIXELCLAW_RESUME_PATH`：简历 MD 路径（不设走 Pi 默认 `~/Projects/resume-renew/resume/current.md`）
+- `PIXELCLAW_DEVICE_PIN`：4-6 位数字 PIN，**可选**；填了之后启动时跳过手动解锁等 120s（详见错误 #12）
 
 ### 3. 简历文件存在
 ```bash
@@ -232,6 +233,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 
 ### 6. `手机锁屏未解` → 解锁等 120s
 - 脚本启动时会等 120s 让用户解锁，不会立即报错
+- **如已设 `PIXELCLAW_DEVICE_PIN`**：启动时自动执行 WAKEUP+tap+fast swipe+text+ENTER 流程（详见错误 #12），跳过 120s 等待
 
 ### 7. `DeviceBusyError` → 杀其他脚本
 - 多脚本互斥锁（`device_lock`），同时只能跑一个 smart_match_greet
@@ -276,6 +278,26 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
   - `列表卡 60s 内从 dump 消失` warning → 卡片被回收
   - `跳过（60s 后 hr/company 仍缺失）` warning → 已记 skip
 - **已知未覆盖**：详情页 `tv_boss_name` 异步未返回时仍可能存空（依赖 `detail.get("hr_name") or hr_name` fallback），若 visit 95/129 这种 case 频繁出现需加同款详情页等待
+
+### 12. `手机锁屏` → PIN 自动解锁（2026-10-10 加）
+- **症状**：启动时 `mDreamingLockscreen=true`，原本要走 120s 手动解锁等待窗口
+- **修复**：在 `.env` 设 `PIXELCLAW_DEVICE_PIN=4892`（4-6 位数字 PIN）→ 启动时自动执行 Pixel 解锁序列
+- **Pixel 关键序列**（实测 2026-10-10）：
+  1. `KEYCODE_WAKEUP` → 屏幕亮（仅 AOD clock）
+  2. **`input tap 540 1200`**（中点 tap）→ 关键步骤，让 keyguard 取得焦点
+  3. **`input swipe 540 2400 540 200 30`**（fast swipe 30ms）→ PIN pad 出现
+  4. `input text $PIN` → 输入
+  5. `KEYCODE_ENTER` → 提交
+- **集成注意**：`skill._wake_screen()`（内部 `wm dismiss-keyguard`）会把设备留在「mWakefulness=Awake 但 mDreamingLockscreen=true」的特殊状态，让后续 tap+fast swipe 失效。所以 PIN 配置时**跳过 `_wake_screen` 直接走 `_try_auto_unlock`**
+- **代码位置**：`smart_match_greet.py:1008-1050`（`_try_auto_unlock`）+ `:1077-1097`（集成顺序修复）
+- **log 标志**：
+  - `尝试用 PIN 自动解锁（N 位）` info → 开始解锁
+  - `✓ PIN 自动解锁成功` info → 解锁成功
+  - `PIN 自动唤醒失败，等待手动解锁（最多 120 秒）` warning → 失败回退
+- **限制**：
+  - 仅支持数字 PIN（不支持图案 / 指纹 / 面部）
+  - 非数字字符时 `PIXELCLAW_DEVICE_PIN 含非数字字符，跳过自动解锁`
+  - 端到端验证：`前端工程师 --max-greet 1` 实跑通过，PIN 解锁后正常打招呼
 
 ## 多日 DB 管理
 
