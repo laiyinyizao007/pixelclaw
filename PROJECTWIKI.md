@@ -271,6 +271,27 @@ Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿�
 
 **已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回（visit 95/129 的 hr_name 仍空，company 已拿到）。当前依赖 `detail.get("hr_name") or hr_name` 的 fallback，详情页若持续空可加同款等待逻辑（独立改动）。
 
+**PIN 自动解锁（2026-10-10 新增）**：
+
+启动时若设备锁屏（`mDreamingLockscreen=true`），`.env` 设了 `PIXELCLAW_DEVICE_PIN` 即可自动解锁，跳过 120s 手动等待窗口。`_try_auto_unlock(skill)` 见 `smart_match_greet.py:1008-1050`：
+
+**Pixel 关键序列（实测）**：
+1. `KEYCODE_WAKEUP` → 屏幕亮（仅 AOD clock）
+2. **`input tap 540 1200`**（中点 tap）→ 关键步骤，让 keyguard 取得焦点
+3. **`input swipe 540 2400 540 200 30`**（fast swipe 30ms）→ PIN pad 出现
+4. `input text $PIN` → 输入
+5. `KEYCODE_ENTER` → 提交
+6. 等 3s 系统验证，`mDreamingLockscreen=false` 即成功
+
+**集成顺序修复**（`smart_match_greet.py:1077-1097`）：PIN 配置时**跳过 `skill._wake_screen()`**，直接走 `_try_auto_unlock`。原因是 `_wake_screen()` 内部用 `wm dismiss-keyguard`，会把设备留在「mWakefulness=Awake 但 mDreamingLockscreen=true」的特殊状态，让后续 tap+fast swipe 失效。
+
+**限制**：
+- 仅支持 4-6 位数字 PIN（不支持图案 / 指纹 / 面部）
+- 非数字字符时记录 warning 并跳过自动解锁
+- `.env` 必须 `chmod 600`（PIN 等价于设备解锁凭证）
+
+**端到端验证**（2026-10-10）：`前端工程师 --max-greet 1` 实跑——`PIN 自动解锁成功 → 打招呼：张总好…`。
+
 **CLI 参数**：
 
 ```
