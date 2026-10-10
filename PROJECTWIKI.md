@@ -234,6 +234,43 @@ flowchart LR
 | 去重 dedup_key | `normalize_card_title(title)\tcompany\thr_name` | 唯一标识一条职位；首次打招呼时 `INSERT OR IGNORE INTO job_details`，无需预爬记录 |
 | `--score-only` 模式 | 仍需打开 App | 评分依赖实时 JD 文本，不再是离线操作 |
 
+**5 层去重逻辑（`_is_already_greeted`，`smart_match_greet.py:178-233`，2026-10-09 FDE 实测加 Layer 5）**：
+
+| 层 | 条件 | 命中场景 | 失效场景 |
+|---|---|---|---|
+| 1 | `dedup_key` 完全匹配 | 同 title + 同 company + 同 hr_name | 三元组任一字段不同 |
+| 2 | hr_name + company 相同 | 跨 title 但同一 HR 在同公司多个职位 | hr_name 为空 |
+| 3 | normalized title + company 相同 | 跨 run hr_name 补全差异 | company 不同 |
+| 4 | normalized title + hr_name 相同 | 跨 run company 补全差异 | hr_name 为空 |
+| 5 | normalized title 长度 ≥ 10 字符时 title-only | **首次访问 hr/company 都空**（RecyclerView 懒加载态），下次访问补全字段——前 4 层全部失效 | 短通用 title（< 10 字符）不触发，避免"产品经理"被误去重 |
+
+**Layer 5 阈值理由（`len(norm_title) >= 10`）**：
+- 常见短 title "产品经理"（4 字符）、"前端工程师"（5 字符）、"AI 产品经理"（6 字符）均 < 10，**不会触发** Layer 5（安全）
+- 长 unique title "ATB 企业 AI 转型构建师（FDE Leader）"（27 字符）、"行业解决方案咨询经理（FDE）上海/深圳"（20 字符）均 ≥ 10，正常命中
+- 实测 2 个 duplicate（ATB、行业解决方案咨询）的 normalized 长度都 ≥ 10，Layer 5 单测通过
+- "FDE工程师"（6 字符）4 条不同公司+HR 的记录**不是** duplicate，Layer 5 不需要触发
+
+**为什么必须 5 层而不是统一改 Layer 1**：Layer 1 用三字段拼接存，跨次访问字段差异时无法历史回填（不知道原值）。Layer 5 单独存「title-only」路径，规避回填问题。
+
+**greeting 质量兜底（2026-10-09 FDE 实测加）**：
+
+LLM 偶尔忽略 prompt 规则生成"总好"（漏姓）/ "HR好"（字面 HR）等不合规开头。三道防线：
+1. **prompt 强化**（`match_score.md:56`）：显式列出「禁止开头清单」+「称呼构造优先级」+ 强调姓名提取规则
+2. **`score_job` 正则兜底**（`smart_match_greet.py:486-495`）：`_re.sub(r"^(总好\|HR好\|老师好\|XX总好)", "您好", greeting)`，LLM 输出后立即修正，记 warning 日志
+3. **发送前最终校验**（`smart_match_greet.py:1543-1550`）：`_re_final.match(r"^(总好\|HR好\|老师好)", greeting)` 命中则 `continue` + 记 error，**不发**出去丢人
+
+**列表卡 hr_name/company 异步等待（2026-10-10 新增）**：
+
+Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空。空字段会破坏 Layer 1-4 dedup（详见上文 5 层去重逻辑表）。`_wait_for_list_card_data()`（`smart_match_greet.py:954-1010`）保证至少拿到一边：
+- **触发条件**：`_find_next_job` 返回的 target 任一字段（hr_name / company）为空
+- **轮询策略**：每 2s 重 dump + 解析 list，找到同 normalized title 的卡片检查字段
+- **成功**：补全到 target（保留原 tap 坐标），继续导航
+- **超时**：60s 后仍空 → 记 `skip_reason="列表卡hr/company异步60s未返回"` + `result["skipped"]` + 加入 `visited_keys`（避免下次循环重试） + `continue`
+- **dump 异常**：单次 `get_ui_hierarchy()` 失败不中断，继续下一次轮询
+- **卡片消失**：60s 内从 dump 消失（被回收 / 滑出）→ 记 `skip_reason="列表卡60s内消失"` + 跳过
+
+**已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回（visit 95/129 的 hr_name 仍空，company 已拿到）。当前依赖 `detail.get("hr_name") or hr_name` 的 fallback，详情页若持续空可加同款等待逻辑（独立改动）。
+
 **CLI 参数**：
 
 ```

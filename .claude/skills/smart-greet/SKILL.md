@@ -241,6 +241,42 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - 网络抖动偶发，记录到 DB 后自动跳到下一条
 - 不需要修；如大面积出现检查网络
 
+### 9. `重复打招呼` → 5 层去重（2026-10-09 加 Layer 5）
+- **症状**：同一职位（特别是长 unique title）在 run output 出现 ≥2 次 `✓ 打招呼成功`
+- **根因**：Boss 列表卡 RecyclerView 懒加载——首次访问 hr_name + company 都为空，第二次访问任一字段补全后，前 4 层去重全部失效
+- **Layer 5 触发条件**：normalized title 长度 ≥ 10 字符时 title-only 去重
+  - 安全阈值：常见短 title（"产品经理" 4 字符 / "前端工程师" 5 字符）均 < 10，**不会**误去重
+  - 长 unique title（"ATB 企业 AI 转型构建师（FDE Leader）" 27 字符）正常命中
+- **代码**：`smart_match_greet.py:222-233`
+- **修复后验证**：`sqlite3 scenarios/boss/output/requirements.db "SELECT title, COUNT(*) FROM job_visits WHERE greeted=1 GROUP BY title HAVING COUNT(*)>1"` 应只剩短 title 多家公司记录（合理场景）
+
+### 10. `总好 / HR好 / 老师好 开头` → 三道防线（2026-10-09 加）
+- **症状**：LLM 漏姓生成 "总好，" / 用字面 "HR" 生成 "HR好，"
+- **根因**：prompt 写「姓名无法提取时用您好」LLM 不遵守，强行编造 "X总好" 但漏 X
+- **三道防线**：
+  1. **prompt 强化**（`match_score.md:56`）：显式列出禁止开头清单 + 称呼构造优先级
+  2. **`score_job` 正则兜底**（`smart_match_greet.py:486-495`）：LLM 输出后立即 `_re.sub(r"^(总好|HR好|老师好|XX总好)", "您好", greeting)` 修正
+  3. **发送前最终校验**（`smart_match_greet.py:1543-1550`）：命中禁用开头直接 `continue` 记 error，**不发送**
+- **log 标志**：`greeting 兜底修正` warning 表示第 2 道防线触发了；`greeting 含禁用开头` error 表示第 3 道防线拦截了
+- **判定**：如果第 3 道防线频繁拦截，说明 prompt 仍不够强，需进一步强化或换模型
+
+### 11. `列表卡 hr_name/company 缺失` → 60s 异步等待 + 超时跳过（2026-10-10 加）
+- **症状**：Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空
+- **后果**：空字段破坏 Layer 1-4 dedup（详见 5 层去重逻辑），可能导致重复打招呼
+- **机制**（`_wait_for_list_card_data()`，`smart_match_greet.py:954-1010`）：
+  - **触发**：`_find_next_job` 返回的 target 任一字段为空
+  - **轮询**：每 2s 重 dump + 解析 list，找到同 normalized title 的卡片检查字段
+  - **成功**：补全到 target（保留原 tap 坐标）继续
+  - **超时 60s**：仍空 → 记 `skip_reason="列表卡hr/company异步60s未返回"` + 加入 visited_keys 跳过
+  - **dump 异常**：单次失败不中断，继续轮询
+  - **卡片消失**：60s 内从 dump 消失 → 记 `skip_reason="列表卡60s内消失"` 跳过
+- **log 标志**：
+  - `列表卡异步数据补全（第 N 次轮询）` info → 等到了
+  - `列表卡异步 60s 未补全` warning → 超时
+  - `列表卡 60s 内从 dump 消失` warning → 卡片被回收
+  - `跳过（60s 后 hr/company 仍缺失）` warning → 已记 skip
+- **已知未覆盖**：详情页 `tv_boss_name` 异步未返回时仍可能存空（依赖 `detail.get("hr_name") or hr_name` fallback），若 visit 95/129 这种 case 频繁出现需加同款详情页等待
+
 ## 多日 DB 管理
 
 `scenarios/<platform>/output/requirements.db` 累积规则：
