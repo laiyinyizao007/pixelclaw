@@ -259,22 +259,30 @@ LLM 偶尔忽略 prompt 规则生成"总好"（漏姓）/ "HR好"（字面 HR）
 2. **`score_job` 正则兜底**（`smart_match_greet.py:486-495`）：`_re.sub(r"^(总好\|HR好\|老师好\|XX总好)", "您好", greeting)`，LLM 输出后立即修正，记 warning 日志
 3. **发送前最终校验**（`smart_match_greet.py:1543-1550`）：`_re_final.match(r"^(总好\|HR好\|老师好)", greeting)` 命中则 `continue` + 记 error，**不发**出去丢人
 
-**列表卡 hr_name/company 异步等待（2026-10-10 新增）**：
+**列表卡 → 详情页：detail 唯一可信源（2026-10-10 重构）**：
 
-Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空。空字段会破坏 Layer 1-4 dedup（详见上文 5 层去重逻辑表）。`_wait_for_list_card_data()`（`smart_match_greet.py:954-1010`）保证至少拿到一边：
-- **触发条件**：`_find_next_job` 返回的 target 任一字段（hr_name / company）为空
-- **轮询策略**：每 2s 重 dump + 解析 list，找到同 normalized title 的卡片检查字段
-- **成功**：补全到 target（保留原 tap 坐标），继续导航
-- **超时**：60s 后仍空 → 记 `skip_reason="列表卡hr/company异步60s未返回"` + `result["skipped"]` + 加入 `visited_keys`（避免下次循环重试） + `continue`
-- **dump 异常**：单次 `get_ui_hierarchy()` 失败不中断，继续下一次轮询
-- **卡片消失**：60s 内从 dump 消失（被回收 / 滑出）→ 记 `skip_reason="列表卡60s内消失"` + 跳过
+Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空。原方案 `_wait_for_list_card_data()`（已删除，2026-10-10 移除）每 2s 轮询列表 dump 补全字段，单卡最多 30 次 dump + 60s 等待，**浪费 ADB 带宽**且没有解决根本问题。
+
+**新方案**：列表卡字段空就**直接进详情**。详情页是单 job 全屏视图，`get_job_detail()` 从 `tv_job_name` / `tv_company_name` / `tv_boss_name` 等稳定 ID 取值，**必返回完整字段**。具体流程（`live_greet_loop`，`smart_match_greet.py:1218-1364`）：
+1. `_find_next_job` 返回 target（hr_name/company 可能空，正常）
+2. 立即 tap 进详情（不再轮询列表）
+3. 详情页验证通过后用 `get_job_detail()` 提取的字段**覆盖** `title/company/hr_name`（`smart_match_greet.py:1341-1354`）
+4. `effective_hr_name` 优先用 detail；list 的 `hr_name` 仅作 fallback
+5. 第二次 `_is_already_greeted`（`smart_match_greet.py:1362-1366`）用 `effective_hr_name` 兜底，捕获第一次用空字段查不到的 duplicate
+6. visited_keys 用 detail 数据刷新（`title\treal_company` + `title\t` 双 key，幂等）
+
+**dump 数量对比**：
+- 旧：1 list + ≤30 polling + 1 detail = **最多 32 dumps/卡**
+- 新：1 list + 1 detail = **2 dumps/卡**（不含网络/chat 校验）
+
+**已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回时 detail.get("hr_name") 也为空，回退到 target.hr_name 同样空。**实测占比 < 1%**（visit 95/129 偶发），依赖 LLM 评分阶段仍能正常处理（缺 hr_name 不影响分数）。若该 case 频繁出现再考虑加详情页等待（独立改动）。
 
 **visited_keys 懒加载对称性（2026-10-10 加）**：
 
 除 5 层去重外，`live_greet_loop` 内 `_find_next_job` 还有一个 per-screen 的内存级去重 `visited_keys: set[str]`，key 格式 `normalize_card_title(title) + "\t" + company`。原 ADD/CHECK 协议**不对称**（公司非空时只加 `title\tcompany` 不加 `title\t`；visible card company 为空时才查 `title\t`），导致「visit 时 company 已填充 + 下次循环 RecyclerView 复用位置 company 又空」的不对称场景无法命中——`smart_match_greet.py:932-941` 会无限选中同一 target 进入下一轮。
 
 **修复**：让 ADD/CHECK 双向都覆盖 `title\t`：
-- **ADD**（`smart_match_greet.py:1334-1338`）：无论 company 是否空都加 `title\t`
+- **ADD**（`smart_match_greet.py:1230-1233`，首次 visit）+ （`smart_match_greet.py:1353-1354`，detail 刷新幂等）：无论 company 是否空都加 `title\t`
 - **CHECK**（`smart_match_greet.py:932-941`）：无论 visible card company 是否空都查 `title\t`
 
 **误杀风险评估（可接受）**：

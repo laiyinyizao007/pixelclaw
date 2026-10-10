@@ -948,60 +948,6 @@ def _find_next_job(
     return None
 
 
-def _wait_for_list_card_data(
-    skill: "BOSSAutomationSkill",
-    title: str,
-    timeout_sec: float = 60.0,
-    poll_interval: float = 2.0,
-) -> object | None:
-    """Wait for async load of hr_name/company on a list card.
-
-    Boss 列表卡 RecyclerView 懒加载 + 异步拉 HR/公司信息，dump 时常拿到空。
-    这里轮询 `get_ui_hierarchy()` + `get_job_list()` 直到目标 title 的
-    hr_name AND company 都有值，或超时。
-
-    Args:
-        skill: BOSSAutomationSkill 实例。
-        title: 要等待的列表卡标题。
-        timeout_sec: 总超时秒数（默认 60）。
-        poll_interval: 轮询间隔秒数（默认 2）。
-
-    Returns:
-        更新后的 JobInfo（至少补到一边字段）。若 60s 内都拿不到：
-        - 卡片在 dump 中出现过 → 返回 last_seen（哪怕两字段都空）
-        - 卡片从 dump 消失 → 返回 None
-    """
-    norm = normalize_card_title(title)
-    deadline = time.time() + timeout_sec
-    last_seen = None
-    poll_count = 0
-    while time.time() < deadline:
-        time.sleep(poll_interval)
-        poll_count += 1
-        try:
-            xml = skill.get_ui_hierarchy()
-            for job in skill.get_job_list(xml=xml):
-                if normalize_card_title(job.title) == norm:
-                    last_seen = job
-                    if job.hr_name and job.company:
-                        logger.info(
-                            "  列表卡异步数据补全（第 %d 次轮询 %.0fs）：hr=%r company=%r",
-                            poll_count, poll_count * poll_interval, job.hr_name, job.company,
-                        )
-                        return job
-                    break  # 找到卡片但数据仍不全，继续轮询
-        except Exception as exc:
-            logger.warning("  轮询 dump 异常（继续）：%s", exc)
-    if last_seen is not None:
-        logger.warning(
-            "  列表卡异步 %.0fs 未补全：title=%r 当前 hr=%r company=%r",
-            timeout_sec, title, last_seen.hr_name, last_seen.company,
-        )
-    else:
-        logger.warning("  列表卡 %.0fs 内从 dump 消失：title=%r", timeout_sec, title)
-    return last_seen
-
-
 def _try_auto_unlock(skill) -> bool:
     """Auto-unlock via PIN from PIXELCLAW_DEVICE_PIN env var.
 
@@ -1272,57 +1218,10 @@ def _run_loop(
             continue
         no_target_scrolls = 0
 
-        # ── 保证拿到 hr_name / company：列表卡异步加载等待 ≤60s ─────────────
-        # 背景：Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿到空。
-        # 第一次空 + 第二次空（不同 RecyclerView 状态）→ Layer 1-4 dedup 全部失效。
-        # 这里保证至少补到一边；两边仍空则记 skip + 加入 visited_keys 跳过。
-        if not target.hr_name or not target.company:
-            logger.info(
-                "  列表卡 hr/company 缺失，等待异步加载（≤60s）：title=%r hr=%r company=%r",
-                target.title, target.hr_name, target.company,
-            )
-            waited = _wait_for_list_card_data(skill, target.title, timeout_sec=60.0)
-            if waited is None:
-                # 60s 内卡片从 dump 消失（被回收 / 滑出）
-                result["skipped"].append(f"{target.title}：列表卡 60s 内消失")
-                _record_visit(db_conn, target.title, target.company or "", "",
-                              keyword, None, skip_reason="列表卡60s内消失")
-                visited_keys.add(f"{normalize_card_title(target.title)}\t{target.company or ''}")
-                if not target.company:
-                    visited_keys.add(f"{normalize_card_title(target.title)}\t")
-                processed += 1
-                continue
-            # 合并：保留原 tap 坐标 + waited 的字段（空字段用 target 兜底）
-            target = replace(
-                target,
-                company=waited.company or target.company,
-                hr_name=waited.hr_name or target.hr_name,
-                hr_title=waited.hr_title or target.hr_title,
-                hr_active=waited.hr_active or target.hr_active,
-            )
-            if not target.hr_name or not target.company:
-                logger.warning(
-                    "  跳过（60s 后 hr/company 仍缺失）：%s  hr=%r company=%r",
-                    target.title, target.hr_name, target.company,
-                )
-                _company_sk = target.company or ""
-                _hr_sk = target.hr_name or ""
-                result["skipped"].append(
-                    f"{target.title}（{_company_sk}）：hr_name/company 异步 60s 未返回"
-                    f"（hr={_hr_sk!r}, company={_company_sk!r}）"
-                )
-                _record_visit(
-                    db_conn, target.title, _company_sk, _hr_sk, keyword, None,
-                    skip_reason="列表卡hr/company异步60s未返回",
-                )
-                visited_keys.add(f"{normalize_card_title(target.title)}\t{_company_sk}")
-                if not _company_sk:
-                    visited_keys.add(f"{normalize_card_title(target.title)}\t")
-                processed += 1
-                continue
-            logger.info(
-                "  列表卡补全：hr=%r company=%r", target.hr_name, target.company,
-            )
+        # 注意：列表卡 hr_name/company 可能因 RecyclerView 懒加载为空，
+        # 不再轮询等待（60s 浪费 ADB 带宽，2026-10-10 移除 _wait_for_list_card_data）。
+        # 详情页是唯一可信源 —— 进详情后 `get_job_detail()` 必返回完整字段，
+        # 下游 job_dict / effective_hr_name / 第 2 次 _is_already_greeted 都用 detail 数据。
 
         processed += 1
         title = target.title or ""
@@ -1439,13 +1338,20 @@ def _run_loop(
             "raw_texts":        detail.get("raw_texts") or [],
             "requirements_text": "  无标签（请从JD描述中判断）",
         }
-        # 列表页 company 可能为空（懒加载占位）；详情页拿到真实公司名后，
-        # 将 visited_keys 里的占位 key 替换为精确 key，
-        # 避免同 title 不同公司的后续空-company 卡片被误杀。
-        _real_company = job_dict.get("company") or ""
-        if not company and _real_company:
-            visited_keys.discard(f"{normalize_card_title(title)}\t")
-            visited_keys.add(f"{normalize_card_title(title)}\t{_real_company}")
+        # 详情页是唯一可信源：列表卡 RecyclerView 懒加载字段常空，
+        # 用 detail 覆盖 title/company/hr_name 让下游所有 record_visit/record_greeting
+        # 拿到的都是准确值。同时把 visited_keys 的占位 key（line 1230-1233 加的）刷新为精确 key。
+        _real_title = job_dict.get("title") or title
+        _real_company = job_dict.get("company") or company
+        if _real_title:
+            title = _real_title
+        if _real_company:
+            company = _real_company
+        if job_dict.get("hr_name"):
+            hr_name = job_dict["hr_name"]
+        # 始终用 detail 数据更新 visited_keys（幂等；set.add 重名无副作用）
+        visited_keys.add(f"{normalize_card_title(title)}\t{company}")
+        visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
         # Using this for all DB writes ensures consistent dedup across runs.
@@ -1454,7 +1360,7 @@ def _run_loop(
         # 列表页 hr_name 可能为空（RecyclerView 懒加载），此时首层 _is_already_greeted 可能漏检；
         # 用详情页补全的 effective_hr_name 再校验一次。
         if effective_hr_name and effective_hr_name != hr_name:
-            if _is_already_greeted(db_conn, job_dict["title"], job_dict["company"], effective_hr_name):
+            if _is_already_greeted(db_conn, title, company, effective_hr_name):
                 logger.info("  [%d] 跳过（已打过招呼，详情页确认 hr=%s）：%s", processed, effective_hr_name, title)
                 result["skipped"].append(f"{title}（{company}）：已打过招呼")
                 continue
