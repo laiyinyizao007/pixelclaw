@@ -931,14 +931,11 @@ def _find_next_job(
 
     for v in visible:
         v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}"
-        if v_key in visited_keys:
+        title_only_key = f"{normalize_card_title(v.title)}\t"
+        # 同时检查 v_key 和 title-only：闭环「visit 时 company 已填充 +
+        # 下次循环 RecyclerView 复用位置 company 又空」的不对称场景（2026-10-10 复现死循环）。
+        if v_key in visited_keys or title_only_key in visited_keys:
             continue
-        # title-only 去重：仅当卡片 company 为空时才检查（懒加载尚未填充）；
-        # 若 company 非空，跳过此检查，避免不同公司的同名职位被误杀。
-        if not v.company:
-            title_only_key = f"{normalize_card_title(v.title)}\t"
-            if title_only_key in visited_keys:
-                continue
         full = by_key.get(v_key)
         if full is None:
             # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序/出新卡）——
@@ -1332,10 +1329,9 @@ def _run_loop(
         company = target.company or ""
         hr_name = target.hr_name or ""
         visited_keys.add(f"{normalize_card_title(title)}\t{company}")
-        # 仅当 company 为空时注册 title-only 变体（懒加载未填充场景）；
-        # company 非空时不注册，避免误杀不同公司的同名职位。
-        if not company:
-            visited_keys.add(f"{normalize_card_title(title)}\t")
+        # 无论 company 是否空都注册 title-only，闭环 CHECK 侧对称性：
+        # 防止「visit 时 company 已填充 + 下次循环 RecyclerView 复用位置 company 为空」的死循环场景（2026-10-10 复现）。
+        visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
