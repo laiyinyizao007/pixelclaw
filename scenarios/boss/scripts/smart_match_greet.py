@@ -958,9 +958,10 @@ def _dumpsys_keyguard_state(skill) -> str:
     Format: 'Wakefulness=X | DreamingLockscreen=Y | isInteractive=Z'
     """
     try:
-        out = skill._adb("shell dumpsys deviceidle | grep -E 'mWakefulness|mDreamingLockscreen'").strip()
-        is_int = skill._adb("shell dumpsys power | grep -E 'mWakefulness=|isInteractive'").strip()
-        return f"{out} || {is_int}"
+        # _adb returns Tuple[bool, str] — unpack stdout only
+        _, out = skill._adb("shell dumpsys deviceidle | grep -E 'mWakefulness|mDreamingLockscreen'")
+        _, is_int = skill._adb("shell dumpsys power | grep -E 'mWakefulness=|isInteractive'")
+        return f"{out.strip()} || {is_int.strip()}"
     except Exception as e:
         return f"<dumpsys failed: {e}>"
 
@@ -1008,8 +1009,9 @@ def _try_auto_unlock(skill) -> bool:
     skill._adb("shell input swipe 540 2400 540 200 30")
     time.sleep(1.5)
     # 验证：PIN pad 是否弹出？通过 dumpsys window 看 mFocusedApp 是否切换到 keyguard PIN 输入界面
-    cur_focus = skill._adb("shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2").strip()
-    logger.info("    [step 3] swipe 完成, 当前焦点: %s", cur_focus.replace("\n", " | "))
+    _, cur_focus_raw = skill._adb("shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2")
+    cur_focus = cur_focus_raw.strip().replace("\n", " | ")
+    logger.info("    [step 3] swipe 完成, 当前焦点: %s", cur_focus)
     # Step 4: input PIN
     skill._adb(f"shell input text '{pin}'")
     time.sleep(0.5)
