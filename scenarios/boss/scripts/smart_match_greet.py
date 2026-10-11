@@ -497,11 +497,15 @@ def score_job(
         messages=[{"role": "user", "content": prompt}],
     )
     text = _strip_json_fences(response.content[0].text.strip())
-    result = json.loads(text)
+    # 兜底：LLM 偶发在 _analysis 字段输出字符串内真换行/制表符，严格 JSON 解析会抛
+    # Invalid control character。strict=False 接受字符串内 \n \t \r（HTTP/JSON 实战常见）。
+    result = json.loads(text, strict=False)
     # 兜底修正 LLM 漏姓 / 用字面 "HR" 的情况（即便 prompt 已强化仍偶发）
     import re as _re
     greeting_raw = result.get("greeting", "") or ""
     greeting_fixed = _re.sub(r"^(总好|HR好|老师好|XX总好)", "您好", greeting_raw)
+    # 兜底 2：greeting 必须单行——LLM 偶发在字符串内输出真 \n \t 会破坏 4 段结构
+    greeting_fixed = _re.sub(r"[\n\t]+", " ", greeting_fixed).strip()
     if greeting_fixed != greeting_raw:
         logger.warning("  greeting 兜底修正：%r → %r", greeting_raw[:20], greeting_fixed[:20])
         result["greeting"] = greeting_fixed
