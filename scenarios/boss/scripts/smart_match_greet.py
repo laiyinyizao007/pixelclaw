@@ -952,6 +952,19 @@ def _find_next_job(
     return None
 
 
+def _dumpsys_keyguard_state(skill) -> str:
+    """Return keyguard/wakefulness state for diagnosing unlock failures.
+
+    Format: 'Wakefulness=X | DreamingLockscreen=Y | isInteractive=Z'
+    """
+    try:
+        out = skill._adb("shell dumpsys deviceidle | grep -E 'mWakefulness|mDreamingLockscreen'").strip()
+        is_int = skill._adb("shell dumpsys power | grep -E 'mWakefulness=|isInteractive'").strip()
+        return f"{out} || {is_int}"
+    except Exception as e:
+        return f"<dumpsys failed: {e}>"
+
+
 def _try_auto_unlock(skill) -> bool:
     """Auto-unlock via PIN from PIXELCLAW_DEVICE_PIN env var.
 
@@ -982,18 +995,33 @@ def _try_auto_unlock(skill) -> bool:
         )
         return False
     logger.info("  尝试用 PIN 自动解锁（%d 位）", len(pin))
+    logger.info("    [step 0] 解锁前状态: %s", _dumpsys_keyguard_state(skill))
+    # Step 1: wake screen
     skill._adb("shell input keyevent KEYCODE_WAKEUP")
     time.sleep(1.0)
-    # **关键**：tap 让 keyguard 取得焦点，否则后续 swipe 会被 AOD 吞掉
+    logger.info("    [step 1] WAKEUP 已发, 状态: %s", _dumpsys_keyguard_state(skill))
+    # Step 2: tap to focus keyguard
     skill._adb("shell input tap 540 1200")
     time.sleep(0.8)
-    # Fast swipe 揭示 PIN pad（慢 swipe 被 AOD 吞掉，不响应）
+    logger.info("    [step 2] tap(540,1200) 完成, 状态: %s", _dumpsys_keyguard_state(skill))
+    # Step 3: fast swipe to reveal PIN pad
     skill._adb("shell input swipe 540 2400 540 200 30")
     time.sleep(1.5)
+    # 验证：PIN pad 是否弹出？通过 dumpsys window 看 mFocusedApp 是否切换到 keyguard PIN 输入界面
+    cur_focus = skill._adb("shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2").strip()
+    logger.info("    [step 3] swipe 完成, 当前焦点: %s", cur_focus.replace("\n", " | "))
+    # Step 4: input PIN
     skill._adb(f"shell input text '{pin}'")
     time.sleep(0.5)
+    logger.info("    [step 4] PIN 已输入（%d 位）", len(pin))
+    # Step 5: ENTER
     skill._adb("shell input keyevent KEYCODE_ENTER")
     time.sleep(3.0)
+    # 验证：mDreamingLockscreen=false 才算真解锁
+    post_state = _dumpsys_keyguard_state(skill)
+    is_unlocked = "mDreamingLockscreen=false" in post_state or "mDreamingLockscreen=Doze" in post_state
+    logger.info("    [step 5] ENTER 已发, 解锁后: %s → %s",
+                post_state, "✓ 已解锁" if is_unlocked else "✗ 仍锁屏")
     return True
 
 
@@ -1035,13 +1063,16 @@ def _run_loop(
             logger.info("  ✓ PIN 自动唤醒成功")
         else:
             logger.warning("⚠️  PIN 自动唤醒失败，等待手动解锁（最多 120 秒）…")
+            logger.warning("    当前状态: %s", _dumpsys_keyguard_state(skill))
             _unlocked = False
-            for _ in range(12):
+            for attempt in range(1, 13):
                 time.sleep(10)
+                logger.info("    [retry %d/12] 重试 _try_auto_unlock...", attempt)
                 if _try_auto_unlock(skill) and skill._is_screen_on():
                     _unlocked = True
                     break
             if not _unlocked:
+                logger.error("    12 次重试后仍锁屏，最终状态: %s", _dumpsys_keyguard_state(skill))
                 result["errors"].append("手机锁屏未解，无法启动")
                 return result
     elif not skill._is_screen_on():
