@@ -897,7 +897,7 @@ def live_greet_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
-    daily_hard_limit: int = 110,
+    daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -1099,7 +1099,7 @@ def _run_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
-    daily_hard_limit: int = 110,
+    daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
 ) -> dict:
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     # 注意：若 PIN 自动解锁已配置，**先尝试自动解锁**再走 fallback 路径。
@@ -1267,17 +1267,19 @@ def _run_loop(
     processed = 0  # 用于日志显示的「第 N 条」计数器
 
     # ── 每日上限保护（主动检查，不依赖弹窗被动检测）──
+    # 2026-10-12 修订：用户实测 Boss 直聘**无公布每日硬限**——dialy_hard_limit=0
+    # 表示不设硬限（仅受 Boss 内部限流机制影响，触发时手动退出即可）。
     DAILY_HARD_LIMIT = daily_hard_limit  # 来自 candidate_profile.yaml daily_hard_limit
-    DAILY_WARN_LIMIT = max(1, DAILY_HARD_LIMIT - 20)
+    DAILY_WARN_LIMIT = (DAILY_HARD_LIMIT - 20) if DAILY_HARD_LIMIT > 0 else 0
     today_count = _count_today_greeted(db_conn)
     logger.info("  今日已发送 %d 条招呼", today_count)
-    if today_count >= DAILY_HARD_LIMIT:
+    if DAILY_HARD_LIMIT > 0 and today_count >= DAILY_HARD_LIMIT:
         logger.error(
             "今日已发送 %d 条，已达每日上限（%d），退出。明日再运行。",
             today_count, DAILY_HARD_LIMIT,
         )
         return result
-    if today_count >= DAILY_WARN_LIMIT:
+    if DAILY_WARN_LIMIT > 0 and today_count >= DAILY_WARN_LIMIT:
         logger.warning(
             "今日已发送 %d 条，接近每日上限（%d），请注意剩余名额。",
             today_count, DAILY_HARD_LIMIT,
@@ -1804,7 +1806,7 @@ def main() -> int:
     scoring_dimensions: dict = profile.get("scoring_dimensions", {})
     company_tier_weights: dict = profile.get("company_tier_weights", {})
     hr_active_weights: dict = profile.get("hr_active_weights", {})
-    daily_hard_limit: int = int(profile.get("daily_hard_limit", 110))
+    daily_hard_limit: int = int(profile.get("daily_hard_limit", 0))
 
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
     parser.add_argument("--keyword", required=True, help="搜索关键词（必需）")

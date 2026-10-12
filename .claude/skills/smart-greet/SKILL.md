@@ -40,7 +40,7 @@ description: |
 | **Dialog 系统** | 有 `DialogType` 枚举（13 种状态） | 无 | 无 |
 | **DB 表前缀** | `job_details` / `greetings` | `zhilian_*` | `liepin_*` |
 | **薪资格式** | "K·13薪" | "万" | "K/万" 混用 |
-| **每日上限** | 110 | 150 | 100 |
+| **每日上限** | 无硬限（2026-10-12 实测，profile.yaml `daily_hard_limit=0`） | 150 | 100 |
 | **最完整实现** | ✅ 参考实现 | 简化版 | 简化版 |
 
 > **选择建议**：boss 是参考实现，遇到问题先对照 boss；切换其他平台前确认对应差异点。
@@ -334,7 +334,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 |------------|------|----------|
 | MiniMax (hermes, 主) | 2500 请求 / 5 小时 | 滚动窗口 |
 | Klugai (fallback) | 未知上限 + 每日重置 | 每日 0 点（北京时间） |
-| Boss 每日沟通 | 110 次 | 次日 0 点 |
+| Boss 每日沟通 | 无公布硬限（2026-10-12 实测；profile.yaml `daily_hard_limit=0` 关闭脚本保护） | 不适用（跑多快自行判断） |
 | 智联每日沟通 | 150 次 | 次日 0 点 |
 | 猎聘每日沟通 | 100 次 | 次日 0 点 |
 
