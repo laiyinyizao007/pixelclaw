@@ -506,10 +506,59 @@ def score_job(
     greeting_fixed = _re.sub(r"^(总好|HR好|老师好|XX总好)", "您好", greeting_raw)
     # 兜底 2：greeting 必须单行——LLM 偶发在字符串内输出真 \n \t 会破坏 4 段结构
     greeting_fixed = _re.sub(r"[\n\t]+", " ", greeting_fixed).strip()
+    # 兜底 3：收尾归一化——强制末尾以首选话术收尾，LLM 不可决定收尾
+    greeting_fixed = _normalize_greeting_closing(greeting_fixed)
     if greeting_fixed != greeting_raw:
         logger.warning("  greeting 兜底修正：%r → %r", greeting_raw[:20], greeting_fixed[:20])
         result["greeting"] = greeting_fixed
     return {**job, **result}
+
+
+# 收尾归一化：用户（2026-10-12）决定硬性固定收尾，不让 LLM 决定。
+# 规则：招呼末尾 ≤ 25 字内必须含首选/备选/次选话术之一，否则截掉末尾标点 + 拼首选。
+# 收到此函数前，prompt 已禁止全文出现「搭把手/聊聊」等随意见面词。
+_PREFERRED_CLOSINGS = (
+    "方便发您一份简历看看吗",       # 首选（用户钦定）
+    "方便发您一份简历过目吗",       # 备选
+    "不知是否方便发简历给您过目",   # 备选
+    "冒昧请教，方便发简历吗",       # 次选
+    "不知是否合适，盼进一步沟通",   # 次选
+)
+_BANNED_CLOSING_TAILS = (
+    "搭把手", "搭个手", "搭下手", "搭手",
+    "聊聊", "聊一下", "聊一聊",
+    "方便吗", "方便聊聊", "方便聊一下",
+    "能搭把手吗", "能聊一下吗", "能聊聊吗", "能搭把手吗？",
+    "能了解一下吗", "可以搭手",
+)
+
+
+def _normalize_greeting_closing(greeting: str) -> str:
+    """Force greeting to end with a preferred closing phrase.
+
+    行为：
+    1. 若末尾 25 字内已含首选/备选/次选话术 → 不动
+    2. 若末尾 25 字内出现禁词尾巴 → 截掉禁词及之前 8 字 + 拼首选
+    3. 否则 → 截掉末尾标点 + 拼首选话术「方便发您一份简历看看吗？」
+
+    调用前 greeting 已单行化（兜底 2）。
+    """
+    if not greeting:
+        return greeting
+    import re as _re_norm
+    tail = greeting[-25:]
+    # Case 1: 已是合规收尾
+    for ok in _PREFERRED_CLOSINGS:
+        if ok in tail:
+            return greeting
+    # Case 2: 禁词尾巴
+    for bad in _BANNED_CLOSING_TAILS:
+        if bad in tail:
+            greeting = _re_norm.sub(rf"[，,;；]?[^，。；,;]{{0,8}}{_re_norm.escape(bad)}[。？]?\s*$", "", greeting)
+            break
+    # Case 3: 都没中——截末尾标点 + 拼首选
+    greeting = greeting.rstrip("。？!！，,;； ")
+    return greeting + "，方便发您一份简历看看吗？"
 
 
 def _parse_salary_range_k(salary_raw: str) -> tuple[float, float] | None:
