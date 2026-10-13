@@ -899,6 +899,9 @@ def live_greet_loop(
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
     daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
+    max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
+    scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
+    scroll_wait_secs: float = 2.5, # 滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -935,7 +938,10 @@ def live_greet_loop(
                          scoring_dimensions=scoring_dimensions,
                          company_tier_weights=company_tier_weights,
                          hr_active_weights=hr_active_weights,
-                         daily_hard_limit=daily_hard_limit)
+                         daily_hard_limit=daily_hard_limit,
+                         max_list_scrolls=max_list_scrolls,
+                         scroll_px=scroll_px,
+                         scroll_wait_secs=scroll_wait_secs)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -1101,6 +1107,9 @@ def _run_loop(
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
     daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
+    max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
+    scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
+    scroll_wait_secs: float = 2.5, # 滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）
 ) -> dict:
     # P0: fail fast if the device isn't even reachable.  Without this guard,
     # every adb call in _try_auto_unlock returns (False, "") silently, so we
@@ -1321,12 +1330,20 @@ def _run_loop(
         target = _find_next_job(skill, visited_keys, jobs)
         if target is None:
             no_target_scrolls += 1
-            if no_target_scrolls > 5:
-                logger.info("  列表已无未访问目标（连滑 %d 次都没新卡），结束", no_target_scrolls - 1)
+            if no_target_scrolls > max_list_scrolls:
+                logger.info(
+                    "  列表已无未访问目标（连滑 %d 次都没新卡），结束",
+                    no_target_scrolls - 1,
+                )
                 break
-            logger.info("  当前屏幕无未访问目标，列表下滑 %d/5", no_target_scrolls)
-            skill.scroll_down(start_y=1300, end_y=980, duration=600)  # 320px ≈ 1 张卡片高，不触发 fling
-            time.sleep(1.5)
+            logger.info(
+                "  当前屏幕无未访问目标，列表下滑 %d/%d",
+                no_target_scrolls, max_list_scrolls,
+            )
+            # 滑动距离由 scroll_px 控制（默认 500px）；end_y = start_y - scroll_px
+            # 注：start_y=1300 + scroll_px≤400 时 end_y≥900，确保滑动在屏幕内
+            skill.scroll_down(start_y=1300, end_y=1300 - scroll_px, duration=600)
+            time.sleep(scroll_wait_secs)
             continue
         no_target_scrolls = 0
 
@@ -1860,6 +1877,18 @@ def main() -> int:
         "--adb-retry-max", type=int, default=3,
         help="ADB 断连时最大自动重试次数（默认 3）",
     )
+    parser.add_argument(
+        "--max-list-scrolls", type=int, default=12,
+        help="列表无新卡时最大连滑次数（默认 12，原硬编码 5）",
+    )
+    parser.add_argument(
+        "--scroll-px", type=int, default=500,
+        help="单次下滑距离 px（默认 500，原硬编码 320）",
+    )
+    parser.add_argument(
+        "--scroll-wait-secs", type=float, default=2.5,
+        help="滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）",
+    )
     args = parser.parse_args()
 
     # ── 读取简历 ────────────────────────────────────────────────────────────────
@@ -1908,6 +1937,9 @@ def main() -> int:
                 company_tier_weights=company_tier_weights,
                 hr_active_weights=hr_active_weights,
                 daily_hard_limit=daily_hard_limit,
+                max_list_scrolls=args.max_list_scrolls,
+                scroll_px=args.scroll_px,
+                scroll_wait_secs=args.scroll_wait_secs,
             )
             db_conn.close()
 
