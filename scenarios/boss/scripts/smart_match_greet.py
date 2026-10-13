@@ -24,6 +24,7 @@ import argparse
 import json
 import logging
 import sqlite3
+import subprocess
 import sys
 import threading
 import time
@@ -1847,6 +1848,18 @@ def main() -> int:
                         help=f"月薪下限（K），低于此值跳过（默认来自 candidate_profile.yaml：{_profile_min_salary}K）")
     parser.add_argument("--no-verify", action="store_true", help="发送后不验证消息已发出")
     parser.add_argument("--device", default=None, help="ADB 设备 serial")
+    parser.add_argument(
+        "--no-adb-retry", action="store_true",
+        help="禁用 ADB 断连自动重联（默认开）",
+    )
+    parser.add_argument(
+        "--adb-reconnect-ip", default="10.32.7.105:5555",
+        help="ADB 自动重连目标 IP:端口（默认 10.32.7.105:5555）",
+    )
+    parser.add_argument(
+        "--adb-retry-max", type=int, default=3,
+        help="ADB 断连时最大自动重试次数（默认 3）",
+    )
     args = parser.parse_args()
 
     # ── 读取简历 ────────────────────────────────────────────────────────────────
@@ -1857,6 +1870,7 @@ def main() -> int:
     resume_text = resume_path.read_text(encoding="utf-8")
     print(f"✓ 简历已加载：{resume_path.name}（{len(resume_text)} 字符）")
 
+    result: dict | None = None
     try:
         with device_lock(script_name=f"smart_match_greet:{args.keyword}"):
             client, fallback = _make_client()
@@ -1918,11 +1932,127 @@ def main() -> int:
                 for err in result["errors"]:
                     print(f"  · {err}")
 
-            return 0 if not result["errors"] else 1
+            return (0 if not result["errors"] else 1), result
     except DeviceBusyError as exc:
         print(f"⚠ 设备已被占用，跳过本次运行：{exc}")
-        return 0
+        return 0, None
+
+
+# ─── ADB 断连自动重联（外层 wrapper）───────────────────────────────────────────
+
+_ADB_ERROR_MARKERS = (
+    "ADB 设备未连接",       # P0 早筛抛出
+    "ADB 设备已断开连接",   # P1 早筛抛出
+)
+
+
+def _is_adb_disconnect_error(errors) -> bool:
+    """判断 result['errors'] 是否含 ADB 断连信号。"""
+    return any(
+        any(marker in (err or "") for marker in _ADB_ERROR_MARKERS)
+        for err in (errors or [])
+    )
+
+
+def _adb_reconnect(ip: str, timeout: float = 15.0) -> bool:
+    """Best-effort: ``adb disconnect`` + ``adb connect <ip>`` + 验证。
+
+    Returns:
+        True 当 ``adb devices`` 出现 ``\\tdevice`` 状态行；False 任何步骤失败。
+    """
+    try:
+        subprocess.run(["adb", "disconnect"], capture_output=True, timeout=timeout)
+    except Exception as e:
+        print(f"  adb disconnect 异常：{e}")
+
+    time.sleep(1)
+    try:
+        ret = subprocess.run(
+            ["adb", "connect", ip], capture_output=True, text=True, timeout=timeout
+        )
+    except Exception as e:
+        print(f"  adb connect {ip} 异常：{e}")
+        return False
+    out = (ret.stdout or "").strip()
+    if "connected" not in out and "already" not in out:
+        print(f"  adb connect 失败：{out!r}")
+        return False
+
+    time.sleep(2)
+    try:
+        chk = subprocess.run(
+            ["adb", "devices"], capture_output=True, text=True, timeout=timeout
+        )
+    except Exception as e:
+        print(f"  adb devices 异常：{e}")
+        return False
+    if "\tdevice" not in chk.stdout:
+        print(f"  adb devices 验证失败：{chk.stdout.strip()!r}")
+        return False
+    return True
+
+
+def _main_with_adb_recovery() -> int:
+    """外层 wrapper：检测 ADB 断连 → 自动 reconnect + 重跑 main()。
+
+    设计：P0/P1 早筛（见 smart_match_greet.py:1104-1142）让脚本在 ADB 断开时
+    0.5s 内返回 errors=[...]。本函数检测该错误标记，调用 ``adb disconnect``
+    + ``adb connect <ip>`` 重连后再次调用 main()。已发的 job 靠
+    ``scenarios/boss/output/requirements.db`` greetings 表跨次运行自动去重。
+
+    设计取舍：
+    - 只对明确的 ADB 错误标记触发重联，不对其他错误（如 LLM 限流、PIN 错、
+      DAILY_LIMIT）误重试。
+    - 最多 --adb-retry-max 次（默认 3），避免无线 ADB 长时间不可用时
+      无限重试浪费 LLM 配额。
+    - ``--no-adb-retry`` 完全禁用，保留逃生口。
+    """
+    # 预解析（不与 main() 内部 argparse 冲突）—— 只关心 3 个 retry 相关参数
+    _pre = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
+    _pre.add_argument("--no-adb-retry", action="store_true")
+    _pre.add_argument("--adb-reconnect-ip", default="10.32.7.105:5555")
+    _pre.add_argument("--adb-retry-max", type=int, default=3)
+    pre_args, _unknown = _pre.parse_known_args()
+
+    if pre_args.no_adb_retry:
+        rc, _ = main()
+        return rc
+
+    max_attempts = max(1, int(pre_args.adb_retry_max))
+    ip = pre_args.adb_reconnect_ip
+    last_rc = 1
+    last_result: dict | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        if attempt > 1:
+            print(
+                f"\n⚠️ Attempt {attempt}/{max_attempts}：自动重联 ADB {ip}…"
+            )
+            time.sleep(3)
+            if not _adb_reconnect(ip):
+                print("  ❌ 重联失败，继续下一轮…")
+                continue
+            print("  ✓ ADB 重联成功，重跑 main()（已发 job 靠 DB 自动去重）")
+
+        rc, result = main()
+        last_rc = rc
+        last_result = result
+
+        if not _is_adb_disconnect_error((result or {}).get("errors", [])):
+            return rc
+        if attempt >= max_attempts:
+            print(
+                f"\n❌ ADB 断连 {max_attempts} 次后仍失败，放弃（最后一次错误："
+                f"{(result or {}).get('errors', [])[:1]})"
+            )
+            break
+        print(
+            f"\n⚠️ 检测到 ADB 断连（attempt {attempt}/{max_attempts}），"
+            f"准备自动重联…"
+        )
+
+    return last_rc
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_main_with_adb_recovery())
