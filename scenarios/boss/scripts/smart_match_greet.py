@@ -1052,12 +1052,14 @@ def _find_next_job(
     # 2026-10-13：每次屏幕 dump 都把全部可见卡的判定结果打出来（visited_keys 命中 /
     # DB 命中 / CANDIDATE），让用户能直接看到「屏幕上有什么 + 为什么没访问 + 选了哪张」。
     # 之前默认静默 continue 漏掉了「天仪基业/牧唐技术/帅仕」这类漏访问的根因排查。
+    # 用外层 logger（已 setup_stream handler），不用 skill._logger（没 handler、propagate
+    # 到 root、默认 WARNING 级看不到 INFO）。
     if visible:
-        skill._logger.info(
+        logger.info(
             "[find_next] 屏幕共 %d 张卡（visited_keys size=%d）", len(visible), len(visited_keys),
         )
     for _idx, v in enumerate(visible):
-        skill._logger.info(
+        logger.info(
             "[find_next]   屏幕卡 y=%d  %r  /  %r  /  hr=%r",
             v.tap_y, v.title, v.company, v.hr_name,
         )
@@ -1067,7 +1069,7 @@ def _find_next_job(
         title_only_key = f"{normalize_card_title(v.title)}\t"
         # v_key 精确命中（title+company 都一致）→ 本 session 内真访问过，必跳。
         if v_key in visited_keys:
-            skill._logger.info(
+            logger.info(
                 "[find_next]   ↳ skip: 精确key命中 visited_keys (%r)", v_key,
             )
             continue
@@ -1081,13 +1083,13 @@ def _find_next_job(
         # 所有「前沿部署工程师 FDE / 其他公司」包括天仪基业都被误杀）。
         if title_only_key in visited_keys:
             if _is_already_greeted(db_conn, v.title, v.company, v.hr_name):
-                skill._logger.info(
+                logger.info(
                     "[find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title=%r)",
                     v.title,
                 )
                 continue
             else:
-                skill._logger.info(
+                logger.info(
                     "[find_next]   ↳ OK: title-only命中但DB未打过招呼，放行 (title=%r)",
                     v.title,
                 )
@@ -1096,13 +1098,13 @@ def _find_next_job(
             # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序/出新卡）——
             # 用屏幕卡自身返回：tap 坐标新鲜，字段可能不全，
             # 但 Layer 1/2/3 校验已能兜底，不应静默丢弃新卡。
-            skill._logger.info(
+            logger.info(
                 "[find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=%d)",
                 v.tap_y,
             )
             return v
         # 用 full 的完整字段 + v 的新鲜坐标
-        skill._logger.info(
+        logger.info(
             "[find_next]   ↳ OK: 选中 (y=%d) %r / %r",
             v.tap_y, v.title, v.company,
         )
