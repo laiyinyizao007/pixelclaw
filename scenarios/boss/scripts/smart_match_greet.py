@@ -1048,10 +1048,20 @@ def _find_next_job(
     for v in visible:
         v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}"
         title_only_key = f"{normalize_card_title(v.title)}\t"
-        # 同时检查 v_key 和 title-only：闭环「visit 时 company 已填充 +
-        # 下次循环 RecyclerView 复用位置 company 又空」的不对称场景（2026-10-10 复现死循环）。
-        if v_key in visited_keys or title_only_key in visited_keys:
+        # v_key 精确命中（title+company 都一致）→ 本 session 内真访问过，必跳。
+        if v_key in visited_keys:
             continue
+        # title-only 命中：可能是 (a) 同 job 在 RecyclerView 复用位置被重复抓取
+        # （line 1477 的占位 key 闭环），也可能是 (b) 同 title 不同 company 的另一张卡。
+        # 区分 (a)/(b) 由 _is_already_greeted 的 Layer 5 second branch 决定——
+        # 当新 visit hr_name 非空时，second branch 只在「历史有 greeted=1 且 hr_name 空」
+        # 的情况下才 block，所以同 title 不同 HR 不会误杀。
+        # 修 2026-10-13：之前直接 continue 会让「同 title 不同 company」永久被
+        # visited_keys 假命中挡住（row 467「前沿部署工程师 FDE / 北京工场」之后
+        # 所有「前沿部署工程师 FDE / 其他公司」包括天仪基业都被误杀）。
+        if title_only_key in visited_keys:
+            if _is_already_greeted(db_conn, v.title, v.company, v.hr_name):
+                continue
         full = by_key.get(v_key)
         if full is None:
             # 屏幕卡不在 initial 集合里（重新搜索后 Boss 换了排序/出新卡）——
