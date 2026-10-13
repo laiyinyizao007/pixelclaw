@@ -1101,6 +1101,21 @@ def _run_loop(
     hr_active_weights: dict | None = None,
     daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
 ) -> dict:
+    # P0: fail fast if the device isn't even reachable.  Without this guard,
+    # every adb call in _try_auto_unlock returns (False, "") silently, so we
+    # burn 2 min in 12 retries before surfacing the real error.  Symptom
+    # observed 2026-10-13: phone ADB dropped (USB unplugged / wireless sleep),
+    # 12 unlock retries × 6 steps = 72 empty adb commands, all `dumpsys`
+    # returns empty string, script only fails after 120s wait.
+    if not skill.adb.is_device_connected(skill.device_id):
+        logger.error(
+            "❌ ADB 设备未连接（device_id=%r），跳过 unlock", skill.device_id
+        )
+        result["errors"].append(
+            "ADB 设备未连接：请检查 USB / 无线调试，或运行 `adb devices` 确认"
+        )
+        return result
+
     # 确认屏幕亮着且手机已解锁（即 UI 中有 App 内容而非只有 SystemUI 锁屏）
     # 注意：若 PIN 自动解锁已配置，**先尝试自动解锁**再走 fallback 路径。
     # 因为 `skill._wake_screen()` 内部用 `wm dismiss-keyguard`，会把设备
@@ -1117,6 +1132,14 @@ def _run_loop(
             logger.warning("    当前状态: %s", _dumpsys_keyguard_state(skill))
             _unlocked = False
             for attempt in range(1, 13):
+                # P1: if first attempt already failed AND device is gone, bail
+                # out now instead of spinning 11 more useless retries.  Catches
+                # the case where P0 early-check passed but ADB drops during
+                # the long 12×10s sleep window (e.g., wireless ADB sleep).
+                if attempt == 1 and not skill.adb.is_device_connected(skill.device_id):
+                    logger.error("❌ ADB 设备在 unlock 过程中断开，停止重试")
+                    result["errors"].append("ADB 设备已断开连接")
+                    return result
                 time.sleep(10)
                 logger.info("    [retry %d/12] 重试 _try_auto_unlock...", attempt)
                 if _try_auto_unlock(skill) and skill._is_screen_on():
