@@ -1009,6 +1009,7 @@ def _find_next_job(
     skill: "BOSSAutomationSkill",
     visited_keys: set[str],
     initial_jobs: list,
+    db_conn: sqlite3.Connection,
 ) -> object | None:
     """Return the next unvisited job visible on the CURRENT screen (fresh coords).
 
@@ -1029,6 +1030,9 @@ def _find_next_job(
             strings that this loop has already tried (greeted, skipped,
             or detail-mismatch).
         initial_jobs: The 60 cards collected at the top of _run_loop.
+        db_conn: SQLite connection. Used to disambiguate title-only
+            visited_keys hits via _is_already_greeted (2026-10-13 fix:
+            同 title 不同 company 永久误杀的根因).
 
     Returns:
         Next unvisited JobInfo with fresh tap coordinates, or None if
@@ -1426,7 +1430,7 @@ def _run_loop(
                 break
 
         # 1. 在当前屏幕找一个未访问的目标（按 doc §4.1：每次导航前重取坐标）
-        target = _find_next_job(skill, visited_keys, jobs)
+        target = _find_next_job(skill, visited_keys, jobs, db_conn)
         if target is None:
             no_target_scrolls += 1
             # ── 修复方向 3：先看 Boss UI 是否有"已显示全部"等到底提示，有则立即结束
