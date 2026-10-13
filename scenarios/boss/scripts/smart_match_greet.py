@@ -937,6 +937,9 @@ def live_greet_loop(
     max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
     scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
     scroll_wait_secs: float = 2.5, # 滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）
+    strong_scroll_px: int = 1100,  # 强滑距离 px（no_target_scrolls >= scroll_after_n_misses 时启用）
+    strong_scroll_wait_secs: float = 4.0,  # 强滑后等待懒加载秒数
+    scroll_after_n_misses: int = 3,        # 连续无新卡 N 次后切换强滑
 ) -> dict:
     """
     Single-phase live loop: for each job card, enter detail page → score → send if OK.
@@ -976,7 +979,10 @@ def live_greet_loop(
                          daily_hard_limit=daily_hard_limit,
                          max_list_scrolls=max_list_scrolls,
                          scroll_px=scroll_px,
-                         scroll_wait_secs=scroll_wait_secs)
+                         scroll_wait_secs=scroll_wait_secs,
+                         strong_scroll_px=strong_scroll_px,
+                         strong_scroll_wait_secs=strong_scroll_wait_secs,
+                         scroll_after_n_misses=scroll_after_n_misses)
     finally:
         skill._adb("shell svc power stayon false")
         skill._adb(f"shell settings put system screen_off_timeout {_orig_timeout}")
@@ -1041,6 +1047,36 @@ def _find_next_job(
         return replace(full, tap_x=v.tap_x, tap_y=v.tap_y)
 
     return None
+
+
+# Boss App 在搜索结果列表末尾展示的"已加载完毕"提示文案（多个变体）。
+# 通过 UIAutomator dump 出的 XML 检测这些文案，比"连滑 N 次无新卡"更准。
+_LIST_EXHAUSTED_MARKERS = (
+    "已显示全部",
+    "已加载全部",
+    "没有更多了",
+    "没有更多职位",
+    "没有更多数据",
+    "暂无更多",
+    "— 暂无更多数据 —",
+    "已到底部",
+    "已无更多",
+)
+
+
+def _is_list_exhausted_by_marker(skill) -> bool:
+    """通过 UI XML 文案检测 Boss 列表是否已到底。
+
+    比 ``_find_next_job`` 返 None + 连滑 N 次的间接判断更可靠。
+    若 XML 中含任一 ``_LIST_EXHAUSTED_MARKERS`` 字符串即视为到底。
+    """
+    xml = skill.get_ui_hierarchy()
+    if not xml:
+        return False
+    for marker in _LIST_EXHAUSTED_MARKERS:
+        if marker in xml:
+            return True
+    return False
 
 
 def _dumpsys_keyguard_state(skill) -> str:
@@ -1145,6 +1181,9 @@ def _run_loop(
     max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
     scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
     scroll_wait_secs: float = 2.5, # 滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）
+    strong_scroll_px: int = 1100,  # 强滑距离 px（no_target_scrolls >= scroll_after_n_misses 时启用）
+    strong_scroll_wait_secs: float = 4.0,  # 强滑后等待懒加载秒数
+    scroll_after_n_misses: int = 3,        # 连续无新卡 N 次后切换强滑
 ) -> dict:
     # P0: fail fast if the device isn't even reachable.  Without this guard,
     # every adb call in _try_auto_unlock returns (False, "") silently, so we
@@ -1365,20 +1404,35 @@ def _run_loop(
         target = _find_next_job(skill, visited_keys, jobs)
         if target is None:
             no_target_scrolls += 1
+            # ── 修复方向 3：先看 Boss UI 是否有"已显示全部"等到底提示，有则立即结束
+            if _is_list_exhausted_by_marker(skill):
+                logger.info(
+                    "  列表已无未访问目标（UI 文案检测到底），结束"
+                )
+                break
             if no_target_scrolls > max_list_scrolls:
                 logger.info(
                     "  列表已无未访问目标（连滑 %d 次都没新卡），结束",
                     no_target_scrolls - 1,
                 )
                 break
+            # ── 修复方向 1+2：连续失败 >= scroll_after_n_misses 时切换强滑
+            # 强滑（更大距离 + 更长等待）触发 Boss "上拉加载更多"模式，
+            # 解决轻滑被忽略、列表卡在原页的问题
+            if no_target_scrolls >= scroll_after_n_misses:
+                px = strong_scroll_px
+                wait = strong_scroll_wait_secs
+                tag = "强滑"
+            else:
+                px = scroll_px
+                wait = scroll_wait_secs
+                tag = "短滑"
             logger.info(
-                "  当前屏幕无未访问目标，列表下滑 %d/%d",
-                no_target_scrolls, max_list_scrolls,
+                "  当前屏幕无未访问目标，列表%s %d/%d (px=%d, wait=%.1fs)",
+                tag, no_target_scrolls, max_list_scrolls, px, wait,
             )
-            # 滑动距离由 scroll_px 控制（默认 500px）；end_y = start_y - scroll_px
-            # 注：start_y=1300 + scroll_px≤400 时 end_y≥900，确保滑动在屏幕内
-            skill.scroll_down(start_y=1300, end_y=1300 - scroll_px, duration=600)
-            time.sleep(scroll_wait_secs)
+            skill.scroll_down(start_y=1300, end_y=1300 - px, duration=600)
+            time.sleep(wait)
             continue
         no_target_scrolls = 0
 
@@ -1934,6 +1988,18 @@ def main() -> int:
         "--scroll-wait-secs", type=float, default=2.5,
         help="滑后等待懒加载秒数（默认 2.5，原硬编码 1.5）",
     )
+    parser.add_argument(
+        "--strong-scroll-px", type=int, default=1100,
+        help="强滑距离 px（连续无新卡 N 次后启用，默认 1100）",
+    )
+    parser.add_argument(
+        "--strong-scroll-wait-secs", type=float, default=4.0,
+        help="强滑后等待懒加载秒数（默认 4.0）",
+    )
+    parser.add_argument(
+        "--scroll-after-n-misses", type=int, default=3,
+        help="连续无新卡 N 次后切换强滑（默认 3）",
+    )
     args = parser.parse_args()
 
     # ── 读取简历 ────────────────────────────────────────────────────────────────
@@ -1985,6 +2051,9 @@ def main() -> int:
                 max_list_scrolls=args.max_list_scrolls,
                 scroll_px=args.scroll_px,
                 scroll_wait_secs=args.scroll_wait_secs,
+                strong_scroll_px=args.strong_scroll_px,
+                strong_scroll_wait_secs=args.strong_scroll_wait_secs,
+                scroll_after_n_misses=args.scroll_after_n_misses,
             )
             db_conn.close()
 
