@@ -500,7 +500,42 @@ def score_job(
     text = _strip_json_fences(response.content[0].text.strip())
     # 兜底：LLM 偶发在 _analysis 字段输出字符串内真换行/制表符，严格 JSON 解析会抛
     # Invalid control character。strict=False 接受字符串内 \n \t \r（HTTP/JSON 实战常见）。
-    result = json.loads(text, strict=False)
+    try:
+        result = json.loads(text, strict=False)
+    except json.JSONDecodeError as exc:
+        # 二次重试：把失败的 text 喂回 LLM，让它修正 JSON（实测 1 次重试几乎都成功）
+        # 错误模式：「Expecting ',' delimiter: line N column M」= LLM 漏字段分隔符
+        logger.warning(
+            "  JSON 解析失败（attempt 1）：%s — 写入 debug + 触发 LLM 重试", exc
+        )
+        _dbg_dir = Path("./logs/boss/json_parse_errors")
+        _dbg_dir.mkdir(parents=True, exist_ok=True)
+        _dbg_dir.joinpath(f"parse_err_{int(time.time())}.txt").write_text(
+            text, encoding="utf-8"
+        )
+        response = _call_with_fallback(
+            primary, fallback,
+            fallback_model="claude-haiku-4-5-20251001",
+            model="MiniMax-M3",
+            max_tokens=2048,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": text},
+                {
+                    "role": "user",
+                    "content": (
+                        f"你上次的输出不是合法 JSON（Python json.loads 报错：{exc}）。"
+                        "请重新输出 **严格合法** 的 JSON：\n"
+                        "1. 字段之间必须用英文逗号 `,` 分隔\n"
+                        "2. 字符串值用英文双引号 `\"`，内部如有引号用反斜杠转义\n"
+                        "3. 禁止 markdown 围栏（```）、禁止多余解释文字\n"
+                        "4. 字段名与顺序保持与上次一致，不要省略任何字段"
+                    ),
+                },
+            ],
+        )
+        text = _strip_json_fences(response.content[0].text.strip())
+        result = json.loads(text, strict=False)  # 二次仍失败 → 抛给调用方按现有 error 流程处理
     # 兜底修正 LLM 漏姓 / 用字面 "HR" 的情况（即便 prompt 已强化仍偶发）
     import re as _re
     greeting_raw = result.get("greeting", "") or ""
@@ -1716,8 +1751,18 @@ def _run_loop(
                 not _target_hr_surname
                 or _target_hr_surname in _chat_title_text
             )
-            if _chat_title_match and _chat_company_match and _chat_hr_match:
+            if _chat_title_match and _chat_company_match:
+                # title + company 匹配即可发送；HR 仅作 warning 不阻断
+                # 原因：HR 名字在不同页（搜索列表 vs 聊天页）可能显示差异
+                # （如「某总」→「某女士」），过度严格会让本来正确的发送被跳过。
+                # 真正致命的"点 A 跳 B"仍会被 title 或 company 不匹配捕获。
                 _chat_ok = True
+                if not _chat_hr_match and _target_hr_surname:
+                    logger.warning(
+                        "  聊天页 HR 不匹配（仅 warning，不阻断）— 目标 hr=%s，"
+                        "实际 chat_hr=%s。title+company 已匹配。",
+                        effective_hr_name, _chat_title_text,
+                    )
             else:
                 logger.error(
                     "  聊天页内容不匹配 — 目标 title=%s company=%s hr=%s，"
