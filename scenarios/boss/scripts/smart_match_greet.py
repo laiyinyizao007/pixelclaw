@@ -223,12 +223,27 @@ def _is_already_greeted(
     # (title, company='ATB', hr_name='沈女士') → all four previous layers miss it.
     # Risk: over-dedup for common short titles like "产品经理" (4 chars). Mitigated
     # by length >= 10 — common short titles all < 10 chars after normalize.
+    # Refined 2026-10-13: only trigger if the previous greeting was itself a
+    # "data gap" (empty hr_name). If previous greeting has a specific HR but
+    # new visit has a DIFFERENT HR, that's strong evidence of a different job
+    # — don't block (爱化身/喂车科技漏访问的根因).
     norm_title = normalize_card_title(title)
     if len(norm_title) >= 10:
-        row5 = conn.execute(
-            "SELECT COUNT(*) FROM job_visits WHERE title = ? AND greeted = 1",
-            (norm_title,),
-        ).fetchone()
+        if not hr_name:
+            # new visit has no hr_name → list view data gap, conservative block
+            row5 = conn.execute(
+                "SELECT COUNT(*) FROM job_visits WHERE title = ? AND greeted = 1",
+                (norm_title,),
+            ).fetchone()
+        else:
+            # new visit has hr_name → only block if previous greeting had empty
+            # hr_name (data gap). Previous with specific HR = different job.
+            row5 = conn.execute(
+                """SELECT COUNT(*) FROM job_visits
+                   WHERE title = ? AND greeted = 1
+                   AND (hr_name = '' OR hr_name IS NULL)""",
+                (norm_title,),
+            ).fetchone()
         if row5 and row5[0] > 0:
             return True
     return False
@@ -1445,16 +1460,21 @@ def _run_loop(
         title = target.title or ""
         company = target.company or ""
         hr_name = target.hr_name or ""
+        # 始终先加精确 key（title+company），保证同职位重复出现时立即跳过
         visited_keys.add(f"{normalize_card_title(title)}\t{company}")
-        # 无论 company 是否空都注册 title-only，闭环 CHECK 侧对称性：
-        # 防止「visit 时 company 已填充 + 下次循环 RecyclerView 复用位置 company 为空」的死循环场景（2026-10-10 复现）。
-        visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
             logger.info("  [%d] 跳过（已打过招呼）：%s", processed, title)
             result["skipped"].append(f"{title}（{company}）：已打过招呼")
+            # 已打过招呼的 job 不再加 title-only —— 避免「同 title 不同公司」被错杀
+            # （爱化身/喂车科技漏访问的根因，2026-10-13）。代价是同 job 在
+            # RecyclerView 复用时 list view 字段空会触发一次重 tap，_is_already_greeted 兜底
             continue
+
+        # 未打过招呼的 job 才加 title-only，闭环「visit 时 company 已填充 +
+        # 下次循环 RecyclerView 复用位置 company 为空」的死循环场景（2026-10-10 复现）
+        visited_keys.add(f"{normalize_card_title(title)}\t")
 
         # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过
         if min_salary_k > 0:
