@@ -1583,21 +1583,37 @@ def _run_loop(
             continue
 
         # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过 —— 2026-10-14 修复补 _record_visit
+        # 2026-10-14 v3 修复：薪资 skip 也要 add visited_keys（_record_visit + visited_keys 双保险）。
+        # 否则下次 _find_next_job 看到「屏幕卡不在 initial 集合（new card），返回 v」会再次
+        # 返回同一张卡 → _run_loop 又走到这里 → 死循环（v2 没修干净）。
         if min_salary_k > 0:
             sal_range = _parse_salary_range_k(target.salary or "")
             if sal_range is not None and sal_range[1] < min_salary_k:
                 _record_visit(db_conn, title, company, hr_name, keyword, None,
                               skip_reason=f"薪资上限{sal_range[1]:.0f}K<下限{min_salary_k:.0f}K")
+                # 加 visited_keys 双 key：精确 + title-only，避免下次 _find_next_job 再次返回
+                _key_precise = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
+                _key_titleonly = f"{normalize_card_title(title)}\t\t{hr_name}"
+                visited_keys.add(_key_precise)
+                visited_keys.add(_key_titleonly)
+                logger.info("  [visited_keys] + 精确+title-only 薪资过滤: size=%d",
+                            len(visited_keys))
                 logger.info("  [%d] 跳过（薪资）：%s", processed, title)
                 result["skipped"].append(
                     f"{title}：薪资上限 {sal_range[1]:.0f}K < 下限 {min_salary_k:.0f}K"
                 )
                 continue
 
-        # 职位标题预过滤（明显技术岗，不进 LLM）—— 2026-10-14 修复补 _record_visit
+        # 职位标题预过滤（明显技术岗，不进 LLM）—— 2026-10-14 v3 同上
         if _pre_filter_job(title):
             _record_visit(db_conn, title, company, hr_name, keyword, None,
                           skip_reason="技术岗预过滤")
+            _key_precise = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
+            _key_titleonly = f"{normalize_card_title(title)}\t\t{hr_name}"
+            visited_keys.add(_key_precise)
+            visited_keys.add(_key_titleonly)
+            logger.info("  [visited_keys] + 精确+title-only 技术岗过滤: size=%d",
+                        len(visited_keys))
             logger.info("  [%d] 跳过（技术岗）：%s", processed, title)
             result["skipped"].append(f"{title}：纯技术岗跳过")
             continue
