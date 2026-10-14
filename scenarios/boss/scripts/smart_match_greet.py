@@ -1543,17 +1543,22 @@ def _run_loop(
         title = target.title or ""
         company = target.company or ""
         hr_name = target.hr_name or ""
-        # 始终先加精确 key（title+company+hr_name），保证同职位重复出现时立即跳过
-        # 2026-10-13 修复（item 1）：key 加 hr_name —— 阿里巴巴·陈香雨 vs 丁玲芝
-        # 同 title+company 不同 hr 时，old key (title+company) 会被旧卡的 key 假命中
-        # 误杀；新 key 含 hr_name 后两张卡 key 区分。
-        _key = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
-        visited_keys.add(_key)
-        # ── 2026-10-13 排查埋点：精确 key 入参 + 拼接结果（key 不含 hr_name，Alibaba 假命中嫌疑） ──
-        logger.info("  [visited_keys] + 精确 key: title=%r, company=%r, hr_name=%r → key=%r (size=%d)",
-                    title, company, hr_name, _key, len(visited_keys))
+        # ── 2026-10-14 修复（兜底死循环 v2）：所有「在写 visited_keys 之前」的
+        # skip 路径必须 **自己** 写 job_visits（_record_visit），否则下次
+        # _find_next_job item 4 兜底查 job_visits COUNT=0 → 兜底放行 → fall through
+        # → _run_loop 又走到这里 → 死循环。
+        #
+        # 具体案例 2026-10-14 13:50+ 跑 FDE：「FDE部署工程师（飞书+企业豆包 AI交付）」
+        # company='' / hr_name='' —— visited_keys size 卡在 13，每 6s 一次循环，
+        # `[visited_keys] + 精确 key` log 出现但 `[N] → ...` 从未出现，详情页日志全无。
+        # 可能 throw 路径在 visited_keys.add 之后、薪酬/prefilter 检查之前的某处
+        # （find_and_navigate_to_job 内部 / score_job 内部异常被外层 try 吞），或者
+        # _run_loop 本身的某条无人知晓的 silent-skip 路径。无论如何：把 visited_keys.add
+        # **推迟** 到所有「绝对能 continue」的检查之后 + 「绝对要 log `[N] → ...`」
+        # 的位置之前，并把 _record_visit 补到每条没写的 skip 路径上，根除污染。
 
-        # 去重检查（已落库 greetings 的不再打招呼）
+        # 去重检查（已落库 greetings 的不再打招呼）—— **此时还没 add visited_keys**，
+        # 后续 skip_brecord_visit 会保证兜底查询命中。
         if _is_already_greeted(db_conn, title, company, hr_name):
             # 2026-10-14 修复（item 4 兜底死循环）：补 _record_visit 让 job_visits 有记录。
             # 不写的话下次 _find_next_job item 4 兜底（line 1089-1106）查 job_visits 会
@@ -1567,10 +1572,46 @@ def _run_loop(
                           skip_reason="已打过招呼")
             logger.info("  [%d] 跳过（已打过招呼）：%s", processed, title)
             result["skipped"].append(f"{title}（{company}）：已打过招呼")
-            # 已打过招呼的 job 不再加 title-only —— 避免「同 title 不同公司」被错杀
-            # （爱化身/喂车科技漏访问的根因，2026-10-13）。代价是同 job 在
-            # RecyclerView 复用时 list view 字段空会触发一次重 tap，_is_already_greeted 兜底
+            # 仍然加 visited_keys（精确 key + title-only）—— 这是「明确判断为已打过」，
+            # 后续 _find_next_job 看到这两 key 都命中 → job_visits 已有 1 记录 → 跳过。
+            _key_precise = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
+            _key_titleonly = f"{normalize_card_title(title)}\t\t{hr_name}"
+            visited_keys.add(_key_precise)
+            visited_keys.add(_key_titleonly)
+            logger.info("  [visited_keys] + 精确+title-only 已打过招呼: size=%d",
+                        len(visited_keys))
             continue
+
+        # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过 —— 2026-10-14 修复补 _record_visit
+        if min_salary_k > 0:
+            sal_range = _parse_salary_range_k(target.salary or "")
+            if sal_range is not None and sal_range[1] < min_salary_k:
+                _record_visit(db_conn, title, company, hr_name, keyword, None,
+                              skip_reason=f"薪资上限{sal_range[1]:.0f}K<下限{min_salary_k:.0f}K")
+                logger.info("  [%d] 跳过（薪资）：%s", processed, title)
+                result["skipped"].append(
+                    f"{title}：薪资上限 {sal_range[1]:.0f}K < 下限 {min_salary_k:.0f}K"
+                )
+                continue
+
+        # 职位标题预过滤（明显技术岗，不进 LLM）—— 2026-10-14 修复补 _record_visit
+        if _pre_filter_job(title):
+            _record_visit(db_conn, title, company, hr_name, keyword, None,
+                          skip_reason="技术岗预过滤")
+            logger.info("  [%d] 跳过（技术岗）：%s", processed, title)
+            result["skipped"].append(f"{title}：纯技术岗跳过")
+            continue
+
+        # ── 所有「绝对能 continue」的检查都过了 —— 现在才加 visited_keys ─────
+        # 精确 key（title+company+hr_name），保证同职位重复出现时立即跳过
+        # 2026-10-13 修复（item 1）：key 加 hr_name —— 阿里巴巴·陈香雨 vs 丁玲芝
+        # 同 title+company 不同 hr 时，old key (title+company) 会被旧卡的 key 假命中
+        # 误杀；新 key 含 hr_name 后两张卡 key 区分。
+        _key = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
+        visited_keys.add(_key)
+        # ── 2026-10-13 排查埋点：精确 key 入参 + 拼接结果（key 不含 hr_name，Alibaba 假命中嫌疑） ──
+        logger.info("  [visited_keys] + 精确 key: title=%r, company=%r, hr_name=%r → key=%r (size=%d)",
+                    title, company, hr_name, _key, len(visited_keys))
 
         # 未打过招呼的 job 才加 title-only，闭环「visit 时 company 已填充 +
         # 下次循环 RecyclerView 复用位置 company 为空」的死循环场景（2026-10-10 复现）
@@ -1579,21 +1620,6 @@ def _run_loop(
         # ── 2026-10-13 排查埋点：title-only key 入参（item 1 同步加 hr_name） ──
         logger.debug("  [visited_keys] + title-only: title=%r, company=%r, hr_name=%r → key=%r (size=%d)",
                      title, company, hr_name, _key, len(visited_keys))
-
-        # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过
-        if min_salary_k > 0:
-            sal_range = _parse_salary_range_k(target.salary or "")
-            if sal_range is not None and sal_range[1] < min_salary_k:
-                result["skipped"].append(
-                    f"{title}：薪资上限 {sal_range[1]:.0f}K < 下限 {min_salary_k:.0f}K"
-                )
-                continue
-
-        # 职位标题预过滤（明显技术岗，不进 LLM）
-        if _pre_filter_job(title):
-            logger.info("  [%d] 跳过（技术岗）：%s", processed, title)
-            result["skipped"].append(f"{title}：纯技术岗跳过")
-            continue
 
         # 只检查屏幕是否亮着（详情页 get_current_page() 返回 UNKNOWN 属正常，
         # 下一步 navigate_to_job 会导航到正确页面）
