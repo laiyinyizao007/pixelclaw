@@ -963,6 +963,19 @@ def live_greet_loop(
     logger = setup_logger("smart_match_greet", log_dir="./logs/boss")
     adb = ADBRunner()
     skill = BOSSAutomationSkill(adb, device_id=device_id)
+    # ── 2026-10-13 排查埋点：让 BOSSAutomationSkill 子 logger 也能输出 ──
+    # android_skill.py:53 用 logging.getLogger("BOSSAutomationSkill") 拿到的 logger
+    # 既没自己的 handler，propagate 也不到 root（root 默认 WARNING），所以 skill 内部
+    # 50+ 条 INFO 全部静默。给它加一个 StreamHandler（指向 stderr，跟外层 logger 区分）
+    # 不改 setup_logger 本体（避免影响其他脚本），不改 BOSSAutomationSkill.__init__。
+    import logging as _logging
+    _skill_log = _logging.getLogger("BOSSAutomationSkill")
+    if not _skill_log.handlers:
+        _sh = _logging.StreamHandler()
+        _sh.setFormatter(_logging.Formatter("%(asctime)s [SKILL] %(levelname)-7s %(message)s", "%H:%M:%S"))
+        _skill_log.addHandler(_sh)
+        _skill_log.setLevel(_logging.INFO)
+        _skill_log.propagate = False
     result: dict = {"greeted": [], "skipped": [], "errors": [], "all_scores": []}
 
     # Keep screen on (all charge types) + push lock/screen-off timeouts to 30 min.
@@ -1046,7 +1059,7 @@ def _find_next_job(
     # We use this to fill in fields the list-card XML often lacks (e.g. hr_active)
     # and to compare against visited_keys.
     by_key: dict[str, object] = {
-        f"{normalize_card_title(j.title)}\t{j.company or ''}": j for j in initial_jobs
+        f"{normalize_card_title(j.title)}\t{j.company or ''}\t{j.hr_name or ''}": j for j in initial_jobs
     }
 
     # 2026-10-13：每次屏幕 dump 都把全部可见卡的判定结果打出来（visited_keys 命中 /
@@ -1065,14 +1078,32 @@ def _find_next_job(
         )
 
     for v in visible:
-        v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}"
-        title_only_key = f"{normalize_card_title(v.title)}\t"
-        # v_key 精确命中（title+company 都一致）→ 本 session 内真访问过，必跳。
+        v_key = f"{normalize_card_title(v.title)}\t{v.company or ''}\t{v.hr_name or ''}"
+        title_only_key = f"{normalize_card_title(v.title)}\t\t{v.hr_name or ''}"
+        # v_key 精确命中（title+company+hr_name 都一致）→ 本 session 内真访问过。
+        # 2026-10-13 修复（item 4 强化版）：visited_keys 假命中兜底 —— 检查 job_visits
+        # 是否有**任何记录**（greeted=1 OR 0），不只查 _is_already_greeted（只查 greeted=1
+        # 会让低分/导航失败卡误判为「未处理」，导致同卡无限重试）。
+        # 边界场景：阿里巴巴·陈香雨 vs 丁玲芝 同 title+company 不同 hr（item 1 已分 key，
+        # 不会 hit；万一 hit 兜底也会放行，因为 job_visits 没陈香雨记录）。
         if v_key in visited_keys:
+            _row = db_conn.execute(
+                "SELECT COUNT(*) FROM job_visits "
+                "WHERE title = ? AND company = ? AND COALESCE(hr_name, '') = ?",
+                (normalize_card_title(v.title), v.company, v.hr_name or ""),
+            ).fetchone()
+            if _row and _row[0] > 0:
+                logger.info(
+                    "[find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key=%r, visits=%d)",
+                    v_key, _row[0],
+                )
+                continue
+            # job_visits 无记录 → 假命中（key 错配或 visited_keys 外部污染），兜底放行
             logger.info(
-                "[find_next]   ↳ skip: 精确key命中 visited_keys (%r)", v_key,
+                "[find_next]   ↳ OK: visited_keys命中但job_visits无记录，兜底放行 (v_key=%r, hr_name=%r)",
+                v_key, v.hr_name or "",
             )
-            continue
+            # 不 continue：fall through 到 by_key lookup 路径
         # title-only 命中：可能是 (a) 同 job 在 RecyclerView 复用位置被重复抓取
         # （line 1477 的占位 key 闭环），也可能是 (b) 同 title 不同 company 的另一张卡。
         # 区分 (a)/(b) 由 _is_already_greeted 的 Layer 5 second branch 决定——
@@ -1433,6 +1464,9 @@ def _run_loop(
     jobs: list = []
 
     visited_keys: set[str] = set()
+    # ── 2026-10-13 修复：导航失败 max retry 计数（item 3 配套，避免 discard 后无限重试） ──
+    _NAV_FAIL_MAX = 2
+    _nav_fail_count: dict[str, int] = {}
     greeted_count = 0
     no_target_scrolls = 0
     processed = 0  # 用于日志显示的「第 N 条」计数器
@@ -1509,8 +1543,15 @@ def _run_loop(
         title = target.title or ""
         company = target.company or ""
         hr_name = target.hr_name or ""
-        # 始终先加精确 key（title+company），保证同职位重复出现时立即跳过
-        visited_keys.add(f"{normalize_card_title(title)}\t{company}")
+        # 始终先加精确 key（title+company+hr_name），保证同职位重复出现时立即跳过
+        # 2026-10-13 修复（item 1）：key 加 hr_name —— 阿里巴巴·陈香雨 vs 丁玲芝
+        # 同 title+company 不同 hr 时，old key (title+company) 会被旧卡的 key 假命中
+        # 误杀；新 key 含 hr_name 后两张卡 key 区分。
+        _key = f"{normalize_card_title(title)}\t{company}\t{hr_name}"
+        visited_keys.add(_key)
+        # ── 2026-10-13 排查埋点：精确 key 入参 + 拼接结果（key 不含 hr_name，Alibaba 假命中嫌疑） ──
+        logger.info("  [visited_keys] + 精确 key: title=%r, company=%r, hr_name=%r → key=%r (size=%d)",
+                    title, company, hr_name, _key, len(visited_keys))
 
         # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
@@ -1523,7 +1564,11 @@ def _run_loop(
 
         # 未打过招呼的 job 才加 title-only，闭环「visit 时 company 已填充 +
         # 下次循环 RecyclerView 复用位置 company 为空」的死循环场景（2026-10-10 复现）
-        visited_keys.add(f"{normalize_card_title(title)}\t")
+        _key = f"{normalize_card_title(title)}\t\t{hr_name}"
+        visited_keys.add(_key)
+        # ── 2026-10-13 排查埋点：title-only key 入参（item 1 同步加 hr_name） ──
+        logger.debug("  [visited_keys] + title-only: title=%r, company=%r, hr_name=%r → key=%r (size=%d)",
+                     title, company, hr_name, _key, len(visited_keys))
 
         # 薪资预过滤：仅当对方薪资上限也低于我的下限时才跳过
         if min_salary_k > 0:
@@ -1560,14 +1605,39 @@ def _run_loop(
         # 进入详情页（用 _find_next_job 给的新鲜坐标）
         logger.info("  [%d] → %s（%s）", processed, title, company)
         if not skill.find_and_navigate_to_job(title, company, target):
-            result["errors"].append(f"{title}：导航失败")
+            # ── 2026-10-13 修复（item 3 + 2 + max retry）：导航失败 4 步处理 ──
+            logger.warning("  ⚠️ 导航失败：%s（%s）tap=(%d,%d) — skill 返回 False",
+                           title, company, target.tap_x, target.tap_y)
+            # item 3：回滚 visited_keys 污染（牧唐技术 6 秒内 0 log 期间已 add）
+            visited_keys.discard(_key)
+            _nav_fail_count[_key] = _nav_fail_count.get(_key, 0) + 1
+            if _nav_fail_count[_key] >= _NAV_FAIL_MAX:
+                # 连续失败达上限 → 永久加入 visited_keys + 记录到 DB（item 2 兜底）
+                visited_keys.add(_key)
+                _record_visit(db_conn, title, company, hr_name, keyword, None,
+                              skip_reason=f"导航连续{_NAV_FAIL_MAX}次失败")
+                result["errors"].append(
+                    f"{title}：导航连续 {_NAV_FAIL_MAX} 次失败，放弃"
+                )
+                logger.warning(
+                    "  → 连续 %d 次失败，已加入 visited_keys + DB 记录（item 2 触发）",
+                    _nav_fail_count[_key],
+                )
+            else:
+                # 第 1 次失败：discard + 让外层循环重试（item 4 兜底会再校验 DB）
+                result["errors"].append(f"{title}：导航失败（{_nav_fail_count[_key]}/{_NAV_FAIL_MAX}）")
+                logger.warning(
+                    "  → 加入 errors 列表，visited_keys 已 discard (item 3)；下次循环重试",
+                )
             continue
 
         # 等待详情页加载并验证职位标题 + 公司名都匹配
         # 防止：(a) 列表 tap 错卡片（旧坐标错位） (b) Boss 显示上一个职位的缓存数据
         _detail_ok = False
+        logger.debug("  [detail-check] 等待详情页 tv_job_name，attempt 0/3")
         for _attempt in range(3):
             if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=3.0):
+                logger.debug("  [detail-check] attempt %d：wait_for_element 3s 超时", _attempt)
                 time.sleep(1.0)
                 continue
             _quick = skill.get_job_detail()
@@ -1637,8 +1707,9 @@ def _run_loop(
         if job_dict.get("hr_name"):
             hr_name = job_dict["hr_name"]
         # 始终用 detail 数据更新 visited_keys（幂等；set.add 重名无副作用）
-        visited_keys.add(f"{normalize_card_title(title)}\t{company}")
-        visited_keys.add(f"{normalize_card_title(title)}\t")
+        # 2026-10-13 修复（item 1）：detail 阶段 hr_name 已完整，key 同步加 hr_name
+        visited_keys.add(f"{normalize_card_title(title)}\t{company}\t{hr_name}")
+        visited_keys.add(f"{normalize_card_title(title)}\t\t{hr_name}")
 
         # Prefer detail-page hr_name (more complete); fall back to card-level hr_name.
         # Using this for all DB writes ensures consistent dedup across runs.
@@ -1778,6 +1849,9 @@ def _run_loop(
                 logger.info("  HR活跃度「%s」权重 %.2f → 分数 %d→%d", days_str, a_weight, score, adjusted)
                 score = adjusted
 
+        # ── 2026-10-13 排查埋点：score_only 模式是否把高分卡写到 skipped ──
+        if score_only:
+            logger.info("  [score_only] 跳过发送：%s（%s）score=%d", title, company, score)
         if score < threshold or not greeting:
             logger.info("  → 跳过（%d < %d）", score, threshold)
             result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
@@ -1810,6 +1884,8 @@ def _run_loop(
                     continue
 
             if not skill.tap_element("chat_btn"):
+                # ── 2026-10-13 排查埋点：聊天按钮 tap 失败（区分「导航失败但 detail 通过」vs「聊天页打开失败」） ──
+                logger.warning("  ⚠️ chat_btn tap 失败：%s（%s）", title, company)
                 result["errors"].append(f"{title}：无法打开聊天页")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="无聊天按钮", job_dict=job_dict, scored_result=scored)
@@ -1831,9 +1907,11 @@ def _run_loop(
                     continue
                 time.sleep(0.5)  # 等弹窗关闭动画
 
+            # ── 2026-10-13 排查埋点：聊天页 editText 4s 超时 ──
             if not skill.wait_for_element(
                 "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
             ):
+                logger.warning("  ⚠️ 聊天页 editText 4s 超时：%s（%s）", title, company)
                 result["errors"].append(f"{title}：聊天页加载超时")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="聊天页超时", job_dict=job_dict, scored_result=scored)
