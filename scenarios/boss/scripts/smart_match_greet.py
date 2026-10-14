@@ -1555,6 +1555,16 @@ def _run_loop(
 
         # 去重检查（已落库 greetings 的不再打招呼）
         if _is_already_greeted(db_conn, title, company, hr_name):
+            # 2026-10-14 修复（item 4 兜底死循环）：补 _record_visit 让 job_visits 有记录。
+            # 不写的话下次 _find_next_job item 4 兜底（line 1089-1106）查 job_visits 会
+            # 返回 0 记录 → 兜底放行 → fall through → _run_loop 又走到这里 → 死循环。
+            # 具体案例：「AI运营专家（FDE方向）/ 腾宝科技 / 魏女士」—— DB 旧记录 hr=张女士
+            # (id=409)，Layer 3 title+company+greeted=1 命中 skip，但 job_visits 不写，
+            # 第二次 _find_next_job 兜底放行 → 死循环。Plan agent 验证其他 7 处 skip
+            # 路径都已 record_visit，唯独此处缺失。list view 阶段 job_dict=None 安全
+            # （_record_visit 内部 jd = job_dict or {} 兜底）。
+            _record_visit(db_conn, title, company, hr_name, keyword, None,
+                          skip_reason="已打过招呼")
             logger.info("  [%d] 跳过（已打过招呼）：%s", processed, title)
             result["skipped"].append(f"{title}（{company}）：已打过招呼")
             # 已打过招呼的 job 不再加 title-only —— 避免「同 title 不同公司」被错杀
