@@ -525,6 +525,7 @@ Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三�
 | 配对地址 | `ip` + `pairing_port` | 每次「使用配对码配对」对话框刷新即变（~30s 过期） | `10.32.7.125:36111` |
 | 配对码 | `pairing_code` | 同上 | `988963` |
 | 接入地址 | `ip` + `port` | 配对成功后手机端新开的 ADB 监听端口；只要无线调试保持开启就稳定 | `10.32.7.125:42527` |
+| **标准快速通道** | `ip` + **`standard_port`** | 手机端 adbd 在所有接口 LISTEN 的标准端口；与 VPN/隧道状态无关。**`DeviceConnector.get_device_port()` 优先读此字段**（2026-10-15 接入），未声明时退化到 `port` | `10.32.7.125:5555` |
 
 工作流：
 1. 手机「设置 → 系统 → 开发者选项 → 无线调试 → 使用配对码配对」会显示「IP address & Port」和「Pairing code」
@@ -538,10 +539,10 @@ Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三�
 
 `config/devices.json` 当前是 **Raspberry Pi 5** 主机档（2026-10 起的实际运行环境）；**Windows** 主机档已不再维护，仅在 `config/devices.windows.example.json` 保留为参考。两套值差异如下：
 
-| 主机 | 档位文件 | `ip` | `port` | `pairing_port` | `pairing_code` |
-|---|---|---|---|---|---|
-| **Raspberry Pi 5**（当前默认） | `config/devices.json` | `10.32.7.125` | `42527` | `36111` | `988963` |
-| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | `null`（回退 `port`） | `444047` |
+| 主机 | 档位文件 | `ip` | `port` | **`standard_port`** | `pairing_port` | `pairing_code` |
+|---|---|---|---|---|---|---|
+| **Raspberry Pi 5**（当前默认） | `config/devices.json`（参考快照同源：`config/devices.raspberrypi.example.json`） | `10.32.7.125` | `42527` | **`5555`** | `36111` | `988963` |
+| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | **`5555`** | `null`（回退 `port`） | `444047` |
 
 切换主机档：
 ```bash
@@ -602,11 +603,7 @@ adb connect <手机_wlan0_IP>:5555
 
 2. **绕过备选**：UI 弹窗的 pairing 端口（如 `36589` / `41381`）也可能 LISTEN，但**有时 pair 弹窗关闭后该端口就消失**，必须 `*:5555` 才稳定。
 
-3. **治本（关 VPN）**：
-   - 找到对应 App：`adb shell pm list packages | grep <部分名字>`
-   - `设置 → 网络和互联网 → VPN` → 找到该 profile → 齿轮 → 断开
-   - 或直接卸载：`adb uninstall <package>`
-   - 关掉后重新进入「无线调试」页面，UI 应回落到 `wlan0` IP（`10.32.7.x`），再走 §8.4.1 标准 pair 流程
+> ⚠️ **本项目硬性约束**：手机端 VPN 永远不能关（任何场景下都不允许）。上述两条「绕过」路径是**永久方案**而非临时绕过——Pigeon 等 VPN 应用的共存是本项目的基本设计前提。任何"关 VPN 才能修复"的建议都违反此约束。dde89bd commit 推到 main 时曾有第 3 条"治本（关 VPN）"作为参考方案,2026-10-15 codereview 发现与本约束冲突后已删除。
 
 **为什么 `ADBManager.pair()` / `diagnose-fail.sh` 没识别这个错**：
 
