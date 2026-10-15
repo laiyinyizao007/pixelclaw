@@ -565,6 +565,88 @@ def score_job(
     return {**job, **result}
 
 
+def _regenerate_greeting(
+    primary: anthropic.Anthropic,
+    fallback: anthropic.Anthropic | None,
+    scored: dict,
+    job: dict,
+) -> str:
+    """Generate a greeting for a job that already passed scoring but LLM forgot to fill it.
+
+    2026-10-15 现象：score_job 偶发只输出 match_score / top_matches / mismatch_concerns，
+    漏掉 greeting 字段（~10% 损耗：AI产品经理 120 跑 17/135 张 8-9 分卡被「or not greeting」吃掉）。
+    调一次简短的 LLM call 把 greeting 补上；如果再失败，从 top_matches 拼模板降级。
+
+    Returns the greeting text (>= 30 chars to pass _normalize_greeting_closing filter) or "".
+    """
+    import re as _re
+
+    top_matches = scored.get("top_matches") or []
+    if isinstance(top_matches, str):
+        top_matches = [top_matches]
+    title = job.get("title", "")
+    company = job.get("company", "")
+    hr_name = job.get("hr_name") or ""
+    # 称呼：HR 姓氏 + 总；空则"您好"
+    if hr_name and hr_name not in ("（未知）", ""):
+        # 取首字符作姓（"王女士" → "王总"）；如果整词就是姓 + 头衔则不重复
+        surname = hr_name[0]
+        salutation = f"{surname}总好"
+    else:
+        salutation = "您好"
+
+    # 第一道：调 LLM 短补一次。Prompt 把已有 top_matches 全塞进去让 LLM 写打招呼。
+    if top_matches:
+        tm_text = "；".join(str(t) for t in top_matches[:3])
+        prompt = (
+            "你之前给一份 JD 打过匹配分，结论是" + str(scored.get("match_score", "?")) + "/10 高分，"
+            "已写好匹配点但漏了打招呼正文。请**严格按 4 段结构**补写打招呼：\n"
+            "① 称呼（HR 姓氏+总，或「您好」）\n"
+            "② JD 钩子（≤ 20 字，引用 JD 实际技术栈）\n"
+            "③ 候选人对位证据（≤ 25 字）\n"
+            "④ 收尾（≤ 15 字，**必须以「方便发您一份简历看看吗」结尾**，不要用「聊聊/搭把手」等词）\n\n"
+            "已有匹配点：\n" + tm_text + "\n\n"
+            "严格输出 JSON：{\"greeting\": \"<正文>\"}，禁止任何额外文字、禁止 markdown 围栏。"
+        )
+        try:
+            response = _call_with_fallback(
+                primary, fallback,
+                fallback_model="claude-haiku-4-5-20251001",
+                model="MiniMax-M3",
+                max_tokens=512,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            text = _strip_json_fences(response.content[0].text.strip())
+            data = json.loads(text, strict=False)
+            g = (data.get("greeting") or "").strip()
+            if len(g) >= 30:
+                logger.info("  [regen-greeting] LLM 补生成成功（%d 字）", len(g))
+                return _normalize_greeting_closing(_re.sub(r"[\n\t]+", " ", g))
+        except Exception as exc:
+            logger.warning("  [regen-greeting] LLM 补生成失败：%s", exc)
+
+    # 第二道：模板降级（top_matches 第一项拼招呼 + 固定收尾）
+    if top_matches:
+        first = str(top_matches[0])
+        # 截前 25 字作对位证据
+        evidence = first[:25].rstrip("，,。;； ") if len(first) > 25 else first
+        # 不写结尾问句——交给 _normalize_greeting_closing 统一拼"方便发您一份简历看看吗"
+        template = (
+            f"{salutation}，看到{company or '贵司'}招{title}，"
+            f"我过去{evidence}"
+        )
+        logger.info("  [regen-greeting] 模板降级（top_matches[0]=%d 字）", len(first))
+        return _normalize_greeting_closing(_re.sub(r"[\n\t]+", " ", template))
+
+    # 第三道：彻底没 top_matches 时
+    template = (
+        f"{salutation}，看到{company or '贵司'}招{title}我比较感兴趣，"
+        f"过去 2 年做 FDE 型产品经理（Agent OS 三层产品 + 跨职能交付 + 客户蓝图）"
+    )
+    logger.info("  [regen-greeting] 模板降级（无 top_matches，通用能力对位）")
+    return _normalize_greeting_closing(_re.sub(r"[\n\t]+", " ", template))
+
+
 # 收尾归一化：用户（2026-10-12）决定硬性固定收尾，不让 LLM 决定。
 # 规则：招呼末尾 ≤ 25 字内必须含首选/备选/次选话术之一，否则截掉末尾标点 + 拼首选。
 # 收到此函数前，prompt 已禁止全文出现「搭把手/聊聊」等随意见面词。
@@ -1901,14 +1983,31 @@ def _run_loop(
                 logger.info("  HR活跃度「%s」权重 %.2f → 分数 %d→%d", days_str, a_weight, score, adjusted)
                 score = adjusted
 
+        # ── 2026-10-15 「高分空 greeting」补救 ──
+        # 现象：score_job 偶发只输出 match_score / top_matches / mismatch_concerns，
+        # 漏掉 greeting 字段。AI产品经理 120 跑约 12% 卡 8-9 分被「or not greeting」吃掉。
+        # 修复：score >= threshold 但 greeting 为空时调一次简短 LLM 补生成（_regenerate_greeting）。
+        if not greeting and score >= threshold:
+            logger.info("  [空-greeting 补救] 分数 %d ≥ %d 但 greeting 为空，调 LLM 补生成",
+                        score, threshold)
+            greeting = _regenerate_greeting(client, fallback, scored, job_dict)
+
         # ── 2026-10-13 排查埋点：score_only 模式是否把高分卡写到 skipped ──
         if score_only:
             logger.info("  [score_only] 跳过发送：%s（%s）score=%d", title, company, score)
         if score < threshold or not greeting:
-            logger.info("  → 跳过（%d < %d）", score, threshold)
-            result["skipped"].append(f"{title}（{company}）：{score}/10 低于阈值")
+            if score < threshold:
+                logger.info("  → 跳过（%d < %d）", score, threshold)
+                skip_msg = f"{title}（{company}）：{score}/10 低于阈值"
+                skip_reason = f"低分({score}<{threshold})"
+            else:
+                # score >= threshold 但 greeting 仍空（LLM 补救 + 模板降级全失败）
+                logger.info("  → 跳过（分数 %d 达标但 greeting 仍空，LLM+模板降级均失败）", score)
+                skip_msg = f"{title}（{company}）：{score}/10 达标但 greeting 补生成失败"
+                skip_reason = f"greeting补生成失败({score}分)"
+            result["skipped"].append(skip_msg)
             _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                          skip_reason=f"低分({score}<{threshold})", job_dict=job_dict, scored_result=scored)
+                          skip_reason=skip_reason, job_dict=job_dict, scored_result=scored)
             continue
 
         logger.info("  ✓ 达标！打招呼：%s…", greeting[:60])
