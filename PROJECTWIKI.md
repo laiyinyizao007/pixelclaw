@@ -533,7 +533,11 @@ Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三�
 3. `adb pair <ip>:<pairing_port> <pairing_code>` — 手机弹出「允许 USB 调试」需点同意
 4. `adb connect <ip>:<port>` — 此时「接入端口」才真正暴露（往往是 5 位随机端口，与配对端口不同）
 
-> ⚠️ 真实 IP 取决于主机和手机当前所在的 WiFi 子网，**不是固定值**。本次实测 Pi 在 `10.32.7.0/24`，手机 `10.32.7.125`。换网或换手机时必须重新确认。
+> ⚠️ 真实 IP 取决于主机和手机当前所在的 WiFi 子网，**不是固定值**。本次实测 Pi 在 `10.32.7.0/24`，手机 `10.32.7.125` → `10.32.7.135`（2026-10-15 IP 漂移）。换网、换手机、或路由器重启/DHCP 续期都可能让手机拿到新 IP，必须重新确认。
+>
+> **手机 IP 漂移实战（2026-10-15）**：从 Pi 5 跑 `adb connect 10.32.7.125:5555` 超时，TCP SYN 实际到了 wlan0（TX 计数增加）但手机没回 SYN-ACK。根因不是 AP 隔离、不是 VPN、不是 Pi 防火墙——**`10.32.7.125` 早已不是手机的当前 IP**，ping 通是因为同子网有另一台设备（实际手机 WiFi IP 已是 `10.32.7.135`，与 §8.4.1b 警告的「手机 UI 显示 IP ≠ 实际 WiFi IP」是同一类坑）。`adb_known_hosts.pb` 里 `42231JEKB04971` 仍是同一台——单纯 IP 变了。
+>
+> **永久方案**：在路由器后台给手机 MAC 绑静态 IP（TP-Link TL-XDR5410 后台 → 「应用管理 → DHCP 服务器 → 静态地址分配」/「IP 与 MAC 绑定」），避免每次 IP 漂移都改 `config/devices.json`。手机 MAC 可从手机「设置 → 关于 → 状态信息 → IP 地址」对应行反查，或 `adb shell cat /sys/class/net/wlan0/address`（需 adb 先连上）。临时方案：`adb devices` + `adb shell ip addr show wlan0` 双确认当前 IP。
 
 #### 8.4.1a 主机档位：Pi 5 vs Windows（历史）
 
