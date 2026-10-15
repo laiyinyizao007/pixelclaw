@@ -226,6 +226,45 @@ class ADBManager:
             check=False,
         )
 
+        combined = (stdout + " " + stderr).lower()
+
+        # Detect "protocol fault" — host can't reach the pairing endpoint.
+        # Most common cause: phone-side VPN/tunnel (e.g. com.pigeon.seppd)
+        # hijacks the wireless debug endpoint onto an unreachable subnet.
+        # The permanent workaround (NOT disabling the VPN — that's a hard
+        # project constraint) is to bypass the pairing UI entirely and
+        # connect via the WiFi IP + standard ADB port 5555. See
+        # PROJECTWIKI.md §8.4.1b for the full diagnostic and fix path.
+        if "protocol fault" in combined:
+            print(
+                f"[ADBManager.pair] detected 'protocol fault' on {address}",
+                flush=True,
+            )
+            print(
+                "  cause  : host cannot reach the phone's pairing endpoint",
+                flush=True,
+            )
+            print(
+                "  typical: phone-side VPN/tunnel (e.g. com.pigeon.seppd) "
+                "binds adbd to an unreachable subnet",
+                flush=True,
+            )
+            print(
+                "  fix    : adb connect <phone_wlan0_ip>:5555  (bypasses pair UI)",
+                flush=True,
+            )
+            print(
+                "  ref    : PROJECTWIKI.md §8.4.1b",
+                flush=True,
+            )
+            print(
+                "  note   : do NOT disable the phone's VPN — that is a "
+                "permanent project constraint; the workaround above is the "
+                "intended permanent path",
+                flush=True,
+            )
+            return False
+
         if success and ("successfully paired" in stdout.lower() or "paired" in stdout.lower()):
             return True
 
