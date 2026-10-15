@@ -293,6 +293,39 @@ Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿�
 
 **已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回（visit 95/129 的 hr_name 仍空，company 已拿到）。当前依赖 `detail.get("hr_name") or hr_name` 的 fallback，详情页若持续空可加同款等待逻辑（独立改动）。
 
+**company 跨视图不一致兜底放行死循环修复（2026-10-15 加）**：
+
+`_find_next_job` 在 `v_key in visited_keys` 命中后会查 `job_visits` 验证是否真的访问过（item 4 兜底），原 SQL 是 `WHERE title = ? AND company = ? AND COALESCE(hr_name, '') = ?` 精确匹配。但列表卡 RecyclerView 懒加载返回的 company 是详情页 company 的截短形式：
+
+| 来源 | 形态 | 示例 |
+|---|---|---|
+| 列表卡 | 短名（无城市前缀） | `纵维立方科技` |
+| 详情页 | 全名（带城市前缀） | `深圳市纵维立方科技有限公司` |
+| `_record_visit` 写 | 详情页全名 | `深圳市纵维立方科技有限公司` |
+| `_find_next_job` DB 兜底查 | 列表卡短名 | `纵维立方科技` |
+
+精确匹配 `COUNT=0` → 误判「未访问」 → 兜底放行 → 同卡死循环评分 ≥10 次（实测 5+ 分钟，浪费 LLM 配额且进度 0）。**触发场景**：2026-10-15 跑「需求分析」120 条时卡在「软件代表(J10718) @ 纵维立方科技」（score=4 < 7），10 次「`visited_keys命中但job_visits无记录，兜底放行`」日志后用户终止。
+
+**修复**（`smart_match_greet.py:1171-1197`）：DB 兜底查询改用双向 `INSTR` 子串匹配 + 空 company 退化为 title+hr_name：
+```sql
+WHERE title = ?
+  AND COALESCE(hr_name, '') = ?
+  AND (? = ''                             -- 列表卡 company 空：忽略 company
+       OR company = ?                     -- 精确匹配
+       OR instr(company, ?) > 0           -- list 是 detail 子串
+       OR instr(?, company) > 0)          -- detail 是 list 子串
+```
+
+**Why `INSTR` 不用 `LIKE '%' || ?`**：SQLite `LIKE '%' || ?` 只在字符串**末尾**匹配，`'深圳市纵维立方科技有限公司' LIKE '%' || '纵维立方科技'` 返回 0（要 `'%纵维立方科技%'` 两边都加 `%`）。`INSTR(x, y) > 0` 等价于 Python `y in x` 更直观。
+
+**回归测试**：`tests/test_find_next_job_company_mismatch.py` 4 个 case ——
+1. list == detail → COUNT=1 skip（基线）
+2. list 是 detail 子串 → COUNT=1 skip（核心修复）
+3. 完全无关 → COUNT=0 兜底放行（正确放行）
+4. list 空 + detail 全 → COUNT=1 skip（懒加载空字段场景）
+
+**预防**：今后 `_record_visit` 写 company 时考虑与 `_find_next_job` 查询一致。若列表/详情 company 形态不固定（短/长/带前缀），查询侧必须用子串匹配，不能写 `=`。
+
 **PIN 自动解锁（2026-10-10 新增）**：
 
 启动时若设备锁屏（`mDreamingLockscreen=true`），`.env` 设了 `PIXELCLAW_DEVICE_PIN` 即可自动解锁，跳过 120s 手动等待窗口。`_try_auto_unlock(skill)` 见 `smart_match_greet.py:1008-1050`：
