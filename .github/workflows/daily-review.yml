@@ -34,7 +34,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: 安装依赖
-        run: pip install anthropic
+        run: pip install anthropic openai
       - name: 确定运行模式
         id: mode
         run: |
@@ -79,7 +79,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
       - name: 安装依赖
-        run: pip install anthropic
+        run: pip install anthropic openai
       - name: 自动关闭已完成 Issue
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
