@@ -91,7 +91,7 @@ def _insert_visit(conn, title, company, hr_name, greeted=0, skip_reason="低分(
 # ───────────────────────────── the bug under test ─────────────────────────────
 
 
-def _run_find_next(db_conn, list_company, list_hr_name, visited_keys=None, detail_company=None):
+def _run_find_next(db_conn, list_company, list_hr_name, visited_keys=None, detail_company=None, title="软件代表(J10718)"):
     """Run _find_next_job with mock skill that returns one list card.
 
     Returns the visit count after the script's DB query. The query in
@@ -103,14 +103,14 @@ def _run_find_next(db_conn, list_company, list_hr_name, visited_keys=None, detai
 
     skill = MagicMock()
     visible = [_make_job_info(
-        title="软件代表(J10718)",
+        title=title,
         company=list_company,
         hr_name=list_hr_name,
     )]
     skill.get_job_list.return_value = visible
 
     target = _make_job_info(
-        title="软件代表(J10718)",
+        title=title,
         company=list_company,
         hr_name=list_hr_name,
     )
@@ -118,7 +118,6 @@ def _run_find_next(db_conn, list_company, list_hr_name, visited_keys=None, detai
     # Simulate having visited this card BEFORE — both with list company (line 1709)
     # and detail company (line 1845)
     from skills.boss.boss_automation_skill import normalize_card_title
-    title = "软件代表(J10718)"
     detail_co = detail_company or list_company
     visited_keys.add(f"{normalize_card_title(title)}\t{list_company}\t{list_hr_name}")
     visited_keys.add(f"{normalize_card_title(title)}\t{detail_co}\t{list_hr_name}")
@@ -199,5 +198,41 @@ def test_empty_company_in_list_with_full_company_in_detail(db_conn):
     )
     assert result is None, (
         "Empty list company should not break dedup (title+hr_name suffices). "
+        f"Got {result!r}"
+    )
+
+
+def test_empty_list_hr_name_with_full_detail_hr_name(db_conn):
+    """Edge: list card has empty hr_name (RecyclerView 懒加载未填充),
+    detail page has '张女士' → should still skip (title+company 足以匹配).
+    """
+    _insert_visit(db_conn, "AI产品专家", "北京有乐今天科技有限公司", "张女士")
+    result = _run_find_next(
+        db_conn,
+        list_company="北京有乐今天科技有限公司",
+        list_hr_name="",  # 列表卡 hr_name 懒加载未填充
+        detail_company="北京有乐今天科技有限公司",
+        title="AI产品专家",
+    )
+    assert result is None, (
+        "Empty list hr_name should not break dedup (title+company 足以匹配). "
+        f"Got {result!r}"
+    )
+
+
+def test_both_list_company_and_hr_name_empty(db_conn):
+    """Edge: list card 全空 (company='' AND hr_name='')，detail 全填
+    → 标题唯一时也能匹配（company 和 hr_name 都退化）.
+    """
+    _insert_visit(db_conn, "AI产品专家", "北京有乐今天科技有限公司", "张女士")
+    result = _run_find_next(
+        db_conn,
+        list_company="",
+        list_hr_name="",
+        detail_company="北京有乐今天科技有限公司",
+        title="AI产品专家",
+    )
+    assert result is None, (
+        "List 全空 + detail 全填, 标题唯一时仍应 skip. "
         f"Got {result!r}"
     )
