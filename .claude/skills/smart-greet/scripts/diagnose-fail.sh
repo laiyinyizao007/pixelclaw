@@ -39,6 +39,19 @@ if echo "$LOG" | grep -qE "ModelNotFound|model_not_found"; then
   echo "    修复: 切到 minimaxi.com/anthropic + MiniMax-M3（已知可用）"
   echo
 fi
+if echo "$LOG" | grep -qE "protocol fault|protocol fault.*couldn't read status message"; then
+  echo "  ⚠ 命中: adb pair 报 protocol fault"
+  echo "    原因: 主机无法到达手机端无线调试 endpoint"
+  echo "          典型场景: 手机端 VPN/隧道 App（如 com.pigeon.seppd）把 adbd"
+  echo "                   绑到了不可达的子网接口（如 tun0）"
+  echo "    修复: 走 WiFi 真实 IP + 标准 5555 端口（绕开 pair 弹窗）"
+  echo "          adb shell ip addr show wlan0 | grep inet   # 拿手机 WiFi IP"
+  echo "          adb connect <手机_wlan0_IP>:5555"
+  echo "          （手机「无线调试」开关保持 ON 即可,不需要 pair 弹窗）"
+  echo "    严禁: 关闭手机 VPN（项目硬性约束;上述绕路方案是永久方案）"
+  echo "    详见: PROJECTWIKI.md §8.4.1b"
+  echo
+fi
 
 # P1（功能受损）
 echo "[P1] 功能受损类（能跑但有偏差）"

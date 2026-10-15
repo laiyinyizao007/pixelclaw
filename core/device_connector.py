@@ -91,9 +91,24 @@ class DeviceConnector:
         return None
 
     def get_device_port(self) -> int:
-        """Get the device ADB port."""
+        """
+        Get the device ADB port.
+
+        Priority: ``standard_port`` (adbd LISTEN on all interfaces, immune to
+        phone-side VPN/tunnel hijack) > ``port`` (pairing port, may be
+        unreachable when phone VPN/tunnel is active).
+
+        ``standard_port`` is the permanent workaround documented in
+        PROJECTWIKI.md §8.4.1b — the phone's VPN (e.g. com.pigeon.seppd) is a
+        hard project constraint and must never be disabled. Falling back to
+        ``port`` keeps backward compatibility for configs that don't yet
+        declare ``standard_port`` (e.g. older hosts).
+        """
         if self._device_config:
-            return self._device_config.get("port", 5555)
+            return (
+                self._device_config.get("standard_port")
+                or self._device_config.get("port", 5555)
+            )
         return 5555
 
     def get_pairing_code(self) -> Optional[str]:

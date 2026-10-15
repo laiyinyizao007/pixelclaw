@@ -9,6 +9,7 @@
       "model": "Pixel 8a",
       "ip": "172.19.0.1",
       "port": 45373,
+      "standard_port": 5555,
       "pairing_code": "444047",
       "pairing_port": null,
       "status": "disconnected",
