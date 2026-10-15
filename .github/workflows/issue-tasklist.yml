@@ -1,33 +1,13 @@
 name: Generate Issue Task List
-# v1.17+：Python 逻辑已提取为 .github/scripts/generate_tasklist.py
-# 见 PROJECTWIKI.md §5.14
-
 on:
   issues:
     types: [opened]
-
 jobs:
   generate:
-    runs-on: ubuntu-latest
-    permissions:
-      issues: write
-    # Only run if the Issue body has no existing task list and the title is
-    # non-empty. Actions expressions have no length() function, so the
-    # "title is meaningful" check lives in the Python step below.
     if: |
       !contains(github.event.issue.body || '', '- [ ]') &&
       github.event.issue.title != null &&
       github.event.issue.title != ''
-    env:
-      REPO: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
-      TITLE: ${{ github.event.issue.title }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/scripts
-          sparse-checkout-cone-mode: false
-
-      - name: Generate and post task list
-        run: python3 .github/scripts/generate_tasklist.py
+    uses: laiyinyizao007/my-project-management/.github/workflows/reusable-tasklist.yml@main
+    permissions:
+      issues: write
