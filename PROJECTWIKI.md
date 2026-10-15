@@ -558,6 +558,66 @@ cp config/devices.raspberrypi.example.json config/devices.json
 
 **`pairing_port: null` 的回退行为**：Windows 档的历史值 `pairing_port=null`，`DeviceConnector.pair()` 内部检测到缺失时回退使用 `port`（即 `45373`）。这是 2026-10 之前的行为，**未经 Android 11+ 实测**——若配对失败，先临时把 `pairing_port` 写成手机屏幕显示的端口。
 
+#### 8.4.1b VPN/隧道劫持无线调试 endpoint 的排查与绕过（2026-10-15 实战）
+
+**症状（典型）**：`adb pair <ip>:<port> <code>` 直接报 `protocol fault (couldn't read status message): No error`，主机端 `ping <ip>` 100% 丢包；手机「无线调试」页面显示的 IP **与手机实际 WiFi IP 不一致**（例如 WiFi 是 `10.32.7.135` 但页面显示 `172.19.0.1`）。
+
+**根因**：手机端运行了某个 **VPN/隧道 App**（本机实例为 `com.pigeon.seppd`，中文叫「鸽子」），它在 `tun0` 上创建了一个 `VpnService` 接口，**同时被系统标为 `defaultNetwork=true`**，导致：
+
+| 现象 | 真相 |
+|---|---|
+| 无线调试 UI 显示 `172.19.0.1` | 是 `tun0` 接口的地址（不是 WiFi 接口 `wlan0`） |
+| `adb pair 172.19.0.1:36589` 失败 | adbd 把 endpoint 绑在 `tun0` 上，主机根本到不了这个子网 |
+| `dumpsys connectivity` 没标 VPN | VPN 用了系统级 `VpnService` API 但**不显示在 `pm list packages`**（因为是常驻服务 / 共享同一 UID） |
+| `ip route` 没默认路由 | `defaultNetwork` 由 `tun0` 接管，路由表只显示直连网段 |
+| `user_keys` 已有本机 key | 之前配对过，授权仍在——不需要重新 pair |
+
+**快速诊断 4 步**（全部只读 `adb shell`，不动配置）：
+
+```bash
+# 1. 确认手机端有非 WiFi 接口且被当作默认网络
+adb shell "dumpsys connectivity | grep -iE 'tun0|vpn:com\\.'"
+# → 应能看到 VPN:{package_name}  +  defaultNetwork=true
+
+# 2. 确认 tun0 是 VPN 类型（type=17 = TYPE_VPN）
+adb shell "dumpsys netstats | grep iface=tun0"
+# → ident=[{type=17, ... defaultNetwork=true ...}]
+
+# 3. 确认 adbd 实际 LISTEN 端口（关键：找 *:5555 这种全接口绑定）
+adb shell "ss -tln | grep -E ':(5555|5037)'"
+# → LISTEN *:5555 表明 adbd 在全接口上 LISTEN，不需要走 tun0
+
+# 4. 主机端从 WiFi IP 直接连（绕过 pair 弹窗）
+adb connect <手机_wlan0_IP>:5555
+# 例:adb connect 10.32.7.135:5555  → connected to 10.32.7.135:5555
+```
+
+**修复路径**（按优先级）：
+
+1. **绕过（最快，0 配置）**：手机 wlan0 IP + 标准端口 `5555`，前提是 adbd 启用了标准 TCP/IP listen。验证命令：
+   ```bash
+   adb -s <wlan_ip>:5555 shell echo OK
+   ```
+   实测 `*:5555` 在所有接口 LISTEN，Windows / Pi 主机端 `adb connect 10.32.7.135:5555` 直接通。
+
+2. **绕过备选**：UI 弹窗的 pairing 端口（如 `36589` / `41381`）也可能 LISTEN，但**有时 pair 弹窗关闭后该端口就消失**，必须 `*:5555` 才稳定。
+
+3. **治本（关 VPN）**：
+   - 找到对应 App：`adb shell pm list packages | grep <部分名字>`
+   - `设置 → 网络和互联网 → VPN` → 找到该 profile → 齿轮 → 断开
+   - 或直接卸载：`adb uninstall <package>`
+   - 关掉后重新进入「无线调试」页面，UI 应回落到 `wlan0` IP（`10.32.7.x`），再走 §8.4.1 标准 pair 流程
+
+**为什么 `ADBManager.pair()` / `diagnose-fail.sh` 没识别这个错**：
+
+- `monitors/adb_manager.py` 的 `pair()` 只匹配 stdout 含 `successfully paired` 才算成功，`protocol fault` 落入灰色地带既不成功也不失败
+- `.claude/skills/smart-greet/scripts/diagnose-fail.sh` 的 12 类错误匹配**没有 `protocol fault` 条目**
+- 后续改进方向：①`ADBManager.pair()` 增加 `protocol fault` 识别 → 返回明确错误码；②`diagnose-fail.sh` 新增条目并指向本文档
+
+**已知触发 App**（按出现频次）：
+- `com.pigeon.seppd`（鸽子，2026-10-15 实测）
+- 同类：Cloudflare WARP / Tailscale 移动端 / NordVPN / ExpressVPN 等任何 `VpnService` 类应用
+
 #### 8.4.2 Keepalive 服务架构
 
 `./pixelclaw --service` 启动后由三层组成：
