@@ -1169,10 +1169,26 @@ def _find_next_job(
         # 边界场景：阿里巴巴·陈香雨 vs 丁玲芝 同 title+company 不同 hr（item 1 已分 key，
         # 不会 hit；万一 hit 兜底也会放行，因为 job_visits 没陈香雨记录）。
         if v_key in visited_keys:
+            # 2026-10-15 修复（公司名跨视图不一致兜底放行死循环）：
+            # 列表卡 company 是详情页 company 的截短形式（如「纵维立方科技」 vs
+            # 「深圳市纵维立方科技有限公司」）。job_visits 写的是详情页全名。
+            # 精确匹配 COUNT=0 → 误判「未访问」 → 兜底放行 → 同卡死循环评分 ≥10 次。
+            # 改用双向 INSTR 子串匹配：list company 是 detail company 的子串（或反之）
+            # 都算 visited。空 company 退化为纯 title+hr_name 查询（list 懒加载未填充场景）。
             _row = db_conn.execute(
                 "SELECT COUNT(*) FROM job_visits "
-                "WHERE title = ? AND company = ? AND COALESCE(hr_name, '') = ?",
-                (normalize_card_title(v.title), v.company, v.hr_name or ""),
+                "WHERE title = ? "
+                "AND COALESCE(hr_name, '') = ? "
+                "AND (? = '' "                          # 列表卡 company 空：忽略 company
+                "     OR company = ? "                  # 精确匹配
+                "     OR instr(company, ?) > 0 "        # list 是 detail 子串
+                "     OR instr(?, company) > 0)",       # detail 是 list 子串
+                (
+                    normalize_card_title(v.title), v.hr_name or "",
+                    v.company,
+                    v.company,
+                    v.company, v.company,
+                ),
             ).fetchone()
             if _row and _row[0] > 0:
                 logger.info(
