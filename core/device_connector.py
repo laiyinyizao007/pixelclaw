@@ -157,8 +157,13 @@ class DeviceConnector:
         """
         Connect to the configured device.
 
+        On failure, attempts to auto-refresh the phone's WiFi IP (which
+        drifts after 路由器 DHCP 续期) by scanning the configured subnet,
+        verifying by serial number, and rewriting config/devices.json —
+        then retries the connection once.
+
         Returns:
-            True if connection succeeded
+            True if connection succeeded (possibly after auto-refresh)
         """
         ip = self.get_device_ip()
         port = self.get_device_port()
@@ -169,6 +174,13 @@ class DeviceConnector:
 
         print(f"Connecting to {ip}:{port}...")
         success = self.adb.connect(ip, port)
+
+        if not success:
+            # Auto-refresh: phone IP may have drifted
+            refreshed_ip = self._try_refresh_and_reconnect(port)
+            if refreshed_ip:
+                ip = refreshed_ip
+                success = True
 
         if success:
             print("Connection successful!")
@@ -190,6 +202,37 @@ class DeviceConnector:
             print("Connection failed!")
 
         return success
+
+    def _try_refresh_and_reconnect(self, port: int) -> Optional[str]:
+        """On connection failure, scan subnet to find phone's new IP,
+        update config, retry connect once. Returns new IP on success."""
+        # Lazy import — refresh_device_ip uses subprocess which is
+        # optional (e.g. may not be available in minimal test envs)
+        try:
+            from utils.refresh_device_ip import refresh_device_ip
+        except ImportError as e:
+            print(f"refresh_device_ip unavailable: {e}")
+            return None
+
+        print("Cached IP failed; scanning subnet for phone's current IP...")
+        ok, new_ip = refresh_device_ip(
+            config_path=self.config_path,
+            standard_port=port,
+        )
+        if not ok or not new_ip:
+            print("Auto-refresh failed; check device is on same network")
+            return None
+
+        if new_ip == self.get_device_ip():
+            # Refresh returned same IP — connect() will keep failing
+            return None
+
+        print(f"Auto-refresh found phone at {new_ip}; retrying...")
+        # Reload config so subsequent get_device_ip() reads new IP
+        self._load_config()
+        if self.adb.connect(self.get_device_ip(), port):
+            return new_ip
+        return None
 
     def disconnect(self) -> bool:
         """Disconnect from the device."""

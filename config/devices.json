@@ -10,6 +10,8 @@
       "standard_port": 5555,
       "pairing_code": "988963",
       "pairing_port": 36111,
+      "serial": "42231JEKB04971",
+      "network": "10.32.7.0/24",
       "status": "disconnected",
       "capabilities": {
         "wireless_adb": true,
