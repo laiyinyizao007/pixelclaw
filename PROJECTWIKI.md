@@ -538,15 +538,17 @@ Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三�
 > **手机 IP 漂移实战（2026-10-15）**：从 Pi 5 跑 `adb connect 10.32.7.125:5555` 超时，TCP SYN 实际到了 wlan0（TX 计数增加）但手机没回 SYN-ACK。根因不是 AP 隔离、不是 VPN、不是 Pi 防火墙——**`10.32.7.125` 早已不是手机的当前 IP**，ping 通是因为同子网有另一台设备（实际手机 WiFi IP 已是 `10.32.7.135`，与 §8.4.1b 警告的「手机 UI 显示 IP ≠ 实际 WiFi IP」是同一类坑）。`adb_known_hosts.pb` 里 `42231JEKB04971` 仍是同一台——单纯 IP 变了。
 >
 > **永久方案**：在路由器后台给手机 MAC 绑静态 IP（TP-Link TL-XDR5410 后台 → 「应用管理 → DHCP 服务器 → 静态地址分配」/「IP 与 MAC 绑定」），避免每次 IP 漂移都改 `config/devices.json`。手机 MAC 可从手机「设置 → 关于 → 状态信息 → IP 地址」对应行反查，或 `adb shell cat /sys/class/net/wlan0/address`（需 adb 先连上）。临时方案：`adb devices` + `adb shell ip addr show wlan0` 双确认当前 IP。
+>
+> **自动化方案（2026-10-15 当路由器不可控时）**：当无法进入路由器后台（如租房/共享网络）时，`utils/refresh_device_ip.py` 模块 + `DeviceConnector.connect()` 内置 auto-retry 可以自动恢复。`config/devices.json` 加 `serial` + `network` 字段后，`adb connect` 失败时自动扫 `network` 子网，按 `getprop ro.serialno` 验证找到手机，更新 config 并重连一次。**触发链**：`core/device_connector.py:connect()` 调 `self.adb.connect()` 失败 → `_try_refresh_and_reconnect()` 调 `utils.refresh_device_ip.refresh_device_ip()` → 验证新 IP + `adb.connect()` 重连。手动触发：`python -m utils.refresh_device_ip`（独立 CLI）。**Why serial-verify**（不按 model/hostname）：serial 是设备唯一标识且 `ro.serialno` 直接读出；同 model 会有；hash DHCP hostname 是厂商锁定的不可靠。两层筛：① ping-fail 快速剔除绝大多数 IP ② adb connect + getprop ro.serialno 确认身份。**Why 不无限重试**：auto-refresh 只触发一次；连续失败需要人工介入（手机关机 / 换网 / 路由器关了手机 WiFi）。
 
 #### 8.4.1a 主机档位：Pi 5 vs Windows（历史）
 
 `config/devices.json` 当前是 **Raspberry Pi 5** 主机档（2026-10 起的实际运行环境）；**Windows** 主机档已不再维护，仅在 `config/devices.windows.example.json` 保留为参考。两套值差异如下：
 
-| 主机 | 档位文件 | `ip` | `port` | **`standard_port`** | `pairing_port` | `pairing_code` |
-|---|---|---|---|---|---|---|
-| **Raspberry Pi 5**（当前默认） | `config/devices.json`（参考快照同源：`config/devices.raspberrypi.example.json`） | `10.32.7.125` | `42527` | **`5555`** | `36111` | `988963` |
-| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | **`5555`** | `null`（回退 `port`） | `444047` |
+| 主机 | 档位文件 | `ip` | `port` | **`standard_port`** | `pairing_port` | `pairing_code` | `serial`（auto-refresh 用） | `network`（auto-refresh 用） |
+|---|---|---|---|---|---|---|---|---|
+| **Raspberry Pi 5**（当前默认） | `config/devices.json`（参考快照同源：`config/devices.raspberrypi.example.json`） | `10.32.7.135`（2026-10-15 漂移后实测） | `42527` | **`5555`** | `36111` | `988963` | `42231JEKB04971` | `10.32.7.0/24` |
+| **Windows**（历史） | `config/devices.windows.example.json` | `172.19.0.1` | `45373` | **`5555`** | `null`（回退 `port`） | `444047` | _（无 auto-refresh）_ | _（无 auto-refresh）_ |
 
 切换主机档：
 ```bash
