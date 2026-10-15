@@ -194,8 +194,11 @@ def main() -> None:
         existing_issues = get_open_issues(repo, issue_number, token)
         print(f'Comparing against {len(existing_issues)} open issue(s)...')
 
+        weekly_re = re.compile(r'^\[Weekly\]', re.IGNORECASE)
         scored = []
         for issue in existing_issues:
+            if weekly_re.match(issue_title) and weekly_re.match(issue['title']):
+                continue
             score = combined_score(issue_title, issue['title'])
             if score >= SIMILARITY_THRESHOLD:
                 scored.append((score, issue))
