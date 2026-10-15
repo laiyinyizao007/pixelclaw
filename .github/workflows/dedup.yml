@@ -1,27 +1,9 @@
 name: Detect Duplicate Issues
-# v1.17+：token / issue title 通过 env var 注入（消除 shell 参数暴露与注入风险）
-# 见 PROJECTWIKI.md §5.15
-
 on:
   issues:
     types: [opened]
-
 jobs:
   dedup:
-    runs-on: ubuntu-latest
+    uses: laiyinyizao007/my-project-management/.github/workflows/reusable-dedup.yml@main
     permissions:
       issues: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/scripts
-          sparse-checkout-cone-mode: false
-
-      - name: Run duplicate detection
-        env:
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          REPO: ${{ github.repository }}
-        run: python3 .github/scripts/dedup.py
