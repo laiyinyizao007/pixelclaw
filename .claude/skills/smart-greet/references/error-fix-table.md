@@ -1,4 +1,4 @@
-# 错误→修复速查表（8+ 项）
+# 错误→修复速查表（13 项）
 
 > 来源：`scenarios/boss/scripts/smart_match_greet.py` 实际错误处理 + 项目历史故障记录。
 > 完整工作流见 `SKILL.md`；本文档只列错误模式。
@@ -17,6 +17,7 @@
 | 10 | `ResumeNotFound` | 简历路径不存在 | 设 `PIXELCLAW_RESUME_PATH` 或放简历到 `~/Projects/resume-renew/resume/current.md` | ❌ 否 |
 | 11 | `EmptyResponse` from LLM | 模型返回空 / ThinkingBlock 不兼容 | 换模型（`MiniMax-M3` ✅ / `M2.7` ❌ ThinkingBlock） | ❌ 否 |
 | 12 | `ModelNotFoundError` | 模型名不在该 relay | 检查 `.env` 的 `ANTHROPIC_BASE_URL` 对应的模型清单 | ❌ 否 |
+| **13** | **`visited_keys命中但job_visits无记录，兜底放行` 死循环**（**2026-10-15 新增**） | **列表卡 RecyclerView 懒加载字段（company 短名/hr_name 空）vs 详情页字段（全名/全填）不一致**——`_find_next_job` DB 兜底查询用 `=` 精确匹配失败 | **双向 INSTR 子串匹配** + **任一字段空则退化**（commits `48c34b4` + `12bff75`，`smart_match_greet.py:1171-1200`） | ❌ 否（**必须修代码**，已修） |
 
 ## 严重程度排序
 
@@ -29,6 +30,7 @@
 - #1（配额耗尽）—— 慢但能跑
 - #4（false negative）—— 误报
 - #11（LLM 空响应）—— 评分异常
+- **#13（跨视图字段死循环）**—— 看似能跑但 max-greet 不增长，**LLM 配额白烧**（实测 5+ 分钟 0 进度 + 10 次同卡评分）
 
 ### P2（边界情况，少见）
 - #2（每日上限）—— 业务侧限制
@@ -45,8 +47,10 @@
 - #1：自动，可能 5 分钟 - 数小时
 - #2：必须等次日
 - #3 / #9：1-2 分钟（手动操作 App + 重跑）
+- **#13**：已修（commit `12bff75`），跑新跑直接生效；旧跑中途触发只能 kill 重跑
 
 ## 配合工具
 
-- `scripts/diagnose-fail.sh <error_log>` —— 自动从日志中匹配上述 12 项，给出建议
+- `scripts/diagnose-fail.sh <error_log>` —— 自动从日志中匹配上述 12 项 + #13（grep `兜底放行` ≥3 次同 v_key 即告警）
 - `references/platform-differences.md` —— 平台差异对照（部分错误有平台特异性）
+- `tests/test_find_next_job_company_mismatch.py` —— #13 的 6 个 TDD 回归用例

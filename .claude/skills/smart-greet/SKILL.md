@@ -234,7 +234,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 
 ## 常见错误 → 修复（8+）
 
-> 完整表见 `references/error-fix-table.md`。本节是高频 5 项。
+> 完整表见 `references/error-fix-table.md`（已扩到 13 项）。本节是高频 5 项 + 5 类 P0/P1 死循环变种（#9/#11/#12/#14）。
 
 ### 1. `两端 API 配额耗尽` → 自动恢复
 - **症状**：脚本卡在 "sleep until resetAt"，日志倒计时秒数
@@ -340,6 +340,24 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
   - 仅支持数字 PIN（不支持图案 / 指纹 / 面部）
   - 非数字字符时 `PIXELCLAW_DEVICE_PIN 含非数字字符，跳过自动解锁`
   - 端到端验证：`前端工程师 --max-greet 1` 实跑通过，PIN 解锁后正常打招呼
+
+### 14. `visited_keys命中但job_visits无记录，兜底放行` 死循环（2026-10-15 加，跨视图字段不一致变种）
+- **症状**：run log 反复出现 `[find_next]   ↳ OK: visited_keys命中但job_visits无记录，兜底放行 (v_key='XX\t\t', hr_name='')` 同一行 ≥3 次，进程持续跑但 max-greet 不增长，LLM 配额白烧。**与错误 #12 的区别**：#12 是「公司名非空但 visited_keys ADD/CHECK 协议不对称」；#14 是「**列表卡字段空/截短 vs 详情页全名/全填**——RecyclerView 懒加载层与详情页字段不一致」。
+- **根因**：`_find_next_job` 兜底查询用列表卡 company/hr_name 精确匹配 `WHERE company = ? AND COALESCE(hr_name, '') = ?`，但 `_record_visit` 写的是详情页字段（截短/空 vs 全名/全填）：
+  - 列表卡：`纵维立方科技` / `hr=''`
+  - 详情页：`深圳市纵维立方科技有限公司` / `hr='张女士'`
+  - 短名 ≠ 全名 + 空 hr ≠ 实 hr → COUNT=0 → 误判「未访问」 → 兜底放行 → 同卡死循环评分
+- **修复**（commits `48c34b4` + `12bff75`，`smart_match_greet.py:1171-1200`）：DB 兜底查询改为**双向 INSTR 子串匹配** + **任一字段空则退化**：
+  ```sql
+  WHERE title = ?
+    AND (? = '' OR company = ? OR instr(company, ?) > 0 OR instr(?, company) > 0)
+    AND (? = '' OR COALESCE(hr_name, '') = ? OR instr(COALESCE(hr_name, ''), ?) > 0 OR instr(?, COALESCE(hr_name, '')) > 0)
+  ```
+- **Why `INSTR` 不用 `LIKE '%' || ?`**：SQLite `LIKE '%' || ?` 只匹配**末尾**（`'深圳市纵维立方科技有限公司' LIKE '%纵维立方科技'` 返回 0，需要 `'%纵维立方科技%'` 两边都加 %）。`INSTR(x, y) > 0` 等价 Python `y in x` 更直观
+- **触发场景**：2026-10-15 跑「需求分析」120 条时卡在「软件代表(J10718) @ 纵维立方科技」（score=4 < 7），10 次兜底放行后用户终止。第一轮 commit `48c34b4` 只放宽 company，hr_name 仍卡「AI产品专家」（list 全空 + detail 全填）8 次；第二轮 commit `12bff75` 同时放宽 hr_name 才彻底修干净
+- **回归测试**：`tests/test_find_next_job_company_mismatch.py` 6 个 case 全部 PASS（list == detail / list 是 detail 子串 / 完全无关 / list 空 company / list 空 hr_name / list 全空 + detail 全填）
+- **log 标志**：`[find_next]   ↳ OK: visited_keys命中但job_visits无记录，兜底放行` 反复出现 ≥3 次同卡 = 触发；若 v_key 中 `company=''` 或 `hr_name=''` 字段为空，**几乎一定是该 bug**
+- **预防**：今后写 `_record_visit` 字段时考虑与 `_find_next_job` 查询一致；若列表/详情字段形态不固定（短/长/带前缀/空），查询侧必须用子串匹配，不能写 `=`
 
 ## 多日 DB 管理
 
