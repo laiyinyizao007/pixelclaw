@@ -306,25 +306,34 @@ Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿�
 
 精确匹配 `COUNT=0` → 误判「未访问」 → 兜底放行 → 同卡死循环评分 ≥10 次（实测 5+ 分钟，浪费 LLM 配额且进度 0）。**触发场景**：2026-10-15 跑「需求分析」120 条时卡在「软件代表(J10718) @ 纵维立方科技」（score=4 < 7），10 次「`visited_keys命中但job_visits无记录，兜底放行`」日志后用户终止。
 
-**修复**（`smart_match_greet.py:1171-1197`）：DB 兜底查询改用双向 `INSTR` 子串匹配 + 空 company 退化为 title+hr_name：
+**修复**（`smart_match_greet.py:1181-1199`，commit `48c34b4` 初版 + commit `12bff75` 扩展 hr_name）：DB 兜底查询改用**双向 `INSTR` 子串匹配** + **company / hr_name 任一字段空则退化**（不参与该字段匹配）：
 ```sql
 WHERE title = ?
-  AND COALESCE(hr_name, '') = ?
   AND (? = ''                             -- 列表卡 company 空：忽略 company
        OR company = ?                     -- 精确匹配
-       OR instr(company, ?) > 0           -- list 是 detail 子串
-       OR instr(?, company) > 0)          -- detail 是 list 子串
+       OR (? != '' AND instr(company, ?) > 0) -- list 是 detail 子串
+       OR (? != '' AND instr(?, company) > 0)) -- detail 是 list 子串
+  AND (? = ''                             -- 列表卡 hr_name 空：忽略 hr_name
+       OR COALESCE(hr_name, '') = ?       -- 精确匹配
+       OR (? != '' AND instr(COALESCE(hr_name, ''), ?) > 0)
+       OR (? != '' AND instr(?, COALESCE(hr_name, '')) > 0))
 ```
 
 **Why `INSTR` 不用 `LIKE '%' || ?`**：SQLite `LIKE '%' || ?` 只在字符串**末尾**匹配，`'深圳市纵维立方科技有限公司' LIKE '%' || '纵维立方科技'` 返回 0（要 `'%纵维立方科技%'` 两边都加 `%`）。`INSTR(x, y) > 0` 等价于 Python `y in x` 更直观。
 
-**回归测试**：`tests/test_find_next_job_company_mismatch.py` 4 个 case ——
+**两轮迭代**：
+- `48c34b4` 初版只修了 company，发现仍 8 次兜底放行 → 排查发现列表卡 hr_name='' 同样懒加载 → 12bff75 扩展到 hr_name（同样 INSTR + 空退化）
+- 教训：跨视图字段不一致不止 company，hr_name 也有；`48c34b4` 只修了「能立即复现」的部分，没举一反三
+
+**回归测试**：`tests/test_find_next_job_company_mismatch.py` 6 个 case（全部 PASS）——
 1. list == detail → COUNT=1 skip（基线）
 2. list 是 detail 子串 → COUNT=1 skip（核心修复）
 3. 完全无关 → COUNT=0 兜底放行（正确放行）
-4. list 空 + detail 全 → COUNT=1 skip（懒加载空字段场景）
+4. list 空 company + detail 全 → COUNT=1 skip（懒加载空字段场景）
+5. list 空 hr_name + detail 全 → COUNT=1 skip（`12bff75` 新增）
+6. list company/hr_name 全空 + detail 全填 → COUNT=1 skip（标题唯一兜底，`12bff75` 新增）
 
-**预防**：今后 `_record_visit` 写 company 时考虑与 `_find_next_job` 查询一致。若列表/详情 company 形态不固定（短/长/带前缀），查询侧必须用子串匹配，不能写 `=`。
+**预防**：今后 `_record_visit` 写 company / hr_name 时考虑与 `_find_next_job` 查询一致。若列表/详情字段形态不固定（短/长/带前缀/空），查询侧必须用子串匹配 + 退化，不能写 `=`。
 
 **PIN 自动解锁（2026-10-10 新增）**：
 

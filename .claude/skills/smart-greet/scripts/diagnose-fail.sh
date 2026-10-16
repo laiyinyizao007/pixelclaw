@@ -62,6 +62,19 @@ if echo "$LOG" | grep -qE "两端 API 配额耗尽|quota.*exhausted|resetAt"; th
   echo "    加速: Ctrl+C 后重跑（已发职位会通过 dedup_key 自动跳过）"
   echo
 fi
+# 兜底放行死循环 P1（2026-10-15 新增）—— grep 出现 ≥3 次同 v_key 兜底放行
+DDC_COUNT=$(echo "$LOG" | grep -cE "visited_keys命中但job_visits无记录，兜底放行" || true)
+if [[ "$DDC_COUNT" -ge 3 ]]; then
+  echo "  ⚠ 命中: visited_keys 兜底放行死循环（**2026-10-15 新增 P1**）"
+  echo "    出现次数: $DDC_COUNT"
+  echo "    原因: 列表卡 RecyclerView 懒加载字段（company 短名/hr_name 空）"
+  echo "          vs 详情页字段（全名/全填）不一致，DB 兜底查询精确匹配失败"
+  echo "          → 误判「未访问」→ 兜底放行 → 同卡死循环评分"
+  echo "    状态: **已修**（commits 48c34b4 + 12bff75），下次跑自动生效"
+  echo "    当前跑: 只能 Ctrl+C 终止后重跑（已发会去重）"
+  echo "    验证: 6 个 TDD 回归 case 全 PASS（tests/test_find_next_job_company_mismatch.py）"
+  echo
+fi
 if echo "$LOG" | grep -qE "发送未确认|verify=False|verify_message_sent.*timeout"; then
   echo "  ⚠ 命中: 发送未确认（**false negative 高发**）"
   echo "    原因: verify_message_sent() 6s 轮询窗口内没抓到气泡"
