@@ -236,3 +236,62 @@ def test_both_list_company_and_hr_name_empty(db_conn):
         "List 全空 + detail 全填, 标题唯一时仍应 skip. "
         f"Got {result!r}"
     )
+
+
+# ───────────────────── 2026-10-19: 品牌名 vs 公司全名 ─────────────────────
+
+
+def test_brand_short_name_vs_full_company_name_returns_skip(db_conn):
+    """回归（2026-10-19 死循环 bug）：list='融和科技'（品牌短名）vs detail='北京融和友信科技股份有限公司'（公司全名）
+    → bigram 重叠系数 0.667 ≥ 0.66 → skip，不能再死循环。
+    根因：INSTR 双向都不匹配（'融和科技' 被'友'字打断，5 字符不连续）→ 误判「未访问」 → 22 次同卡死循环。
+    """
+    _insert_visit(db_conn, "AI高级产品经理", "北京融和友信科技股份有限公司", "龙女士")
+    result = _run_find_next(
+        db_conn,
+        list_company="融和科技",  # 列表卡品牌短名
+        list_hr_name="龙女士",
+        detail_company="北京融和友信科技股份有限公司",  # 详情页公司全名（被"友"字打断）
+        title="AI高级产品经理",
+    )
+    assert result is None, (
+        "BUG REGRESSION (2026-10-19): brand short name '融和科技' vs full name "
+        "'北京融和友信科技股份有限公司' should skip via bigram overlap. "
+        f"Got {result!r} (兜底放行 → 死循环风险)"
+    )
+
+
+def test_unrelated_brand_name_returns_card(db_conn):
+    """反向：list='A科技' vs detail='B科技有限公司'（不同公司但后缀相似）
+    → bigram 重叠 1/2=0.5 < 0.66 → 不能 skip，应放行。
+    """
+    _insert_visit(db_conn, "AI产品经理", "B科技有限公司", "陈先生")
+    result = _run_find_next(
+        db_conn,
+        list_company="A科技",  # 3 字符，但只有 2 bigrams
+        list_hr_name="陈先生",
+        detail_company="B科技有限公司",
+        title="AI产品经理",
+    )
+    assert result is not None, (
+        "Different brand 'A科技' vs 'B科技' should not dedup (bigram overlap 0.5 < 0.66). "
+        f"Got None (over-dedup)"
+    )
+
+
+def test_short_brand_2char_falls_back_to_instr(db_conn):
+    """Edge: list='百度' (2 char → 1 bigram) 太短跳 bigram，回退到 INSTR 子串匹配。
+    '百度' 是 '百度科技有限公司' 的子串 → INSTR 命中 → skip。
+    """
+    _insert_visit(db_conn, "AI工程师", "百度科技有限公司", "李女士")
+    result = _run_find_next(
+        db_conn,
+        list_company="百度",  # 2 字符（<3 长度守护阈值，跳过 bigram）
+        list_hr_name="李女士",
+        detail_company="百度科技有限公司",
+        title="AI工程师",
+    )
+    assert result is None, (
+        "Short brand '百度' should still dedup via INSTR fallback. "
+        f"Got {result!r}"
+    )

@@ -176,6 +176,33 @@ def _ensure_greetings_table(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def _bigram_overlap(a: str, b: str) -> float:
+    """Return bigram overlap coefficient between two strings: |A∩B| / min(|A|, |B|).
+
+    用途：检测「品牌短名 vs 公司全名」场景下的 company 字段不一致——
+    既不是子串（INSTR 失败）也不是字符集完全相同（共同 char-set 都偏弱），
+    但 2-char token 集合有显著重叠（≥ 2/3）。
+    例：「融和科技」 ↔ 「北京融和友信科技股份有限公司」：
+        bigrams(A) = {融和, 和科, 科技} = 3
+        bigrams(B) = {北京, 京融, 融和, 和友, 友信, 信科, 科技, 技股, 股份, 份有, 有限, 限公, 公司} = 13
+        intersection = {融和, 科技} = 2
+        overlap = 2 / 3 = 0.667 ≥ 0.66 → 视为同一家公司
+
+    阈值建议 ≥ 0.66（来自 2026-10-19 bug 边界：2/3 = 0.667 刚好通过）。
+    长度守护：list 长度 < 3 时 bigrams 数 < 2，overlap 易过 0.5 但语义模糊，
+    此时仍退回到 INSTR 子串匹配。
+
+    Returns 0.0 for empty / len<2 inputs.
+    """
+    if not a or not b or len(a) < 2 or len(b) < 2:
+        return 0.0
+    bg_a = {a[i:i + 2] for i in range(len(a) - 1)}
+    bg_b = {b[i:i + 2] for i in range(len(b) - 1)}
+    if not bg_a or not bg_b:
+        return 0.0
+    return len(bg_a & bg_b) / min(len(bg_a), len(bg_b))
+
+
 def _is_already_greeted(
     conn: sqlite3.Connection, title: str, company: str, hr_name: str | None
 ) -> bool:
@@ -1169,38 +1196,55 @@ def _find_next_job(
         # 边界场景：阿里巴巴·陈香雨 vs 丁玲芝 同 title+company 不同 hr（item 1 已分 key，
         # 不会 hit；万一 hit 兜底也会放行，因为 job_visits 没陈香雨记录）。
         if v_key in visited_keys:
-            # 2026-10-15 修复（公司名跨视图不一致兜底放行死循环）：
-            # 列表卡 RecyclerView 懒加载字段常空/截短：
-            #   - company 短名 vs detail 全名（如「纵维立方科技」 vs「深圳市纵维立方科技有限公司」）
-            #   - hr_name 列表卡空 vs detail 有值（如 列表 hr='' / detail hr='张女士'）
-            # job_visits 写的是详情页字段；精确匹配 COUNT=0 → 误判「未访问」 → 兜底放行 →
-            # 同卡死循环评分 ≥10 次（实测 5+ 分钟）。改用双向 INSTR 子串匹配：
-            #   - 任一字段空 → 退化（不参与匹配）
-            #   - 双向 INSTR：list 是 detail 子串或反之
-            # 全字段都精确匹配时仍走 = 短路（快路径）。
-            _row = db_conn.execute(
-                "SELECT COUNT(*) FROM job_visits "
-                "WHERE title = ? "
-                "AND (? = '' "                                # list company 空 → 不参与 company 匹配
-                "     OR company = ? "                        # 精确匹配
-                "     OR (? != '' AND instr(company, ?) > 0) "
-                "     OR (? != '' AND instr(?, company) > 0)) "
-                "AND (? = '' "                                # list hr_name 空 → 不参与 hr_name 匹配
-                "     OR COALESCE(hr_name, '') = ? "          # 精确匹配
-                "     OR (? != '' AND instr(COALESCE(hr_name, ''), ?) > 0) "
-                "     OR (? != '' AND instr(?, COALESCE(hr_name, '')) > 0))",
-                (
-                    normalize_card_title(v.title),
-                    v.company, v.company, v.company, v.company, v.company, v.company,
-                    v.hr_name or "", v.hr_name or "",
-                    v.hr_name or "", v.hr_name or "",
-                    v.hr_name or "", v.hr_name or "",
-                ),
-            ).fetchone()
-            if _row and _row[0] > 0:
+            # 2026-10-15 修复（公司名跨视图不一致兜底放行死循环） + 2026-10-19 扩展（品牌名 vs 公司全名）：
+            # 列表卡 RecyclerView 懒加载字段常空/截短/品牌化：
+            #   - company 短名 vs detail 全名（如「纵维立方科技」 vs「深圳市纵维立方科技有限公司」）— INSTR 修复
+            #   - company 品牌短名 vs detail 公司全名（如「融和科技」 vs「北京融和友信科技股份有限公司」）— INSTR 双向都不匹配
+            #     （被"友"字打断），需要 bigram 重叠系数（见 `_bigram_overlap`）
+            #   - hr_name 列表卡空 vs detail 有值（如 列表 hr='' / detail hr='张女士'）— hr INSTR 修复
+            # job_visits 写的是详情页字段；COUNT=0 → 误判「未访问」 → 兜底放行 → 同卡死循环评分 ≥10 次
+            # （实测 22 次 send 失败后才发现，浪费 LLM 配额且进度 0）。
+            # 改写：拉所有同 title 候选行，Python 端用 INSTR + bigram 重叠 4-tier 判定 company 是否同一公司，
+            # hr_name 仍走 INSTR（中文姓名无需 bigram）。
+            # 阈值：bigram overlap ≥ 0.66 且 list company 长度 ≥ 3（避免短 brand 误匹配）。
+            _candidates = db_conn.execute(
+                "SELECT company, COALESCE(hr_name, '') FROM job_visits WHERE title = ?",
+                (normalize_card_title(v.title),),
+            ).fetchall()
+            list_co = v.company or ""
+            list_hr = v.hr_name or ""
+            _matched = False
+            for _row_co, _row_hr in _candidates:
+                # ── company 4-tier: 精确 / INSTR (双向) / bigram 重叠 / list 空退化
+                if list_co == "":
+                    _co_ok = True
+                else:
+                    _co_ok = (
+                        _row_co == list_co
+                        or (list_co and list_co in _row_co)
+                        or (_row_co and _row_co in list_co)
+                        or (len(list_co) >= 3
+                            and _bigram_overlap(list_co, _row_co) >= 0.66)
+                    )
+                if not _co_ok:
+                    continue
+                # ── hr_name 3-tier: 精确 / INSTR (双向) / list 空退化
+                if list_hr == "":
+                    _hr_ok = True
+                else:
+                    _hr_ok = (
+                        _row_hr == list_hr
+                        or (list_hr and list_hr in _row_hr)
+                        or (_row_hr and _row_hr in list_hr)
+                    )
+                if not _hr_ok:
+                    continue
+                _matched = True
+                break
+            if _matched:
                 logger.info(
-                    "[find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key=%r, visits=%d)",
-                    v_key, _row[0],
+                    "[find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key=%r, candidates=%d)",
+                    v_key, len(_candidates),
                 )
                 continue
             # job_visits 无记录 → 假命中（key 错配或 visited_keys 外部污染），兜底放行
