@@ -374,6 +374,24 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - **排查顺序**：见到「仍锁屏」且 dumpsys 全空 → **第一动作 `adb devices`**，不是重跑脚本。ping 通 ≠ 目标正确，先验手机当前 WiFi IP 是否与 `config/devices.json` 一致（DHCP 续期会漂移，详见 PROJECTWIKI §8.4.1）
 - **回归测试**：`tests/test_try_auto_unlock_adb_failfast.py` 7 个 case 全部 PASS
 
+### 16. `skill._adb()` 元组 — 必解 bool，丢弃 = 关掉 ADB 感知（2026-10-20 项目级约定）
+- **背景**：`skill._adb(cmd)` 返回 `Tuple[bool, str]`（success + stdout）。`success=False` 通常意味着设备已断或命令未送达
+- **反模式**：`_, out = skill._adb(...)` —— 丢弃 bool，调用方只能用「stdout 空不空」反推状态，但空 stdout 也可能是命令合法返回空（`dumpsys | grep` 无匹配）
+- **正确写法**：
+  ```python
+  ok, out = skill._adb("shell dumpsys ...")
+  if not ok:
+      return False  # 必走 abort，不能 fall through
+  ```
+  或 `skill.adb.is_device_connected(skill.device_id)` 二次复检
+- **项目内已发现 anti-pattern**（待 grep 排查 + 逐项修复）：
+  - `scenarios/boss/scripts/smart_match_greet.py:1333,1334`（已修：commit `3f9d999`）
+  - `skills/android/adb_runner.py:147` —— `get_screen_size()` 静默 fallback 到 (1080, 2400)
+  - `skills/android/android_skill.py:231` —— 同上
+- **Why 是项目级**：任何「屏幕破坏命令」（`input text`/`tap`/`swipe`/`keyevent`）前置的 dumpsys 检查，都必须用 `is_device_connected()` 二次复检——dumpsys 失败时 input 命令可能仍送达但不是打到目标 focus（PIN 误注入），不是绝对失败
+- **排查 grep**：`grep -rn "_, out = " --include="*.py" | grep _adb`
+- **详见**：`PROJECTWIKI.md` §5「项目级代码约定（2026-10-20 起生效）」段
+
 ## 多日 DB 管理
 
 `scenarios/<platform>/output/requirements.db` 累积规则：
