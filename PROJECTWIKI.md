@@ -337,7 +337,7 @@ WHERE title = ?
 
 **PIN 自动解锁（2026-10-10 新增）**：
 
-启动时若设备锁屏（`mDreamingLockscreen=true`），`.env` 设了 `PIXELCLAW_DEVICE_PIN` 即可自动解锁，跳过 120s 手动等待窗口。`_try_auto_unlock(skill)` 见 `smart_match_greet.py:1008-1050`：
+启动时若设备锁屏（`mDreamingLockscreen=true`），`.env` 设了 `PIXELCLAW_DEVICE_PIN` 即可自动解锁，跳过 120s 手动等待窗口。`_try_auto_unlock(skill)` 见 `smart_match_greet.py:1392`：
 
 **Pixel 关键序列（实测）**：
 1. `KEYCODE_WAKEUP` → 屏幕亮（仅 AOD clock）
@@ -347,7 +347,7 @@ WHERE title = ?
 5. `KEYCODE_ENTER` → 提交
 6. 等 3s 系统验证，`mDreamingLockscreen=false` 即成功
 
-**集成顺序修复**（`smart_match_greet.py:1077-1097`）：PIN 配置时**跳过 `skill._wake_screen()`**，直接走 `_try_auto_unlock`。原因是 `_wake_screen()` 内部用 `wm dismiss-keyguard`，会把设备留在「mWakefulness=Awake 但 mDreamingLockscreen=true」的特殊状态，让后续 tap+fast swipe 失效。
+**集成顺序修复**（`smart_match_greet.py:1518`）：PIN 配置时**跳过 `skill._wake_screen()`**，直接走 `_try_auto_unlock`。原因是 `_wake_screen()` 内部用 `wm dismiss-keyguard`，会把设备留在「mWakefulness=Awake 但 mDreamingLockscreen=true」的特殊状态，让后续 tap+fast swipe 失效。
 
 **限制**：
 - 仅支持 4-6 位数字 PIN（不支持图案 / 指纹 / 面部）
@@ -355,6 +355,27 @@ WHERE title = ?
 - `.env` 必须 `chmod 600`（PIN 等价于设备解锁凭证）
 
 **端到端验证**（2026-10-10）：`前端工程师 --max-greet 1` 实跑——`PIN 自动解锁成功 → 打招呼：张总好…`。
+
+**ADB 中途掉线 fail-fast（2026-10-20 新增）**：
+
+`_try_auto_unlock()` 原有 P0 入口检查（`smart_match_greet.py:1432-1445`）只挡「进入即断开」，但 ADB 可能在 5 步解锁**执行途中**掉线（2026-10-19 实测：`run_fde_40_rerun_20261019_180446.log` 5 步全"完成"但 dumpsys 全返空 `||`）。根因是 `_dumpsys_keyguard_state()` 内部用 `_, out = skill._adb(...)` **丢弃 success bool**，返回 `" || "` 拼接两个空字符串 → 调用方完全无法察觉 ADB 已掉 → `mDreamingLockscreen=false` 永不匹配 → 误判「仍锁屏」→ 浪费 12 次重试 × 6 步 = 72 次空命令，且 **4 位 PIN 会被 `input text` 误投递到后台 input focus**。
+
+**修复**：新增 `_check_dumpsys_or_abort(skill, step_label, raw_output)`（`smart_match_greet.py:1340`），接入 `_try_auto_unlock()` 内 5 个 dumpsys 检查点（step 0 / 1 / 2 / 3 / 5）。三档判定：
+
+| 条件 | 行为 | 返回 |
+|---|---|---|
+| dumpsys 输出非空 | 正常放行 | `True` |
+| 输出空 + `is_device_connected()`=False | `logger.error` + 附 `adb devices` 诊断，**立即中止不打 PIN** | `False` |
+| 输出空 + 设备仍 connected | 罕见瞬态（grep pipe race），`logger.warning` 继续 | `True` |
+| `is_device_connected()` 抛异常 | 按「断开」处理（宁可中止也不能把 PIN 打进未知 focus） | `False` |
+
+**开销**：每步 ~50ms `adb devices` 复检，全流程 +250ms，远小于原 60s 手动等待窗口。
+
+**日志标志**：`❌ [step X] dumpsys 返回空 + ADB 设备已断开，中止自动解锁`（可 grep）。
+
+**回归测试**：`tests/test_try_auto_unlock_adb_failfast.py` 7 个用例——中途断开中止（断言 `input text` 未被调用）/ ERROR marker / 瞬态空不误杀 / 健康路径正常走完 5 步 / `is_device_connected` 异常按断开 / 空 PIN 跳过 / 非数字 PIN 跳过。
+
+**遗留**：本次只解决「ADB 掉了要立刻知道」，**不修 ADB 断开的根本原因**（WiFi 睡眠 / DHCP IP 漂移 → 见 §8.4.1）。断线本身由 `_main_with_adb_recovery()` 自动重联兜底（见 §5）。
 
 **CLI 参数**：
 

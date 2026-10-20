@@ -331,7 +331,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
   4. `input text $PIN` → 输入
   5. `KEYCODE_ENTER` → 提交
 - **集成注意**：`skill._wake_screen()`（内部 `wm dismiss-keyguard`）会把设备留在「mWakefulness=Awake 但 mDreamingLockscreen=true」的特殊状态，让后续 tap+fast swipe 失效。所以 PIN 配置时**跳过 `_wake_screen` 直接走 `_try_auto_unlock`**
-- **代码位置**：`smart_match_greet.py:1008-1050`（`_try_auto_unlock`）+ `:1077-1097`（集成顺序修复）
+- **代码位置**：`smart_match_greet.py:1392`（`_try_auto_unlock`）+ `:1518`（集成顺序修复）
 - **log 标志**：
   - `尝试用 PIN 自动解锁（N 位）` info → 开始解锁
   - `✓ PIN 自动解锁成功` info → 解锁成功
@@ -358,6 +358,21 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - **回归测试**：`tests/test_find_next_job_company_mismatch.py` 6 个 case 全部 PASS（list == detail / list 是 detail 子串 / 完全无关 / list 空 company / list 空 hr_name / list 全空 + detail 全填）
 - **log 标志**：`[find_next]   ↳ OK: visited_keys命中但job_visits无记录，兜底放行` 反复出现 ≥3 次同卡 = 触发；若 v_key 中 `company=''` 或 `hr_name=''` 字段为空，**几乎一定是该 bug**
 - **预防**：今后写 `_record_visit` 字段时考虑与 `_find_next_job` 查询一致；若列表/详情字段形态不固定（短/长/带前缀/空），查询侧必须用子串匹配，不能写 `=`
+
+### 15. `ADB 中途掉线 + 仍锁屏` → fail-fast 早检（2026-10-20 加）
+- **症状**：run log 5 步解锁全部「完成」，但每个 step 的 dumpsys 状态都是空（连续 5 行 `状态:  ||`），最终 `✗ 仍锁屏 → 手机锁屏未解，无法启动`
+- **实测证据**：`run_fde_40_rerun_20261019_180446.log`（18:04:57-18:05:06）——step 0/1/2/3/5 的 dumpsys 全空，PIN 照打照发
+- **根因**：`_dumpsys_keyguard_state()` 用 `_, out = skill._adb(...)` **丢弃 success bool**，返回 `" || "` 拼接两个空串 → 调用方无法察觉 ADB 已掉；P0 入口检查（`_run_loop` 头部）只挡「进入即断开」，挡不住「执行途中掉线」
+- **真实风险**：`input text 4892` 被投递到**未知的后台 input focus**（不是 PIN pad）——安全泄露 + 功能失效双重问题；另浪费 12 次重试 × 6 步 = 72 次空 ADB 命令
+- **修复**（`_check_dumpsys_or_abort`，`smart_match_greet.py:1340`）：5 个 dumpsys 检查点（step 0/1/2/3/5）接入三档判定：
+  - 输出非空 → 放行
+  - 输出空 + `is_device_connected()`=False → `logger.error` + **立即中止不打 PIN**
+  - 输出空 + 设备仍连 → 罕见瞬态（grep pipe race），`logger.warning` 继续（不误杀成功路径）
+  - `is_device_connected()` 抛异常（adb server 挂掉）→ 按断开处理
+- **log 标志**：`❌ [step X] dumpsys 返回空 + ADB 设备已断开，中止自动解锁`（可 grep）
+- **修复后行为**：中途掉线 → step 0/1/2 内秒级中止，不再空打 PIN；正常路径不变（+250ms）
+- **排查顺序**：见到「仍锁屏」且 dumpsys 全空 → **第一动作 `adb devices`**，不是重跑脚本。ping 通 ≠ 目标正确，先验手机当前 WiFi IP 是否与 `config/devices.json` 一致（DHCP 续期会漂移，详见 PROJECTWIKI §8.4.1）
+- **回归测试**：`tests/test_try_auto_unlock_adb_failfast.py` 7 个 case 全部 PASS
 
 ## 多日 DB 管理
 

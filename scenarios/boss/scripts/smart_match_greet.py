@@ -1337,6 +1337,58 @@ def _dumpsys_keyguard_state(skill) -> str:
         return f"<dumpsys failed: {e}>"
 
 
+def _check_dumpsys_or_abort(skill, step_label: str, raw_output: str) -> bool:
+    """dumpsys 输出非空且 ADB 仍连接才放行。返 False 时 caller 必须中止。
+
+    Why: P0 入口检查 (live_greet_loop:1432-1445) 只挡"进入即断开"，但 ADB 可能在
+    _try_auto_unlock 5 步执行途中掉线（2026-10-19 run_fde_40_rerun 实测）。
+    _dumpsys_keyguard_state() 内部用 `_, out = skill._adb(...)` 丢弃 success bool，
+    返回 " || " 拼接两个空字符串 → caller 完全无法察觉 ADB 已掉。
+
+    判定策略：
+      1. raw_output 非空（正常情况）→ 放行，返 True
+      2. raw_output 为空 + is_device_connected()=False → 中途掉线：
+         logger.error 附 step_label + adb devices 输出，返 False
+      3. raw_output 为空 + 设备仍 connected → 罕见瞬态空（grep pipe race），
+         logger.warning 继续（不 false-positive 中断成功路径）
+
+    Args:
+        skill: BOSSAutomationSkill 实例
+        step_label: 当前 step 标签（用于 log 排查，如 "0" / "1" / "3" / "5"）
+        raw_output: dumpsys 调用的 std 输出（可能为空字符串）
+
+    Returns:
+        bool: True=可继续；False=ADB 已断开，caller 必须中止并返 False
+    """
+    if raw_output.strip():
+        return True
+    # is_device_connected 在 adb server 挂掉时会抛异常而非返 False；
+    # 捕获后按「断开」处理——宁可中止也不能把 PIN 打进未知 focus。
+    try:
+        connected = skill.adb.is_device_connected(skill.device_id)
+    except Exception as e:
+        logger.error(
+            "❌ [step %s] is_device_connected 调用异常（按断开处理）: %s", step_label, e
+        )
+        return False
+    if not connected:
+        logger.error(
+            "❌ [step %s] dumpsys 返回空 + ADB 设备已断开，中止自动解锁",
+            step_label,
+        )
+        try:
+            _, devs = skill._adb("devices")  # 诊断用
+        except Exception:
+            devs = ""
+        logger.error("    当前 adb devices: %s", devs.strip() or "<empty>")
+        return False
+    logger.warning(
+        "⚠️  [step %s] dumpsys 返回空但 ADB 仍连接（疑似瞬态），继续",
+        step_label,
+    )
+    return True
+
+
 def _try_auto_unlock(skill) -> bool:
     """Auto-unlock via PIN from PIXELCLAW_DEVICE_PIN env var.
 
@@ -1367,20 +1419,31 @@ def _try_auto_unlock(skill) -> bool:
         )
         return False
     logger.info("  尝试用 PIN 自动解锁（%d 位）", len(pin))
-    logger.info("    [step 0] 解锁前状态: %s", _dumpsys_keyguard_state(skill))
+    state_before = _dumpsys_keyguard_state(skill)
+    if not _check_dumpsys_or_abort(skill, "0", state_before.split(" || ")[0]):
+        return False  # ADB 中途断开：不打 PIN，立即中止
+    logger.info("    [step 0] 解锁前状态: %s", state_before)
     # Step 1: wake screen
     skill._adb("shell input keyevent KEYCODE_WAKEUP")
     time.sleep(1.0)
-    logger.info("    [step 1] WAKEUP 已发, 状态: %s", _dumpsys_keyguard_state(skill))
+    state_after_wakeup = _dumpsys_keyguard_state(skill)
+    if not _check_dumpsys_or_abort(skill, "1", state_after_wakeup.split(" || ")[0]):
+        return False
+    logger.info("    [step 1] WAKEUP 已发, 状态: %s", state_after_wakeup)
     # Step 2: tap to focus keyguard
     skill._adb("shell input tap 540 1200")
     time.sleep(0.8)
-    logger.info("    [step 2] tap(540,1200) 完成, 状态: %s", _dumpsys_keyguard_state(skill))
+    state_after_tap = _dumpsys_keyguard_state(skill)
+    if not _check_dumpsys_or_abort(skill, "2", state_after_tap.split(" || ")[0]):
+        return False
+    logger.info("    [step 2] tap(540,1200) 完成, 状态: %s", state_after_tap)
     # Step 3: fast swipe to reveal PIN pad
     skill._adb("shell input swipe 540 2400 540 200 30")
     time.sleep(1.5)
     # 验证：PIN pad 是否弹出？通过 dumpsys window 看 mFocusedApp 是否切换到 keyguard PIN 输入界面
     _, cur_focus_raw = skill._adb("shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2")
+    if not _check_dumpsys_or_abort(skill, "3", cur_focus_raw):
+        return False
     cur_focus = cur_focus_raw.strip().replace("\n", " | ")
     logger.info("    [step 3] swipe 完成, 当前焦点: %s", cur_focus)
     # Step 4: input PIN
@@ -1392,6 +1455,8 @@ def _try_auto_unlock(skill) -> bool:
     time.sleep(3.0)
     # 验证：mDreamingLockscreen=false 才算真解锁
     post_state = _dumpsys_keyguard_state(skill)
+    if not _check_dumpsys_or_abort(skill, "5", post_state.split(" || ")[0]):
+        return False
     is_unlocked = "mDreamingLockscreen=false" in post_state or "mDreamingLockscreen=Doze" in post_state
     logger.info("    [step 5] ENTER 已发, 解锁后: %s → %s",
                 post_state, "✓ 已解锁" if is_unlocked else "✗ 仍锁屏")
