@@ -1,0 +1,1910 @@
+16:44:58 INFO    [1/2] 启动 Boss直聘…
+16:45:18 INFO    [2/2] 搜索职位：「FDE」…
+16:45:51 [SKILL] INFO    [browse_jobs] 搜索未出结果，点击恢复按钮重试
+16:46:02 INFO      今日已发送 0 条招呼
+16:46:09 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=0）
+16:46:09 INFO    [find_next]   屏幕卡 y=761  'AI解决方案工程师（FDE / 智能体交付方向）'  /  '进化涌现'  /  hr='刘子容'
+16:46:09 INFO    [find_next]   屏幕卡 y=1342  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:46:09 INFO    [find_next]   屏幕卡 y=1922  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:46:09 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=761)
+16:46:09 INFO      [visited_keys] + 精确 key: title='AI解决方案工程师（FDE / 智能体交付方向）', company='进化涌现', hr_name='刘子容' → key='AI解决方案工程师（FDE / 智能体交付方向）\t进化涌现\t刘子容' (size=1)
+16:46:17 INFO      [1] → AI解决方案工程师（FDE / 智能体交付方向）（进化涌现）
+16:46:17 [SKILL] INFO    [navigate_to_job] → AI解决方案工程师（FDE / 智能体交付方向） @ (409, 761)
+16:46:18 [SKILL] INFO    [navigate_to_job] ← 成功
+16:47:09 INFO      分数 9/10  ['JD要求「参与企业AI应用开发，搭建知识库、RAG应用、业务智能体、Skill及自动化工作流」→ 候选人「自研 Agent OS 三层产品 + 三类业务节点编排 + 统一 AI 网关，主导能碳平台 3 个月 4 人从 0 到 1 上线」', 'JD要求「使用Python完成模型调用、API集成、工具调用及必要后端服务开发」→ 候选人「Python栈完整（FastAPI/SQLAlchemy/Celery），LifeOS/AILMA 基于 FastAPI+MCP 构建，发布 sleepless-agent 于 PyPI」', 'JD要求「使用过 n8n/理解实现逻辑」→ 候选人「上海与你信息科技搭建 n8n 自动化流处理海外调研数据，效率提升 70%」', 'JD要求「To B 软件开发、系统集成、技术实施或客户项目交付经验」→ 候选人「2 年 To B 工业 SaaS（EHS/能碳）核心实战，多租户架构 0 代码差异化为多客户复配」']
+16:47:09 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=7
+16:47:09 INFO      差距：['未在简历中体现专业的 Java/Go 后端生产系统或高并发分布式深度，但 JD 未做硬性要求，AI 应用开发以轻量级 Python 栈为主，候选人栈吻合', '岗位强调 70% 技术开发，候选人产品/设计/售前属性偏重，但 Vibe Coding 全栈实战与多个开源代码项目证明具备独立动手能力']
+16:47:09 INFO      ✓ 达标！打招呼：刘总好，看到进化涌现这个 FDE 岗位要做 RAG/Agent/工作流的企业级落地，我过去两年做的就是 FDE 单兵闭环…
+16:47:31 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:47:44 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:47:49 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:47:52 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：刘总好，看到进化涌现这个 FDE 岗位要
+16:47:52 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:47:52 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:47:56 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:47:56 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:48:00 INFO      ✓ 打招呼成功 — 刘总好，看到进化涌现这个 FDE 岗位要做 RAG/Agent/工作流的企业级落
+16:48:26 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=2）
+16:48:26 INFO    [find_next]   屏幕卡 y=761  'AI解决方案工程师（FDE / 智能体交付方向）'  /  '进化涌现'  /  hr='刘子容'
+16:48:26 INFO    [find_next]   屏幕卡 y=1342  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:48:26 INFO    [find_next]   屏幕卡 y=1922  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:48:26 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI解决方案工程师（FDE / 智能体交付方向）\t进化涌现\t刘子容', visits=1)
+16:48:26 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1342)
+16:48:26 INFO      [visited_keys] + 精确 key: title='AI FDE (Forward Deployed Engineer) &@ ', company='NIO蔚来', hr_name='付彩秀' → key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t付彩秀' (size=3)
+16:48:38 INFO      [2] → AI FDE (Forward Deployed Engineer) &@ （NIO蔚来）
+16:48:38 [SKILL] INFO    [navigate_to_job] → AI FDE (Forward Deployed Engineer) &@  @ (406, 1342)
+16:48:39 [SKILL] INFO    [navigate_to_job] ← 成功
+16:49:25 INFO      分数 9/10  ['JD要求「主导Agent设计与开发（架构、记忆、工具API、工作流编排、人机协同）」→ 候选人「设计Agent OS三层产品形态（控制台/协作/台账）+ 三类业务节点编排模型（AI自动/人工介入/规则联锁）+ 统一AI网关」', 'JD要求「FDE客户侧交付+To B经验+从0到1重构业务」→ 候选人「现岗位即为产品(FDE)，2年ToB工业SaaS，主导多租户0代码差异化复配，独立完成蓝图设计与售前演示」', "JD要求「业务诉求拆解+技术路径选择+Python+AI落地」→ 候选人「以Python/FastAPI为主栈，主导能碳/EHS从0到1闭环3个月上线，抽象'流程节点+表单+报告'三位一体架构解决异构业务」"]
+16:49:25 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=8
+16:49:25 INFO      差距：['车控软件研发为新垂直领域，候选人无直接汽车/智能驾驶业务经验，但具备跨域快速解构能力（建筑→EHS→能碳→医疗），且已有间接行业交付经验', '后端工程深度以Python/FastAPI轻量级服务为主，与传统Java/Go大规模分布式系统有差距，但JD核心导向AI+业务重构而非工程深度']
+16:49:25 INFO      ✓ 达标！打招呼：付总好，看到你们要重构车控研发的Agent工作流与业务瓶颈识别，我过去主导Agent OS三层架构+统一AI网关，从0-…
+16:49:43 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:49:51 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:49:54 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:49:57 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：付总好，看到你们要重构车控研发的Agen
+16:49:57 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:49:57 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:49:59 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:49:59 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:50:02 INFO      ✓ 打招呼成功 — 付总好，看到你们要重构车控研发的Agent工作流与业务瓶颈识别，我过去主导Age
+16:50:23 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=4）
+16:50:23 INFO    [find_next]   屏幕卡 y=761  'AI解决方案工程师（FDE / 智能体交付方向）'  /  '进化涌现'  /  hr='刘子容'
+16:50:23 INFO    [find_next]   屏幕卡 y=1342  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:50:23 INFO    [find_next]   屏幕卡 y=1922  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:50:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI解决方案工程师（FDE / 智能体交付方向）\t进化涌现\t刘子容', visits=1)
+16:50:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t付彩秀', visits=1)
+16:50:23 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1922)
+16:50:23 INFO      [visited_keys] + 精确 key: title='FDE前沿部署工程师（上海）-金融行业', company='上海嘉驰信息技术咨询', hr_name='郭女士' → key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士' (size=5)
+16:50:24 INFO      [3] → FDE前沿部署工程师（上海）-金融行业（上海嘉驰信息技术咨询）
+16:50:24 [SKILL] INFO    [navigate_to_job] → FDE前沿部署工程师（上海）-金融行业 @ (451, 1922)
+16:50:25 [SKILL] INFO    [navigate_to_job] ← 成功
+16:51:04 INFO      分数 8/10  ["JD要求「深入客户现场识别智能体落地场景+蓝图设计+方案交付」→ 候选人FDE模式主导能碳/医疗仪器/安管多客户0-1落地，'售前阶段深挖客户真实诉求+蓝图设计期打磨方案边界'", 'JD要求「Agent工作流编排+Skill/工具调用+系统连接器」→ 候选人自研Agent OS三层产品形态（流程中心控制台/Agents协作/工作台账）+ 统一AI网关+MCP协议集成+Task Routing/Fallback机制', "JD要求「将客户需求抽象为通用产品能力，支持规模化复制」→ 候选人'1套平台基座+N个客户复配'模式，0代码改动复配多租户，沉淀流程节点/表单/报告三位一体正交架构"]
+16:51:04 INFO      维度分：role_fit=9 | skill_match=7 | ai_native=9 | growth_fit=9 | basic_fit=8
+16:51:04 INFO      差距：['金融行业垂直经验空白，但属软性优先项且EHS/能碳等多行业交付经验可迁移', "后端工程深度偏轻量级（FastAPI/Supabase），无Java/Go生产级高并发系统经验，对JD 'Python/Java/Go至少一种'仅勉强覆盖Python项"]
+16:51:04 INFO      ✓ 达标！打招呼：郭总好，看到你们要深入金融客户现场做智能体场景蓝图与交付，我日常就是跨职能统筹+FDE模式落Agent方案，主导过Age…
+16:51:21 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:51:29 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:51:32 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:51:35 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：郭总好，看到你们要深入金融客户现场做智能
+16:51:35 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:51:35 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:51:37 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:51:37 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:51:40 INFO      ✓ 打招呼成功 — 郭总好，看到你们要深入金融客户现场做智能体场景蓝图与交付，我日常就是跨职能统筹+
+16:52:02 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=6）
+16:52:02 INFO    [find_next]   屏幕卡 y=761  'AI解决方案工程师（FDE / 智能体交付方向）'  /  '进化涌现'  /  hr='刘子容'
+16:52:02 INFO    [find_next]   屏幕卡 y=1342  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:52:02 INFO    [find_next]   屏幕卡 y=1922  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:52:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI解决方案工程师（FDE / 智能体交付方向）\t进化涌现\t刘子容', visits=1)
+16:52:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t付彩秀', visits=1)
+16:52:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士', visits=1)
+16:52:05 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+16:52:15 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=6）
+16:52:15 INFO    [find_next]   屏幕卡 y=811  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:52:15 INFO    [find_next]   屏幕卡 y=1391  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:52:15 INFO    [find_next]   屏幕卡 y=1946  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:52:15 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t付彩秀', visits=1)
+16:52:15 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士', visits=1)
+16:52:15 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1946)
+16:52:15 INFO      [visited_keys] + 精确 key: title='FDE工程师（前线部署）（上海）', company='上海城建数字产业', hr_name='徐志同' → key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同' (size=7)
+16:52:15 INFO      [4] → FDE工程师（前线部署）（上海）（上海城建数字产业）
+16:52:15 [SKILL] INFO    [navigate_to_job] → FDE工程师（前线部署）（上海） @ (398, 1946)
+16:52:16 [SKILL] INFO    [navigate_to_job] ← 成功
+16:52:56 INFO      分数 9/10  ["JD要求「FDE模式探索与实践，深入业务一线」→ 候选人当前岗位即为FDE，主导'1套平台基座+N客户复配'杠杆率模式，独立承担PM+交互设计+AI售前+蓝图规划", "JD要求「熟练使用AI Coding等AI原生开发工具」→ 候选人'手动运用Figma搭建Design System，并结合Vibe Coding构建可运行Demo'，日常Vibe Coding+Claude SDK+GitHub Actions深度使用", 'JD要求「API/MCP/数据库集成与智能体落地」→ 候选人自研Agent OS三层产品形态+统一AI网关（权限管控/自动操作路由/实时流式输出）+MCP Protocol协议集成实战']
+16:52:56 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=9
+16:52:56 INFO      差距：["候选人后端深度为FastAPI/Supabase轻量级栈，无Java/Spring/Go高并发生产系统经验，若JD对工程深度有较高要求需注意；但JD第3条强调'能够根据项目需要独立完成'且明确接受全栈灵活岗，候选人单兵闭环能力可覆盖", '候选人工作年限约2年（高密度0-1交付），JD写3年以上研发经验——按指引年限不作为扣分项，候选人任期密度等价于常规5年PM']
+16:52:56 INFO      ✓ 达标！打招呼：徐总好，看到你们要落地FDE模式做智能体集成与AI Coding交付，我日常就是产品+设计+全栈单兵闭环，Vibe Co…
+16:53:14 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:53:23 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:53:26 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:53:29 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：徐总好，看到你们要落地FDE模式做智能体
+16:53:29 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:53:29 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:53:32 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:53:32 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:53:35 INFO      ✓ 打招呼成功 — 徐总好，看到你们要落地FDE模式做智能体集成与AI Coding交付，我日常就是
+16:53:58 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=8）
+16:53:58 INFO    [find_next]   屏幕卡 y=811  'AI FDE (Forward Deployed Engineer) &@ '  /  'NIO蔚来'  /  hr='付彩秀'
+16:53:58 INFO    [find_next]   屏幕卡 y=1391  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:53:58 INFO    [find_next]   屏幕卡 y=1946  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t付彩秀', visits=1)
+16:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士', visits=1)
+16:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同', visits=1)
+16:54:01 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+16:54:11 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=8）
+16:54:11 INFO    [find_next]   屏幕卡 y=857  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:54:11 INFO    [find_next]   屏幕卡 y=1412  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:54:11 INFO    [find_next]   屏幕卡 y=1933  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:54:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士', visits=1)
+16:54:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同', visits=1)
+16:54:11 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1933)
+16:54:11 INFO      [visited_keys] + 精确 key: title='FDE前沿部署工程师-上海 &@ ', company='Datablau', hr_name='朱金宝' → key='FDE前沿部署工程师-上海\tDatablau\t朱金宝' (size=9)
+16:54:12 INFO      [5] → FDE前沿部署工程师-上海 &@ （Datablau）
+16:54:12 [SKILL] INFO    [navigate_to_job] → FDE前沿部署工程师-上海 &@  @ (357, 1933)
+16:54:12 [SKILL] INFO    [navigate_to_job] ← 成功
+16:54:46 INFO      分数 9/10  ['JD要求「深入客户现场理解业务需求并设计AI解决方案进行沟通汇报」→ 候选人作为团队唯一产品/设计/售前角色，独立主导 EHS/能碳/医疗仪器 0-1 蓝图设计与售前演示，行业深创赛第二名', 'JD要求「AI应用开发与交付（Python+AI coding+RAG/Agent开发+应用集成）」→ 候选人 Python/FastAPI + Vibe Coding 全栈（React/TS）+ Agent OS 三层产品化 + MCP 协议 + Claude Agent SDK，能碳平台 3 月 4 人 0-1 上线', 'JD要求「超级个体可独立工作并适应出差」→ 候选人 FDE 模式产品+设计+前端+售前单兵闭环，主导 1+N 多租户复配 8+ 客户并发交付']
+16:54:46 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=9 | growth_fit=9 | basic_fit=9
+16:54:46 INFO      差距：['无明显短板']
+16:54:46 INFO      ✓ 达标！打招呼：朱总好，看到你们要 FDE 深入客户现场主导 AI 方案设计与汇报，我过去两年正是这种 FDE 模式——产品+设计+前端…
+16:55:03 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:55:12 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:55:15 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:55:18 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：朱总好，看到你们要 FDE 深入客户现场
+16:55:18 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:55:18 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:55:20 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:55:20 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:55:23 INFO      ✓ 打招呼成功 — 朱总好，看到你们要 FDE 深入客户现场主导 AI 方案设计与汇报，我过去两年正
+16:55:45 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=10）
+16:55:45 INFO    [find_next]   屏幕卡 y=857  'FDE前沿部署工程师（上海）-金融行业'  /  '上海嘉驰信息技术咨询'  /  hr='郭女士'
+16:55:45 INFO    [find_next]   屏幕卡 y=1412  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:55:45 INFO    [find_next]   屏幕卡 y=1933  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:55:45 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师（上海）-金融行业\t上海嘉驰信息技术咨询\t郭女士', visits=1)
+16:55:45 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同', visits=1)
+16:55:45 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师-上海\tDatablau\t朱金宝', visits=1)
+16:55:48 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+16:55:58 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=10）
+16:55:58 INFO    [find_next]   屏幕卡 y=879  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:55:58 INFO    [find_next]   屏幕卡 y=1400  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:55:58 INFO    [find_next]   屏幕卡 y=1921  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+16:55:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同', visits=1)
+16:55:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师-上海\tDatablau\t朱金宝', visits=1)
+16:55:58 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1921)
+16:55:58 INFO      [visited_keys] + 精确 key: title='UX设计师（WILL实验室）', company='宽德投资', hr_name='卢女士' → key='UX设计师（WILL实验室）\t宽德投资\t卢女士' (size=11)
+16:55:59 INFO      [6] → UX设计师（WILL实验室）（宽德投资）
+16:55:59 [SKILL] INFO    [navigate_to_job] → UX设计师（WILL实验室） @ (334, 1921)
+16:55:59 [SKILL] INFO    [navigate_to_job] ← 成功
+16:56:34 INFO      分数 7/10  ['JD要求「AI产品交互反馈机制与异常处理」→ 候选人「设计 Agent OS 三层产品形态 + 统一 AI 网关 + 云端/本地/OCR三级智能降级路由」', 'JD要求「维护产品设计规范及组件库」→ 候选人「手动运用 Figma 自研含 42 个 Token 的高保真原子组件企业级 Design System」', 'JD要求「快速产出可交互原型配合 PM 完成用户测试」→ 候选人「结合 Vibe Coding 跑通可运行高保真 Demo，覆盖 47+ 核心业务路由直连售前演示」']
+16:56:34 INFO      维度分：role_fit=6 | skill_match=7 | ai_native=8 | growth_fit=8 | basic_fit=7
+16:56:34 INFO      差距：['JD要求 3 年以上互联网产品 UX 设计专职经验，候选人是 FDE 型 PM 兼 UX，非专职设计师 title', 'JD要求设计类相关专业，候选人为建筑学背景（具备系统化空间思维与审美），非传统 UX/视觉传达科班', 'JD要求附作品集，候选人简历未列出 UX 作品集作品链接', '宽德投资为量化私募背景，候选人过往为工业 SaaS / 能碳 / EHS / 智能穿戴，无金融行业直接经验']
+16:56:34 INFO      ✓ 达标！打招呼：卢总好，看到你们要为 WILL 实验室做 AI 产品的反馈与异常处理机制设计，我日常用 Figma 搭企业级 Desig…
+16:56:51 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:56:59 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:57:02 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:57:04 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：卢总好，看到你们要为 WILL 实验室做
+16:57:04 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:57:04 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:57:07 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:57:07 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:57:10 INFO      ✓ 打招呼成功 — 卢总好，看到你们要为 WILL 实验室做 AI 产品的反馈与异常处理机制设计，我
+16:57:34 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=12）
+16:57:34 INFO    [find_next]   屏幕卡 y=879  'FDE工程师（前线部署）（上海）'  /  '上海城建数字产业'  /  hr='徐志同'
+16:57:34 INFO    [find_next]   屏幕卡 y=1400  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:57:34 INFO    [find_next]   屏幕卡 y=1921  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+16:57:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（前线部署）（上海）\t上海城建数字产业\t徐志同', visits=1)
+16:57:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师-上海\tDatablau\t朱金宝', visits=1)
+16:57:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='UX设计师（WILL实验室）\t宽德投资\t卢女士', visits=1)
+16:57:38 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+16:57:50 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=12）
+16:57:50 INFO    [find_next]   屏幕卡 y=865  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:57:50 INFO    [find_next]   屏幕卡 y=1386  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+16:57:50 INFO    [find_next]   屏幕卡 y=1936  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+16:57:50 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师-上海\tDatablau\t朱金宝', visits=1)
+16:57:50 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='UX设计师（WILL实验室）\t宽德投资\t卢女士', visits=1)
+16:57:50 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1936)
+16:57:50 INFO      [visited_keys] + 精确 key: title='DuMate智能体前沿部署工程师FDE(J105691)', company='百度在线', hr_name='郑东辉' → key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉' (size=13)
+16:57:54 INFO      [7] → DuMate智能体前沿部署工程师FDE(J105691)（百度在线）
+16:57:54 [SKILL] INFO    [navigate_to_job] → DuMate智能体前沿部署工程师FDE(J105691) @ (406, 1936)
+16:57:54 [SKILL] INFO    [navigate_to_job] ← 成功
+16:58:44 INFO      分数 8/10  ['JD要求「深入客户现场理解业务流程并识别Agent落地高价值场景」→ 候选人「作为团队唯一FDE独立主导能碳/EHS/医疗仪器等多垂直领域0-1蓝图规划，深挖客户真实诉求并完成场景识别」', 'JD要求「Agent工作流编排、Skill开发、知识库建设、工具调用与连接器开发」→ 候选人「自研Agent OS三层产品形态（流程中心控制台/Agents协作/工作台账）+统一AI网关（权限管控+自动操作路由+流式输出）+42 Token高保真原子组件」', 'JD要求「客户现场主动推进、跨团队协作与效果闭环交付」→ 候选人「能碳管理3个月主导1前端+3后端从0到1闭环UAT验收上线，棱镜泰克独立完成47+核心路由蓝图并通过精细WBS缩减240h风险」']
+16:58:44 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=8 | growth_fit=8 | basic_fit=8
+16:58:44 INFO      差距：['Java/Go生产级后端深度未在简历中体现，DuMate平台私有化部署与算力/安全工程化适配需快速补齐', '候选人后端以Python FastAPI/Supabase轻量服务为主，与JD隐含的企业级Java/Go集成栈存在软性差距']
+16:58:44 INFO      大厂加权「百度」×1.12 → 分数 8→9
+16:58:44 INFO      ✓ 达标！打招呼：郑总好，看到你们基于 DuMate 做客户现场 Agent 场景落地与连接器集成，我日常就是产品+设计+前端单兵闭环，主…
+16:59:04 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+16:59:14 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+16:59:19 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+16:59:22 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：郑总好，看到你们基于 DuMate 做客
+16:59:22 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+16:59:22 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+16:59:25 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+16:59:25 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+16:59:29 INFO      ✓ 打招呼成功 — 郑总好，看到你们基于 DuMate 做客户现场 Agent 场景落地与连接器集成
+16:59:55 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=14）
+16:59:55 INFO    [find_next]   屏幕卡 y=865  'FDE前沿部署工程师-上海 &@ '  /  'Datablau'  /  hr='朱金宝'
+16:59:55 INFO    [find_next]   屏幕卡 y=1386  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+16:59:55 INFO    [find_next]   屏幕卡 y=1936  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+16:59:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师-上海\tDatablau\t朱金宝', visits=1)
+16:59:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='UX设计师（WILL实验室）\t宽德投资\t卢女士', visits=1)
+16:59:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉', visits=1)
+17:00:00 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:00:12 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=14）
+17:00:12 INFO    [find_next]   屏幕卡 y=846  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+17:00:12 INFO    [find_next]   屏幕卡 y=1396  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+17:00:12 INFO    [find_next]   屏幕卡 y=1945  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:00:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='UX设计师（WILL实验室）\t宽德投资\t卢女士', visits=1)
+17:00:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉', visits=1)
+17:00:12 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1945)
+17:00:12 INFO      [visited_keys] + 精确 key: title='大客户FDE（营销侧）', company='上海星际章鱼智能科技', hr_name='李文静' → key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静' (size=15)
+17:00:15 INFO      [8] → 大客户FDE（营销侧）（上海星际章鱼智能科技）
+17:00:15 [SKILL] INFO    [navigate_to_job] → 大客户FDE（营销侧） @ (292, 1945)
+17:00:16 [SKILL] INFO    [navigate_to_job] ← 成功
+17:00:58 INFO      分数 9/10  ['JD要求「售前方案设计+独立输出行业解决方案不需依赖研发」→ 候选人FDE核心工作即「售前蓝图设计+作为团队唯一产品/设计/售前角色独立完成蓝图+WBS边界管理」', 'JD要求「AI工具系统性使用+Vibe Coding快速搭Demo」→ 候选人Vibe Coding搭高保真Demo驱动前端联调+后端部署+售前演示，Prism AI 47+核心路由Demo独立完成', 'JD要求「大客户经营+分层汇报+售前-交付衔接」→ 候选人代表公司参加行业赛事获第二名+多租户多客户复配+当前即承担售前+交付一体化角色']
+17:00:58 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=9
+17:00:58 INFO      差距：['候选人偏FDE交付落地型，BD主导签约/商务谈判权重低于纯售前岗，需在面试中确认是否承担商务KPI', 'JD列出「制造/零售/生命科学/IT服务」明确行业，候选人EHS工业SaaS可对位制造业但非完全直接命中，跨界迁移需磨合']
+17:00:58 INFO      ✓ 达标！打招呼：李总好，看到贵司在招能用AI工具快速搭Demo主导POC的大客户FDE，我日常即靠Vibe Coding独立跑通高保真D…
+17:01:21 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:01:30 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:01:36 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:01:38 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：李总好，看到贵司在招能用AI工具快速搭D
+17:01:38 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:01:38 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:01:43 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:01:43 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:01:46 INFO      ✓ 打招呼成功 — 李总好，看到贵司在招能用AI工具快速搭Demo主导POC的大客户FDE，我日常即
+17:02:11 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=16）
+17:02:11 INFO    [find_next]   屏幕卡 y=846  'UX设计师（WILL实验室）'  /  '宽德投资'  /  hr='卢女士'
+17:02:11 INFO    [find_next]   屏幕卡 y=1396  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+17:02:11 INFO    [find_next]   屏幕卡 y=1945  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:02:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='UX设计师（WILL实验室）\t宽德投资\t卢女士', visits=1)
+17:02:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉', visits=1)
+17:02:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静', visits=1)
+17:02:15 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:02:27 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=16）
+17:02:27 INFO    [find_next]   屏幕卡 y=862  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+17:02:27 INFO    [find_next]   屏幕卡 y=1411  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:02:27 INFO    [find_next]   屏幕卡 y=1968  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:02:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉', visits=1)
+17:02:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静', visits=1)
+17:02:27 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1968)
+17:02:27 INFO      [visited_keys] + 精确 key: title='FDE现场部署工程师（财法税方向Agent开发）', company='字节跳动', hr_name='寇女士' → key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士' (size=17)
+17:02:29 INFO      [9] → FDE现场部署工程师（财法税方向Agent开发）（字节跳动）
+17:02:29 [SKILL] INFO    [navigate_to_job] → FDE现场部署工程师（财法税方向Agent开发） @ (451, 1968)
+17:02:30 [SKILL] INFO    [navigate_to_job] ← 成功
+17:03:16 INFO      分数 8/10  ['JD要求「FDE现场部署+深入客户场景快速开发AI Agent原型」→ 候选人「未来方舟FDE主导能碳3月4人0-1+医疗仪器Prism AI全栈蓝图+多租户0代码复配」', 'JD要求「Vibe Coding充分应用+AI辅助开发连接客户API」→ 候选人「通篇Vibe Coding构建高保真Demo直连后端，自研统一AI网关调取后端接口」', 'JD要求「Agent开发经验+AI应用落地」→ 候选人「设计Agent OS三层产品形态+Task Routing/Fallback调优+Claude Agent SDK/MCP协议集成」']
+17:03:16 INFO      维度分：role_fit=9 | skill_match=7 | ai_native=10 | growth_fit=8 | basic_fit=8
+17:03:16 INFO      差距：['候选人后端偏轻量（FastAPI/Supabase）非大规模云服务生产体系，评估管道与可观测性框架未直接覆盖', '财法税方向无直接行业经验，需短时间补齐该垂直领域业务理解']
+17:03:16 INFO      大厂加权「字节」×1.15 → 分数 8→9
+17:03:16 INFO      ✓ 达标！打招呼：寇总好，看到字节FDE要在客户现场快速搭AI Agent原型并推进生产部署，我这边日常就是产品+设计+前端单兵闭环，主导…
+17:03:35 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:03:44 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:03:47 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:03:50 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：寇总好，看到字节FDE要在客户现场快速搭
+17:03:50 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:03:50 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:03:53 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:03:53 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:03:56 INFO      ✓ 打招呼成功 — 寇总好，看到字节FDE要在客户现场快速搭AI Agent原型并推进生产部署，我这
+17:04:19 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=18）
+17:04:19 INFO    [find_next]   屏幕卡 y=862  'DuMate智能体前沿部署工程师FDE(J105691)'  /  '百度在线'  /  hr='郑东辉'
+17:04:19 INFO    [find_next]   屏幕卡 y=1411  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:04:19 INFO    [find_next]   屏幕卡 y=1968  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:04:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='DuMate智能体前沿部署工程师FDE(J105691)\t百度在线\t郑东辉', visits=1)
+17:04:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静', visits=1)
+17:04:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士', visits=1)
+17:04:22 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:04:32 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=18）
+17:04:32 INFO    [find_next]   屏幕卡 y=879  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:04:32 INFO    [find_next]   屏幕卡 y=1436  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:04:32 INFO    [find_next]   屏幕卡 y=2026  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr=''
+17:04:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静', visits=1)
+17:04:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士', visits=1)
+17:04:32 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2026)
+17:04:32 INFO      [visited_keys] + 精确 key: title='MaaS解决方案架构师-政企方向-上海', company='阿里云', hr_name='' → key='MaaS解决方案架构师-政企方向-上海\t阿里云\t' (size=19)
+17:04:34 INFO      [10] → MaaS解决方案架构师-政企方向-上海（阿里云）
+17:04:34 [SKILL] INFO    [navigate_to_job] → MaaS解决方案架构师-政企方向-上海 @ (406, 2026)
+17:04:34 [SKILL] INFO    [navigate_to_job] ← 成功
+17:05:14 INFO      分数 8/10  ['JD 要求「面向客户高层做方案讲解与 Call High，具备独立售前影响力」→ 候选人「作为团队唯一 PM+设计+售前，独立负责能碳/EHS/医疗仪器客户蓝图设计，参加深创赛获 9705 票第二名」', 'JD 要求「动手搭建智能体与多 Agent POC 验证，Vibe Coding 全栈交付」→ 候选人「自研 Agent OS 三层产品形态 + 任务路由与 Fallback 机制 + MCP/Claude SDK 深度应用 + Vibe Coding 高保真 Demo 直连售前」', 'JD 要求「端到端 MaaS 解决方案设计与落地」→ 候选人「能碳管理 3 个月 1 前端 + 3 后端从 0 到 1 上线 + 多租户 0 代码差异化发版」']
+17:05:14 INFO      维度分：role_fit=8.5 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=8
+17:05:14 INFO      差距：['JD 提及 vLLM/SGLang 推理框架与 RAG 文档解析/向量化/检索召回优化方法，候选人未展示相关生产经验', 'JD 偏好 AgentScope/QwenPaw 等阿里系 Agent 工具框架使用经验，候选人主要使用 Claude SDK/MCP 协议生态', '政企行业经验未在简历中直接体现，工业 SaaS 经验可视作间接接触']
+17:05:14 INFO      大厂加权「阿里」×1.15 → 分数 8→9
+17:05:14 INFO      ✓ 达标！打招呼：徐总好，看到你们要在政企场景端到端搭多 Agent POC 并跑通 MaaS 落地，我日常就是 PM + 设计 + 售前…
+17:05:32 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:05:41 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:05:44 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:05:47 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：徐总好，看到你们要在政企场景端到端搭多 
+17:05:47 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:05:47 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:05:50 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:05:51 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:05:53 INFO      ✓ 打招呼成功 — 徐总好，看到你们要在政企场景端到端搭多 Agent POC 并跑通 MaaS 落
+17:05:53 INFO      📊 进度：本次已发 10/40，今日累计约 10 条
+17:06:17 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=22）
+17:06:17 INFO    [find_next]   屏幕卡 y=879  '大客户FDE（营销侧）'  /  '上海星际章鱼智能科技'  /  hr='李文静'
+17:06:17 INFO    [find_next]   屏幕卡 y=1436  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:06:17 INFO    [find_next]   屏幕卡 y=2026  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr=''
+17:06:17 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='大客户FDE（营销侧）\t上海星际章鱼智能科技\t李文静', visits=1)
+17:06:17 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士', visits=1)
+17:06:17 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='MaaS解决方案架构师-政企方向-上海\t阿里云\t', visits=1)
+17:06:21 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:06:31 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=22）
+17:06:31 INFO    [find_next]   屏幕卡 y=904  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:06:31 INFO    [find_next]   屏幕卡 y=1494  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr='徐先生'
+17:06:31 INFO    [find_next]   屏幕卡 y=2050  '场景部署负责人'  /  '新时达'  /  hr=''
+17:06:31 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士', visits=1)
+17:06:31 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='MaaS解决方案架构师-政企方向-上海\t阿里云\t徐先生', visits=1)
+17:06:31 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2050)
+17:06:31 INFO      [visited_keys] + 精确 key: title='场景部署负责人', company='新时达', hr_name='' → key='场景部署负责人\t新时达\t' (size=23)
+17:06:33 INFO      [11] → 场景部署负责人（新时达）
+17:06:33 [SKILL] INFO    [navigate_to_job] → 场景部署负责人 @ (227, 2050)
+17:06:34 [SKILL] INFO    [navigate_to_job] ← 成功
+17:07:11 INFO      分数 3/10  ['JD要求「向FDR提交结构化需求单、沉淀故障库与工具、带教FDE成员」→ 候选人「能碳管理3个月主导1前端+3后端从0-1上线，沉淀多租户复配方案」', 'JD要求「判定场景可行性并定版技术方案」→ 候选人「独立完成棱镜泰克Prism AI全栈蓝图规划，覆盖47+核心业务路由」', 'JD要求「灰度回滚与版本上机管理」→ 候选人「主导过AI Agent多版本迭代（MCP协议、Supabase Edge Functions、FastAPI三代架构演进）」']
+17:07:11 INFO      维度分：role_fit=3 | skill_match=2 | ai_native=2 | growth_fit=3 | basic_fit=3
+17:07:11 INFO      差距：['岗位核心是机器人/具身智能现场端侧部署(TensorRT/ONNX/ROS)，候选人为产品/FDE方向，无机器人控制系统与现场部署经验', '无机器人/自动化/计算机/电子信息专业背景(建筑学硕士)，与JD专业硬性要求错位', '硬性要求8年机器人现场经验+3年团队管理，候选人2年FDE实战在密度等价但赛道完全错位', 'JD薪资40-60K×15对应资深现场负责人水平，与候选人2年经验职级差距明显', '无Linux嵌入式/ROS/中间件/端侧模型优化(TensorRT/ONNX)等工程深度积累']
+17:07:11 INFO      → 跳过（3 < 7）
+17:07:25 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=26）
+17:07:25 INFO    [find_next]   屏幕卡 y=904  'FDE现场部署工程师（财法税方向Agent开发）'  /  '字节跳动'  /  hr='寇女士'
+17:07:25 INFO    [find_next]   屏幕卡 y=1494  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr='徐先生'
+17:07:25 INFO    [find_next]   屏幕卡 y=2050  '场景部署负责人'  /  '新时达'  /  hr=''
+17:07:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE现场部署工程师（财法税方向Agent开发）\t字节跳动\t寇女士', visits=1)
+17:07:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='MaaS解决方案架构师-政企方向-上海\t阿里云\t徐先生', visits=1)
+17:07:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='场景部署负责人\t新时达\t', visits=1)
+17:07:28 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:07:38 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=26）
+17:07:38 INFO    [find_next]   屏幕卡 y=946  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr='徐先生'
+17:07:38 INFO    [find_next]   屏幕卡 y=1502  '场景部署负责人'  /  '新时达'  /  hr='刘女士'
+17:07:38 INFO    [find_next]   屏幕卡 y=2024  'FDE AI架构师'  /  '蚂蚁集团'  /  hr=''
+17:07:38 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='MaaS解决方案架构师-政企方向-上海\t阿里云\t徐先生', visits=1)
+17:07:38 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='场景部署负责人\t新时达\t刘女士', visits=1)
+17:07:38 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2024)
+17:07:38 INFO      [visited_keys] + 精确 key: title='FDE AI架构师', company='蚂蚁集团', hr_name='' → key='FDE AI架构师\t蚂蚁集团\t' (size=27)
+17:07:42 INFO      [12] → FDE AI架构师（蚂蚁集团）
+17:07:42 [SKILL] INFO    [navigate_to_job] → FDE AI架构师 @ (204, 2024)
+17:07:43 [SKILL] INFO    [navigate_to_job] ← 成功
+17:08:26 INFO      分数 8/10  ['JD要求「AI原生+活跃AI应用思维，利用AI技术快速构建产品原型」→ 候选人「Vibe Coding + Claude Agent SDK + MCP协议 + Sleepless Agent开源工具全栈落地」', 'JD要求「不局限于纯算法/纯开发，理解业务场景，从技术到产品闭环」→ 候选人「FDE模式2年，作为唯一产品/设计/售前/前端角色主导EHS+能碳+医疗仪器多个0-1闭环」', 'JD要求「对客沟通能力，灵活应对客户需求」→ 候选人「FDE售前蓝图+客户真实诉求深挖，纽约跨文化客户沟通经验」']
+17:08:26 INFO      维度分：role_fit=9 | skill_match=7 | ai_native=9 | growth_fit=9 | basic_fit=7
+17:08:26 INFO      差距：['JD要求硕士及以上计算机/软件工程/AI等相关专业，候选人为建筑学硕士+计算机辅修，非CS科班硕士，简历需突出辅修GPA 4.0及自驱技术深度', 'JD核心能力包含「扎实的计算机基础+算法题及代码考核」，候选人偏全栈应用+AI工程，非算法竞赛路线，面试coding轮存在不确定性', 'JD优先大厂产研经历，候选人现公司未来方舟为初创，无明确大厂背景']
+17:08:26 INFO      大厂加权「蚂蚁」×1.15 → 分数 8→9
+17:08:26 INFO      ✓ 达标！打招呼：李总好，看到你们要找AI原生、能用AI快速搭原型的FDE。我过去两年作为团队唯一产品+设计+前端，单兵主导能碳/医疗仪器…
+17:08:47 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:08:56 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:09:01 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:09:04 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：李总好，看到你们要找AI原生、能用AI快
+17:09:04 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:09:04 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:09:08 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:09:09 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:09:12 INFO      ✓ 打招呼成功 — 李总好，看到你们要找AI原生、能用AI快速搭原型的FDE。我过去两年作为团队唯一
+17:09:35 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=30）
+17:09:35 INFO    [find_next]   屏幕卡 y=946  'MaaS解决方案架构师-政企方向-上海'  /  '阿里云'  /  hr='徐先生'
+17:09:35 INFO    [find_next]   屏幕卡 y=1502  '场景部署负责人'  /  '新时达'  /  hr='刘女士'
+17:09:35 INFO    [find_next]   屏幕卡 y=2024  'FDE AI架构师'  /  '蚂蚁集团'  /  hr=''
+17:09:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='MaaS解决方案架构师-政企方向-上海\t阿里云\t徐先生', visits=1)
+17:09:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='场景部署负责人\t新时达\t刘女士', visits=1)
+17:09:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t', visits=1)
+17:09:38 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:09:49 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=30）
+17:09:49 INFO    [find_next]   屏幕卡 y=971  '场景部署负责人'  /  '新时达'  /  hr='刘女士'
+17:09:49 INFO    [find_next]   屏幕卡 y=1493  'FDE AI架构师'  /  '蚂蚁集团'  /  hr='李先生'
+17:09:49 INFO    [find_next]   屏幕卡 y=2106  '交付开发负责人'  /  '合合信息'  /  hr=''
+17:09:49 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='场景部署负责人\t新时达\t刘女士', visits=1)
+17:09:49 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t李先生', visits=1)
+17:09:49 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2106)
+17:09:49 INFO      [visited_keys] + 精确 key: title='交付开发负责人', company='合合信息', hr_name='' → key='交付开发负责人\t合合信息\t' (size=31)
+17:09:50 INFO      [13] → 交付开发负责人（合合信息）
+17:09:50 [SKILL] INFO    [navigate_to_job] → 交付开发负责人 @ (227, 2106)
+17:09:51 [SKILL] INFO    [navigate_to_job] ← 成功
+17:10:39 INFO      分数 8/10  ['JD要求「FDE工作体系或直接经验者优先」→ 候选人现任FDE，独立承担PM+交互设计+AI售前+蓝图规划，2年ToB工业SaaS+ToC出海AI实战', 'JD要求「协同销售、售前、产品，带团队与客户一起落地」→ 候选人能碳项目3个月内主导1前端+3后端团队完成MVP到0-1闭环上线，并作为统筹枢纽跨职能协调', 'JD要求「基于客户需求做定制开发与上线，解决客户实际场景问题」→ 候选人主导医疗仪器Prism AI全栈蓝图+47+核心业务路由Demo，并实现多租户0代码差异化复配', 'JD要求「了解LLM优先，有AI行业经验优先」→ 候选人深度AI Agent产品化（Agent OS三层+统一AI网关）+Vibe Coding全栈+多智能穿戴ToC出海', 'JD要求「良好的沟通能力和责任心，B端交付经验」→ 候选人独立负责能碳/EHS/医疗仪器多客户售前蓝图演示+客户需求挖掘，B端交付密度强']
+17:10:39 INFO      维度分：role_fit=9 | skill_match=7 | ai_native=8 | growth_fit=9 | basic_fit=6
+17:10:39 INFO      差距：['JD技术栈要求Java为主，候选人Java生产经验薄弱（主语言Python/TS），但候选人能主导1+3团队0-1交付且具备PG/Redis/Docker实战，技术栈差距可由团队后端补足', 'JD要求5年以上企服项目管理经验，候选人2年FDE+5年跨域项目统筹，2年内完成6+个0-1真实项目密集交付，等价于常规高密度PM背景（按2026-10-10修订不扣分）']
+17:10:39 INFO      ✓ 达标！打招呼：您好，看到合合信息交付开发岗位强调 FDE 体系与 B 端定制交付，我日常就是产品 + 设计 + 前端单兵闭环，主导过 …
+17:10:58 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:11:09 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:11:14 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:11:17 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：您好，看到合合信息交付开发岗位强调 FD
+17:11:17 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:11:17 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:11:21 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:11:22 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:11:25 INFO      ✓ 打招呼成功 — 您好，看到合合信息交付开发岗位强调 FDE 体系与 B 端定制交付，我日常就是产
+17:11:25 WARNING   兜底告警：刚发的招呼 hr_name 为空（dedup_key=交付开发负责人	合合信息	），后续仅靠 title+company 去重
+17:11:51 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=32）
+17:11:51 INFO    [find_next]   屏幕卡 y=971  '场景部署负责人'  /  '新时达'  /  hr='刘女士'
+17:11:51 INFO    [find_next]   屏幕卡 y=1493  'FDE AI架构师'  /  '蚂蚁集团'  /  hr='李先生'
+17:11:51 INFO    [find_next]   屏幕卡 y=2106  '交付开发负责人'  /  '合合信息'  /  hr=''
+17:11:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='场景部署负责人\t新时达\t刘女士', visits=1)
+17:11:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t李先生', visits=1)
+17:11:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t', visits=1)
+17:11:55 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:12:06 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=32）
+17:12:06 INFO    [find_next]   屏幕卡 y=957  'FDE AI架构师'  /  '蚂蚁集团'  /  hr='李先生'
+17:12:06 INFO    [find_next]   屏幕卡 y=1570  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:12:06 INFO    [find_next]   屏幕卡 y=2092  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr=''
+17:12:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t李先生', visits=1)
+17:12:06 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1570)
+17:12:06 INFO      [14] 跳过（已打过招呼）：交付开发负责人
+17:12:06 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=34
+17:12:12 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=34）
+17:12:12 INFO    [find_next]   屏幕卡 y=957  'FDE AI架构师'  /  '蚂蚁集团'  /  hr='李先生'
+17:12:12 INFO    [find_next]   屏幕卡 y=1570  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:12:12 INFO    [find_next]   屏幕卡 y=2092  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr=''
+17:12:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t李先生', visits=1)
+17:12:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:12:12 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2092)
+17:12:12 INFO      [visited_keys] + 精确 key: title='高级前沿部署工程师 FDE', company='Grab', hr_name='' → key='高级前沿部署工程师 FDE\tGrab\t' (size=35)
+17:12:14 INFO      [15] → 高级前沿部署工程师 FDE（Grab）
+17:12:14 [SKILL] INFO    [navigate_to_job] → 高级前沿部署工程师 FDE @ (322, 2092)
+17:12:14 [SKILL] INFO    [navigate_to_job] ← 成功
+17:13:05 WARNING   greeting 兜底修正：'您好，看到Grab Carri机器人要做' → '您好，看到Grab Carri机器人要做'
+17:13:05 INFO      分数 5/10  ['JD要求「FDE嵌入现场、把问题直接反馈产品和研发、定义产品路线图」→ 候选人「FDE型产品，团队唯一的产品/设计/售前，对业务目标和交付节奏拥有主导权，2年ToC出海AI+ToB工业SaaS实战」', 'JD要求「能用AI辅助编程把想法变成可测试原型」→ 候选人「Vibe Coding为日常工作方式，结合Figma搭建企业级Design System+可运行Demo」', 'JD要求「直接面对客户，开workshop、解释技术权衡、管理期望」→ 候选人「售前蓝图阶段深挖客户真实诉求，打磨方案边界与工程取舍，担任研发/后端/AI工程师跨职能枢纽」', 'JD要求「独立行动者，现场单兵闭环交付」→ 候选人「独立完成棱镜泰克Prism AI全栈蓝图+Demo，主导能碳3个月4人0-1闭环」']
+17:13:05 INFO      维度分：role_fit=4 | skill_match=4 | ai_native=8 | growth_fit=7 | basic_fit=6
+17:13:05 INFO      差距：['候选人无机器人/具身智能/ROS/C++/自动驾驶硬件栈经验，JD明确要求5年以上机器人或自主系统或IoT领域实战，赛道差距为硬性', 'JD要求Python+C++与ROS/ROS 2，候选人Python强但C++与ROS完全缺失，物理机器人部署属硬性工程门槛', 'JD要求现场驻场合作伙伴及出差（Grab新加坡总部/Punggol区域），候选人上海base且过往为远程协作型FDE，地理与现场模式匹配需确认', 'JD要求谈单位经济/P&L构建商业模型，候选人过往未明显涉及财务模型与商业规模化推广', '电梯、门禁、楼宇管理系统集成经验为加分项，候选人无相关背景']
+17:13:05 INFO      → 跳过（5 < 7）
+17:13:18 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=36）
+17:13:18 INFO    [find_next]   屏幕卡 y=957  'FDE AI架构师'  /  '蚂蚁集团'  /  hr='李先生'
+17:13:18 INFO    [find_next]   屏幕卡 y=1570  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:13:18 INFO    [find_next]   屏幕卡 y=2092  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr=''
+17:13:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE AI架构师\t蚂蚁集团\t李先生', visits=1)
+17:13:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:13:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t', visits=2)
+17:13:22 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:13:33 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=36）
+17:13:33 INFO    [find_next]   屏幕卡 y=1038  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:13:33 INFO    [find_next]   屏幕卡 y=1560  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:13:33 INFO    [find_next]   屏幕卡 y=2082  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr=''
+17:13:33 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:13:33 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1560)
+17:13:33 INFO      [visited_keys] + 精确 key: title='高级前沿部署工程师 FDE', company='Grab', hr_name='黄璐' → key='高级前沿部署工程师 FDE\tGrab\t黄璐' (size=37)
+17:13:36 INFO      [16] → 高级前沿部署工程师 FDE（Grab）
+17:13:36 [SKILL] INFO    [navigate_to_job] → 高级前沿部署工程师 FDE @ (322, 1560)
+17:13:37 [SKILL] INFO    [navigate_to_job] ← 成功
+17:14:23 INFO      分数 7/10  ['JD要求「直接面对客户，开workshop、管理期望、解释技术权衡」→ 候选人「作为团队唯一产品/设计/售前角色，FDE售前蓝图实战+跨职能枢纽沟通」', 'JD要求「用AI辅助编程把想法变成可测试原型」→ 候选人「Vibe Coding全栈Demo+Claude SDK/MCP深度应用，跨职能单兵闭环」', 'JD要求「独立的行动者，自己判断决策交付」→ 候选人「对业务目标与交付节奏拥有完整主导权，独立制定WBS与里程碑」', 'JD要求「商业广度，规模化推广案例」→ 候选人「1套平台基座+N客户复配，0代码改动多租户差异化发版，杠杆率交付」']
+17:14:23 INFO      维度分：role_fit=7 | skill_match=6 | ai_native=9 | growth_fit=8 | basic_fit=7
+17:14:23 INFO      差距：['候选人无C++/ROS/机器人底层工程实战，与JD核心硬性技能存在结构性差距', '候选人本质是产品+FDE型PM，机器人/自主系统垂直行业经验为零，需较强跨域迁移', 'P&L/单位经济等商业财务建模无直接证据，FDE商业广度侧匹配偏弱']
+17:14:23 INFO      ✓ 达标！打招呼：黄总好，看到Grab在招嵌入合作伙伴现场的FDE，负责Carri机器人落地与产品路线图。我过去两年作为团队唯一的产品+设…
+17:14:42 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:14:51 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:14:55 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:14:58 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：黄总好，看到Grab在招嵌入合作伙伴现场
+17:14:58 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:14:58 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:15:04 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:15:04 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:15:07 INFO      ✓ 打招呼成功 — 黄总好，看到Grab在招嵌入合作伙伴现场的FDE，负责Carri机器人落地与产品
+17:15:32 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=38）
+17:15:32 INFO    [find_next]   屏幕卡 y=1038  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:15:32 INFO    [find_next]   屏幕卡 y=1560  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:15:32 INFO    [find_next]   屏幕卡 y=2082  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr=''
+17:15:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:15:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t黄璐', visits=3)
+17:15:32 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2082)
+17:15:32 INFO      [visited_keys] + 精确 key: title='消费品及流通行业合伙人（AI方向）', company='埃林哲', hr_name='' → key='消费品及流通行业合伙人（AI方向）\t埃林哲\t' (size=39)
+17:15:36 INFO      [17] → 消费品及流通行业合伙人（AI方向）（埃林哲）
+17:15:36 [SKILL] INFO    [navigate_to_job] → 消费品及流通行业合伙人（AI方向） @ (438, 2082)
+17:15:37 [SKILL] INFO    [navigate_to_job] ← 成功
+17:16:18 INFO      分数 8/10  ['JD要求「AI售前与FDE试点落地，能从客户经营问题出发定义场景、成功标准和试点路径」→ 候选人「自研平台基座以1套核心代码+租户配置产出差异化工作台，0代码改动复配多客户，能碳3个月1前端+3后端从0-1 UAT闭环验收」', 'JD要求「牵头AI转型路线图、场景组合、PoC计划与价值论证」→ 候选人「独立完成医疗仪器Prism AI全栈蓝图规划与Demo覆盖47+业务路由，棱镜泰克方案以精细WBS主动精简边界风险缩减240h」', 'JD要求「主人翁意识、跨职能枢纽、推动多角色协同达成关键节点」→ 候选人「团队唯一的产品/设计/售前三角角色主导PM+交互+AI售前+蓝图，作为跨团队敏捷协同枢纽以核心产品参加行业深创赛获9705票」']
+17:16:18 INFO      维度分：role_fit=8 | skill_match=7 | ai_native=9 | growth_fit=9 | basic_fit=8
+17:16:18 INFO      差距：['消费品/连锁餐饮/零售/快消行业的一线客户经营实战为软性缺失，需快速补齐商品、门店、采购、库存、渠道对账等行业知识', 'B2B客户拓展与高层决策链撬动经验集中于工业SaaS与医疗仪器赛道，零售/餐饮连锁的高层沟通风格需适配']
+17:16:18 INFO      ✓ 达标！打招呼：管总好，看到你们要为消费品客户做AI转型场景组合与FDE试点落地，我日常就是跨职能统筹+蓝图设计+高保真Demo单兵闭环…
+17:16:38 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:16:47 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:16:51 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:16:54 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：管总好，看到你们要为消费品客户做AI转型
+17:16:54 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:16:54 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:16:56 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:16:56 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:16:59 INFO      ✓ 打招呼成功 — 管总好，看到你们要为消费品客户做AI转型场景组合与FDE试点落地，我日常就是跨职
+17:17:22 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=42）
+17:17:22 INFO    [find_next]   屏幕卡 y=1038  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:17:22 INFO    [find_next]   屏幕卡 y=1560  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:17:22 INFO    [find_next]   屏幕卡 y=2082  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr=''
+17:17:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:17:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t黄璐', visits=3)
+17:17:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t', visits=1)
+17:17:25 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:17:35 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=42）
+17:17:35 INFO    [find_next]   屏幕卡 y=704  '交付开发负责人'  /  '合合信息'  /  hr='姜女士'
+17:17:35 INFO    [find_next]   屏幕卡 y=1226  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:17:35 INFO    [find_next]   屏幕卡 y=1748  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr='管晶晶'
+17:17:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='交付开发负责人\t合合信息\t姜女士', visits=2)
+17:17:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t黄璐', visits=3)
+17:17:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t管晶晶', visits=1)
+17:17:38 INFO      当前屏幕无未访问目标，列表短滑 2/12 (px=500, wait=2.5s)
+17:17:48 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=42）
+17:17:48 INFO    [find_next]   屏幕卡 y=692  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:17:48 INFO    [find_next]   屏幕卡 y=1214  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr='管晶晶'
+17:17:48 INFO    [find_next]   屏幕卡 y=2069  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr=''
+17:17:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t黄璐', visits=3)
+17:17:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t管晶晶', visits=1)
+17:17:48 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2069)
+17:17:48 INFO      [visited_keys] + 精确 key: title='AI项目经理 / FDE &@ ', company='索为资讯', hr_name='' → key='AI项目经理 / FDE\t索为资讯\t' (size=43)
+17:17:49 INFO      [18] → AI项目经理 / FDE &@ （索为资讯）
+17:17:49 [SKILL] INFO    [navigate_to_job] → AI项目经理 / FDE &@  @ (275, 2069)
+17:17:49 [SKILL] INFO    [navigate_to_job] ← 成功
+17:18:27 INFO      分数 9/10  ['JD要求「懂AI，熟悉大模型/Agent/Workflow」→ 候选人「主导Agent OS三层产品形态（控制台/协作/台账）+ 三类业务节点编排模型，接入MCP协议」', 'JD要求「独立带队负责AI项目从需求到交付」→ 候选人「能碳管理系统3个月主导1前端+3后端从MVP到0-1闭环上线，医疗仪器Prism AI独立完成全栈蓝图」', 'JD要求「熟练使用Cursor/Claude/Codex完成Demo」→ 候选人「Vibe Coding为日常，10+开源/闭环项目全栈落地（含LifeOS/Civic-Mind/sleepless-agent等PyPI发布）」']
+17:18:27 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=7
+17:18:27 INFO      差距：['候选人工作年限字面2年，JD写3年以上B端经验（按指引年限不作为扣分项，候选人高密度交付已实质覆盖）', '薪资18-25K与候选人期望可能存在小幅差距，候选人主导0-1项目交付能力对应市场价通常更高']
+17:18:27 INFO      ✓ 达标！打招呼：张总好，看到你们要在企业AI转型里用Agent + Workflow深挖场景、Cursor类工具跑通Demo，我日常就是…
+17:18:45 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:18:54 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:18:59 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:19:02 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：张总好，看到你们要在企业AI转型里用Ag
+17:19:02 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:19:02 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:19:05 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:19:05 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:19:09 INFO      ✓ 打招呼成功 — 张总好，看到你们要在企业AI转型里用Agent + Workflow深挖场景、C
+17:19:33 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=46）
+17:19:33 INFO    [find_next]   屏幕卡 y=692  '高级前沿部署工程师 FDE'  /  'Grab'  /  hr='黄璐'
+17:19:33 INFO    [find_next]   屏幕卡 y=1214  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr='管晶晶'
+17:19:33 INFO    [find_next]   屏幕卡 y=2069  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr=''
+17:19:33 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级前沿部署工程师 FDE\tGrab\t黄璐', visits=3)
+17:19:33 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t管晶晶', visits=1)
+17:19:33 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目经理 / FDE\t索为资讯\t', visits=1)
+17:19:37 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:19:48 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=46）
+17:19:48 INFO    [find_next]   屏幕卡 y=665  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr='管晶晶'
+17:19:48 INFO    [find_next]   屏幕卡 y=1520  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr='张梅'
+17:19:48 INFO    [find_next]   屏幕卡 y=2039  'AI FDE'  /  '三一重工'  /  hr=''
+17:19:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t管晶晶', visits=1)
+17:19:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目经理 / FDE\t索为资讯\t张梅', visits=1)
+17:19:48 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2039)
+17:19:48 INFO      [visited_keys] + 精确 key: title='AI FDE', company='三一重工', hr_name='' → key='AI FDE\t三一重工\t' (size=47)
+17:19:52 INFO      [19] → AI FDE（三一重工）
+17:19:52 [SKILL] INFO    [navigate_to_job] → AI FDE @ (133, 2039)
+17:19:52 [SKILL] INFO    [navigate_to_job] ← 成功
+17:20:16 WARNING   greeting 兜底修正：'田总好，看到你们招 AI FDE 做场景' → '田总好，看到你们招 AI FDE 做场景'
+17:20:16 INFO      分数 9/10  ['JD要求「支撑业务部门挖掘合理可行的 AI 需求，进行技术可行性研判与选型」→ 候选人FDE型产品经理日常作为业务/研发/AI工程师枢纽，0-1主导EHS/能碳/医疗仪器等陌生行业AI需求解构与方案蓝图设计', 'JD要求「完成结合场景的 AI 创新试点验证，跟进问题闭环」→ 能碳管理系统3个月1前端+3后端从MVP到0-1闭环上线；医疗仪器Prism AI覆盖47+核心业务路由', 'JD要求「沉淀场景案例与落地经验，将 AI 解决方案在事业部推广和深化」→ 核心产品代表公司参加行业深创赛获9705票第二名；多租户架构0代码改动复配多个客户，具备天然布道与规模化推广能力']
+17:20:16 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=8 | growth_fit=9 | basic_fit=9
+17:20:16 INFO      差距：['工程机械/重工行业经验为软性缺口，但候选人具备跨域快速上手记录（建筑→EHS工业SaaS→能碳→医疗仪器），学习曲线短', 'JD正文未出现Vibe Coding/Cursor/Claude等具体工具词，但岗位定位为AI FDE与候选人AI工具栈（MCP/Claude SDK/Vibe Coding）契合']
+17:20:16 INFO      规模「10000人以上」×融资「已上市」= 1.15×1.10=1.265 → 分数 9→11
+17:20:16 INFO      ✓ 达标！打招呼：田总好，看到你们招 AI FDE 做场景洞察与解决方案推广，我日常作为业务与研发的跨职能枢纽，主导 0-1 蓝图设计与多…
+17:20:37 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:20:45 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:20:50 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:20:53 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：田总好，看到你们招 AI FDE 做场景
+17:20:53 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:20:53 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:20:57 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:20:58 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:21:01 INFO      ✓ 打招呼成功 — 田总好，看到你们招 AI FDE 做场景洞察与解决方案推广，我日常作为业务与研发
+17:21:25 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=50）
+17:21:25 INFO    [find_next]   屏幕卡 y=665  '消费品及流通行业合伙人（AI方向）'  /  '埃林哲'  /  hr='管晶晶'
+17:21:25 INFO    [find_next]   屏幕卡 y=1520  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr='张梅'
+17:21:25 INFO    [find_next]   屏幕卡 y=2039  'AI FDE'  /  '三一重工'  /  hr=''
+17:21:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='消费品及流通行业合伙人（AI方向）\t埃林哲\t管晶晶', visits=1)
+17:21:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目经理 / FDE\t索为资讯\t张梅', visits=1)
+17:21:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE\t三一重工\t', visits=2)
+17:21:29 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:21:40 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=50）
+17:21:40 INFO    [find_next]   屏幕卡 y=988  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr='张梅'
+17:21:40 INFO    [find_next]   屏幕卡 y=1507  'AI FDE'  /  '三一重工'  /  hr='田家祺'
+17:21:40 INFO    [find_next]   屏幕卡 y=2025  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr=''
+17:21:40 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目经理 / FDE\t索为资讯\t张梅', visits=1)
+17:21:40 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI FDE')
+17:21:40 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2025)
+17:21:40 INFO      [20] 跳过（已打过招呼）：FDE前沿部署工程师
+17:21:40 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=52
+17:21:46 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=52）
+17:21:46 INFO    [find_next]   屏幕卡 y=988  'AI项目经理 / FDE &@ '  /  '索为资讯'  /  hr='张梅'
+17:21:46 INFO    [find_next]   屏幕卡 y=1507  'AI FDE'  /  '三一重工'  /  hr='田家祺'
+17:21:46 INFO    [find_next]   屏幕卡 y=2025  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr=''
+17:21:46 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目经理 / FDE\t索为资讯\t张梅', visits=1)
+17:21:46 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI FDE')
+17:21:46 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t', visits=1)
+17:21:49 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:22:01 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=52）
+17:22:01 INFO    [find_next]   屏幕卡 y=967  'AI FDE'  /  '三一重工'  /  hr='田家祺'
+17:22:01 INFO    [find_next]   屏幕卡 y=1485  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='马先生'
+17:22:01 INFO    [find_next]   屏幕卡 y=2006  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:22:01 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI FDE')
+17:22:01 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1485)
+17:22:01 INFO      [visited_keys] + 精确 key: title='FDE前沿部署工程师', company='上海嘉驰信息技术咨询', hr_name='马先生' → key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t马先生' (size=53)
+17:22:04 INFO      [21] → FDE前沿部署工程师（上海嘉驰信息技术咨询）
+17:22:04 [SKILL] INFO    [navigate_to_job] → FDE前沿部署工程师 @ (269, 1485)
+17:22:05 [SKILL] INFO    [navigate_to_job] ← 成功
+17:22:46 INFO      分数 9/10  ['JD要求「深入客户现场理解业务，识别智能体落地场景并完成蓝图设计与交付」→ 候选人「主导医疗仪器Prism AI全栈蓝图+能碳3个月0-1闭环，FDE模式高频客户现场交付」', 'JD要求「Agent工作流编排、Skill开发、工具调用、知识库建设」→ 候选人「自研Agent OS三层（控制台/协作/台账）+流程中心+统一AI网关（权限管控+自动操作路由）」', 'JD要求「对接客户业务系统完成接口/数据/权限/流程集成」→ 候选人「统一AI网关对接后端接口，Vibe Coding全栈Demo驱动联调上线，多租户0代码差异复配」']
+17:22:46 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=8 | basic_fit=8
+17:22:46 INFO      差距：["JD提及'5年以上AI金融行业工作经验'，候选人金融行业经验缺失（但表述偏软性，行业经验非硬性必须项）；后端无Java/Go生产系统经验，Python FastAPI为轻量级栈（JD'至少一种主流语言'已满足）"]
+17:22:46 INFO      ✓ 达标！打招呼：马总好，看到你们要招FDE做Agent现场落地+工作流编排，我日常就是产品+设计+全栈单兵闭环，主导过医疗仪器Prism…
+17:23:05 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:23:13 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:23:16 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:23:19 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：马总好，看到你们要招FDE做Agent现
+17:23:19 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:23:19 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:23:21 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:23:21 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:23:24 INFO      ✓ 打招呼成功 — 马总好，看到你们要招FDE做Agent现场落地+工作流编排，我日常就是产品+设计
+17:23:49 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=54）
+17:23:49 INFO    [find_next]   屏幕卡 y=967  'AI FDE'  /  '三一重工'  /  hr='田家祺'
+17:23:49 INFO    [find_next]   屏幕卡 y=1485  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='马先生'
+17:23:49 INFO    [find_next]   屏幕卡 y=2006  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:23:49 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI FDE')
+17:23:49 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t马先生', visits=2)
+17:23:49 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2006)
+17:23:49 INFO      [visited_keys] + 精确 key: title='AI 解决方案工程师（FDE）', company='世纪鲲鹏传媒', hr_name='简女士' → key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士' (size=55)
+17:23:51 INFO      [22] → AI 解决方案工程师（FDE）（世纪鲲鹏传媒）
+17:23:51 [SKILL] INFO    [navigate_to_job] → AI 解决方案工程师（FDE） @ (345, 2006)
+17:23:52 [SKILL] INFO    [navigate_to_job] ← 成功
+17:24:30 INFO      分数 9/10  ['JD要求「独立完成客户对接，将模糊业务描述转化为结构化AI方案文档」→ 候选人「作为团队唯一产品/设计/售前角色，独立完成能碳UAT与Prism AI蓝图，深耕售前阶段客户真实诉求」', 'JD要求「借助AI工具/低代码平台完成方案部署、配置与定制开发，确保按时上线」→ 候选人「3个月内主导1前端+3后端完成能碳管理0-1闭环，Vibe Coding快速拉起高保真Demo直连后端」', 'JD要求「将高频场景沉淀为可复用标准化模块，反哺产品迭代」→ 候选人「自研1套平台基座+多租户配置层，同一代码基座0代码改动复配8+客户」']
+17:24:30 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=10 | growth_fit=9 | basic_fit=9
+17:24:30 INFO      差距：['培训材料输出与赋能经验未在简历中明确体现，需在面试中确认']
+17:24:30 INFO      地点「北京」权重 0.90 → 分数 9→8
+17:24:30 INFO      ✓ 达标！打招呼：简总好，看到你们招AI解决方案工程师做客户陪跑与提示词优化，我过去两年一直以FDE模式主导B端SaaS售前蓝图与0-1交…
+17:24:50 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:25:01 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:25:06 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:25:10 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：简总好，看到你们招AI解决方案工程师做客
+17:25:10 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:25:10 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:25:14 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:25:15 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:25:18 INFO      ✓ 打招呼成功 — 简总好，看到你们招AI解决方案工程师做客户陪跑与提示词优化，我过去两年一直以FD
+17:25:42 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=56）
+17:25:42 INFO    [find_next]   屏幕卡 y=967  'AI FDE'  /  '三一重工'  /  hr='田家祺'
+17:25:42 INFO    [find_next]   屏幕卡 y=1485  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='马先生'
+17:25:42 INFO    [find_next]   屏幕卡 y=2006  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:25:42 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI FDE')
+17:25:42 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t马先生', visits=2)
+17:25:42 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士', visits=1)
+17:25:46 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:25:56 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=56）
+17:25:56 INFO    [find_next]   屏幕卡 y=938  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='马先生'
+17:25:56 INFO    [find_next]   屏幕卡 y=1459  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:25:56 INFO    [find_next]   屏幕卡 y=1980  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:25:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t马先生', visits=2)
+17:25:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士', visits=1)
+17:25:56 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1980)
+17:25:57 INFO      [visited_keys] + 精确 key: title='AI项目业务合作人（品牌联盟方向）', company='一宠一恩', hr_name='陈志佳' → key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳' (size=57)
+17:25:58 INFO      [23] → AI项目业务合作人（品牌联盟方向）（一宠一恩）
+17:25:58 [SKILL] INFO    [navigate_to_job] → AI项目业务合作人（品牌联盟方向） @ (438, 1980)
+17:25:58 [SKILL] INFO    [navigate_to_job] ← 成功
+17:26:34 INFO      分数 9/10  ['JD要求「FDE/OPC/超级个体优先，具备独立交付能力」→ 候选人「现职 FDE 型 PM，单兵承担 PM+交互+AI售前+蓝图规划，能碳 3 个月主导 1 前端 + 3 后端 0-1 闭环」', 'JD要求「AI项目+可展示技术Demo+产品原型」→ 候选人「现公司自研 Agent OS + 流程中心 + 42 Token 原子组件 Design System，多个可运行个人 Demo（LifeOS/Civic-Mind 等）」', 'JD要求「0 到 1 落地经验，对垂直场景深度理解」→ 候选人「独立完成棱镜泰克 47+ 核心路由全栈蓝图；EHS/能碳/医疗仪器/智能穿戴四垂直领域主导 0-1」', 'JD要求「项目合作模式，技术与产品交付」→ 候选人「现职 1 套平台基座为多客户复配的工作模式与平台+合作方协同完全对位」']
+17:26:34 INFO      维度分：role_fit=10 | skill_match=9 | ai_native=9 | growth_fit=9 | basic_fit=7
+17:26:34 INFO      差距：['JD 描述偏项目合作制而非传统雇佣，对候选人的薪资稳定性需对齐预期', '候选人无品牌运营或产业资源对接经验，但 JD 明确这是平台方职能，不构成短板']
+17:26:34 INFO      ✓ 达标！打招呼：陈总好，看到你们做 AI 早期项目的品牌联盟认证与对接，我现职就是 FDE 型 PM，单兵主导 PM+交互+AI 售前闭…
+17:26:51 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:26:58 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:27:01 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:27:04 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：陈总好，看到你们做 AI 早期项目的品牌
+17:27:04 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:27:04 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:27:06 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:27:06 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:27:09 INFO      ✓ 打招呼成功 — 陈总好，看到你们做 AI 早期项目的品牌联盟认证与对接，我现职就是 FDE 型 
+17:27:31 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=58）
+17:27:31 INFO    [find_next]   屏幕卡 y=938  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='马先生'
+17:27:31 INFO    [find_next]   屏幕卡 y=1459  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:27:31 INFO    [find_next]   屏幕卡 y=1980  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:27:31 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t马先生', visits=2)
+17:27:31 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士', visits=1)
+17:27:31 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳', visits=1)
+17:27:33 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:27:43 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=58）
+17:27:43 INFO    [find_next]   屏幕卡 y=921  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:27:43 INFO    [find_next]   屏幕卡 y=1442  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:27:43 INFO    [find_next]   屏幕卡 y=1964  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:27:43 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士', visits=1)
+17:27:43 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳', visits=1)
+17:27:43 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1964)
+17:27:43 INFO      [visited_keys] + 精确 key: title='FDE工程师', company='英仕健康', hr_name='杨晓玥' → key='FDE工程师\t英仕健康\t杨晓玥' (size=59)
+17:27:44 INFO      [24] → FDE工程师（英仕健康）
+17:27:44 [SKILL] INFO    [navigate_to_job] → FDE工程师 @ (175, 1964)
+17:27:44 [SKILL] INFO    [navigate_to_job] ← 成功
+17:28:26 INFO      分数 8/10  ['JD要求「智能核保/理赔风控/RAG知识库等私有化交付+轻量定制开发」→ 候选人「自研平台基座含RAG能力与Agent OS三层产品形态，统一AI网关对接后端接口」', 'JD要求「客户对接+需求挖掘+培训+预期管理+交付闭环」→ 候选人「FDE型角色主导能碳3个月1前3后从0到1UAT验收+多租户8+客户复配」', 'JD要求「Python自动化脚本+API接口调试+Docker+PostgreSQL」→ 候选人「Python/FastAPI/SQLAlchemy实战+PostgreSQL含GIN全文索引+Docker容器化部署」']
+17:28:26 INFO      维度分：role_fit=8 | skill_match=7 | ai_native=7 | growth_fit=8 | basic_fit=8
+17:28:26 INFO      差距：['JD明确要求MySQL+专职后端工程深度（高并发/分布式），候选人后端偏轻量FastAPI/Supabase，无Spring/Go生产系统深度', '保险行业业务（核保/理赔/保单/保险数据规范）候选人无直接行业经验，医疗仪器客户交付可视为间接接触', "JD要求'有保险/医疗/金融行业项目经验优先'属软性优先项，不构成硬性短板"]
+17:28:26 INFO      ✓ 达标！打招呼：杨总好，看到你们在做保险核心系统私有化交付+智能核保RAG方向，我过去两年做FDE型产品+售前+实施，能碳EHS多租户0…
+17:28:43 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:28:51 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:28:53 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:28:56 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：杨总好，看到你们在做保险核心系统私有化交
+17:28:56 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:28:56 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:28:58 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:28:58 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:29:01 INFO      ✓ 打招呼成功 — 杨总好，看到你们在做保险核心系统私有化交付+智能核保RAG方向，我过去两年做FD
+17:29:01 INFO      📊 进度：本次已发 20/40，今日累计约 20 条
+17:29:23 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=60）
+17:29:23 INFO    [find_next]   屏幕卡 y=921  'AI 解决方案工程师（FDE）'  /  '世纪鲲鹏传媒'  /  hr='简女士'
+17:29:23 INFO    [find_next]   屏幕卡 y=1442  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:29:23 INFO    [find_next]   屏幕卡 y=1964  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:29:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 解决方案工程师（FDE）\t世纪鲲鹏传媒\t简女士', visits=1)
+17:29:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳', visits=1)
+17:29:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t英仕健康\t杨晓玥', visits=3)
+17:29:26 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:29:35 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=60）
+17:29:35 INFO    [find_next]   屏幕卡 y=904  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:29:35 INFO    [find_next]   屏幕卡 y=1426  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:29:35 INFO    [find_next]   屏幕卡 y=1947  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:29:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳', visits=1)
+17:29:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t英仕健康\t杨晓玥', visits=3)
+17:29:35 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1947)
+17:29:35 INFO      [visited_keys] + 精确 key: title='AI To B产品经理/解决方案', company='美团', hr_name='卢先生' → key='AI To B产品经理/解决方案\t美团\t卢先生' (size=61)
+17:29:36 INFO      [25] → AI To B产品经理/解决方案（美团）
+17:29:36 [SKILL] INFO    [navigate_to_job] → AI To B产品经理/解决方案 @ (336, 1947)
+17:29:36 [SKILL] INFO    [navigate_to_job] ← 成功
+17:30:09 INFO      分数 9/10  ["JD要求「将客户共创需求沉淀为可复制的标准产品、Agent、Skill和工作流」→ 候选人主导Agent OS三层产品形态(控制台/协作/台账)+流程中心引擎+'1套平台基座+N个客户复配'交付模型", 'JD要求「联动研发、数据、FDE及业务，推动产品快速试点、上线和规模化应用」→ 候选人作为团队唯一产品/设计/售前，3个月内主导1前端+3后端完成能碳平台0-1闭环并通过UAT', "JD要求「深入企业工作流，将复杂业务问题拆解为数据、规则、角色和任务闭环」→ 候选人将业务抽象为'流程节点+表单+报告'三位一体正交架构，58个业务流自研双模式流程编辑器"]
+17:30:09 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=9
+17:30:09 INFO      差距：['候选人为医药/零售行业直接经验不足，但已有医疗仪器(Prism AI)与跨域快速学习实战记录，属软性差距而非硬性短板']
+17:30:09 INFO      地点「北京」权重 0.90 → 分数 9→8
+17:30:09 INFO      大厂加权「美团」×1.12 → 分数 8→9
+17:30:09 INFO      ✓ 达标！打招呼：卢总好，看到你们要为药企与连锁药店搭建Agent/Skill/工作流并沉淀标准化产品，我日常做FDE型产品+设计+售前单…
+17:30:26 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:30:34 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:30:37 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:30:39 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：卢总好，看到你们要为药企与连锁药店搭建A
+17:30:39 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:30:39 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:30:41 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:30:42 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:30:44 INFO      ✓ 打招呼成功 — 卢总好，看到你们要为药企与连锁药店搭建Agent/Skill/工作流并沉淀标准化
+17:31:06 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=62）
+17:31:06 INFO    [find_next]   屏幕卡 y=904  'AI项目业务合作人（品牌联盟方向）'  /  '一宠一恩'  /  hr='陈志佳'
+17:31:06 INFO    [find_next]   屏幕卡 y=1426  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:31:06 INFO    [find_next]   屏幕卡 y=1947  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:31:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI项目业务合作人（品牌联盟方向）\t一宠一恩\t陈志佳', visits=1)
+17:31:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t英仕健康\t杨晓玥', visits=3)
+17:31:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI To B产品经理/解决方案\t美团\t卢先生', visits=1)
+17:31:09 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:31:19 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=62）
+17:31:19 INFO    [find_next]   屏幕卡 y=892  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:31:19 INFO    [find_next]   屏幕卡 y=1413  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:31:19 INFO    [find_next]   屏幕卡 y=1934  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:31:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t英仕健康\t杨晓玥', visits=3)
+17:31:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI To B产品经理/解决方案\t美团\t卢先生', visits=1)
+17:31:19 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1934)
+17:31:19 INFO      [visited_keys] + 精确 key: title='FDE工程师', company='顺丰同城', hr_name='顾女士' → key='FDE工程师\t顺丰同城\t顾女士' (size=63)
+17:31:20 INFO      [26] → FDE工程师（顺丰同城）
+17:31:20 [SKILL] INFO    [navigate_to_job] → FDE工程师 @ (175, 1934)
+17:31:20 [SKILL] INFO    [navigate_to_job] ← 成功
+17:31:56 WARNING   JSON 解析失败（attempt 1）：Expecting ',' delimiter: line 1 column 875 (char 874) — 写入 debug + 触发 LLM 重试
+17:32:06 INFO      分数 9/10  ['JD要求「端到端负责AI智能体、自动化场景需求挖掘、方案设计、落地交付」→ 候选人在未来方舟以唯一FDE身份主导Agent OS三层产品形态(流程中心/Agents协作/工作台账)+业务节点编排模型+统一AI网关', 'JD要求「驻场一线业务、跨部门项目推进」→ 候选人售前现场演示+作为研发/后端/AI工程师跨职能协调枢纽，独立主导EHS/能碳/医疗仪器等多客户从0-1落地', 'JD要求「智能体、RAG、工作流编排等主流AI落地形态」→ 候选人自研双模式流程编辑器支持AI对话生成与模拟执行，n8n自动化流提升处理效率70%，MCP协议与Claude Agent SDK深度应用']
+17:32:06 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=9 | growth_fit=9 | basic_fit=9
+17:32:06 INFO      差距：['行业经验：候选人为ToC出海AI与ToB工业SaaS背景，无同城物流/快递业务一线驻场经历，顺丰同城业务线(骑士调度/订单履约/商家管理)与EHS/能碳业务模型差异较大，需业务熟悉适应期', '培训赋能模块：候选人无企业内部AI培训体系搭建与分层赋能经验，需补足该能力模块']
+17:32:06 INFO      地点「北京」权重 0.90 → 分数 9→8
+17:32:06 INFO      ✓ 达标！打招呼：顾总好，看到顺丰同城要深入战区一线端到端交付AI智能体与自动化场景，我做过FDE型产品，主导Agent OS与工作流编排…
+17:32:23 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:32:31 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:32:34 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:32:36 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：顾总好，看到顺丰同城要深入战区一线端到端
+17:32:36 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:32:36 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:32:38 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:32:39 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:32:41 INFO      ✓ 打招呼成功 — 顾总好，看到顺丰同城要深入战区一线端到端交付AI智能体与自动化场景，我做过FDE
+17:33:03 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=64）
+17:33:03 INFO    [find_next]   屏幕卡 y=892  'FDE工程师'  /  '英仕健康'  /  hr='杨晓玥'
+17:33:03 INFO    [find_next]   屏幕卡 y=1413  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:33:03 INFO    [find_next]   屏幕卡 y=1934  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:33:03 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t英仕健康\t杨晓玥', visits=3)
+17:33:03 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI To B产品经理/解决方案\t美团\t卢先生', visits=1)
+17:33:03 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t顺丰同城\t顾女士', visits=3)
+17:33:06 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:33:16 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=64）
+17:33:16 INFO    [find_next]   屏幕卡 y=864  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:33:16 INFO    [find_next]   屏幕卡 y=1385  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:33:16 INFO    [find_next]   屏幕卡 y=1942  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:33:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI To B产品经理/解决方案\t美团\t卢先生', visits=1)
+17:33:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t顺丰同城\t顾女士', visits=3)
+17:33:16 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1942)
+17:33:16 INFO      [visited_keys] + 精确 key: title='FDE工程师（企业级AGI）北上广深都看', company='润应麟', hr_name='赵女士' → key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士' (size=65)
+17:33:16 INFO      [27] → FDE工程师（企业级AGI）北上广深都看（润应麟）
+17:33:16 [SKILL] INFO    [navigate_to_job] → FDE工程师（企业级AGI）北上广深都看 @ (451, 1942)
+17:33:17 [SKILL] INFO    [navigate_to_job] ← 成功
+17:33:51 INFO      分数 9/10  ['JD要求「作为客户唯一交付窗口，独立完成需求理解→方案设计→现场AI落地全流程」→ 候选人现职FDE即唯一交付角色，主导能碳3个月1前端+3后端从0到1上线、Prism AI 47+业务路由蓝图全栈落地', 'JD要求「重型POC输出+售前蓝图演示+客户沟通sense」→ 候选人自研42个Token驱动原子组件设计系统+Vibe Coding高保真可运行Demo，曾以核心产品代表公司参赛行业深创赛获9705票第二名', 'JD要求「交付库沉淀SOP与方法论」→ 候选人沉淀「1套平台基座+N个客户复配」方案，同一代码基座通过配置层实现多租户0代码差异化复配（安管/天施/高校实验室）']
+17:33:51 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=8
+17:33:51 INFO      差距：['JD中本体工程五派别（拆解派/聚合派/两步走派/框架派/直给派）为公司专有概念体系，候选人简历未直接覆盖，需入职后系统学习', 'JD强调面向千人以上大客户的现场交付经验，候选人过往客户多以中小型企业与垂直行业为主，大客户经营深度待验证']
+17:33:51 INFO      ✓ 达标！打招呼：赵总好，看到润应麟在招FDE作为客户唯一交付窗口、要做AgentOS+DataOS重型POC，我现职FDE即唯一产品/设…
+17:34:08 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:34:16 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:34:19 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:34:21 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：赵总好，看到润应麟在招FDE作为客户唯一
+17:34:21 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:34:21 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:34:23 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:34:24 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:34:26 INFO      ✓ 打招呼成功 — 赵总好，看到润应麟在招FDE作为客户唯一交付窗口、要做AgentOS+DataO
+17:34:48 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=66）
+17:34:48 INFO    [find_next]   屏幕卡 y=864  'AI To B产品经理/解决方案'  /  '美团'  /  hr='卢先生'
+17:34:48 INFO    [find_next]   屏幕卡 y=1385  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:34:48 INFO    [find_next]   屏幕卡 y=1942  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:34:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI To B产品经理/解决方案\t美团\t卢先生', visits=1)
+17:34:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t顺丰同城\t顾女士', visits=3)
+17:34:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士', visits=1)
+17:34:51 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:35:01 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=66）
+17:35:01 INFO    [find_next]   屏幕卡 y=838  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:35:01 INFO    [find_next]   屏幕卡 y=1395  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:35:01 INFO    [find_next]   屏幕卡 y=1976  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:35:01 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t顺丰同城\t顾女士', visits=3)
+17:35:01 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士', visits=1)
+17:35:01 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1976)
+17:35:01 INFO      [28] 跳过（已打过招呼）：AI FDE (Forward Deployed Engineer)
+17:35:01 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=68
+17:35:07 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=68）
+17:35:07 INFO    [find_next]   屏幕卡 y=838  'FDE工程师'  /  '顺丰同城'  /  hr='顾女士'
+17:35:07 INFO    [find_next]   屏幕卡 y=1395  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:35:07 INFO    [find_next]   屏幕卡 y=1976  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:35:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师\t顺丰同城\t顾女士', visits=3)
+17:35:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士', visits=1)
+17:35:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=1)
+17:35:10 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:35:19 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=68）
+17:35:19 INFO    [find_next]   屏幕卡 y=862  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:35:19 INFO    [find_next]   屏幕卡 y=1443  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:35:19 INFO    [find_next]   屏幕卡 y=2023  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr=''
+17:35:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士', visits=1)
+17:35:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=1)
+17:35:19 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2023)
+17:35:19 INFO      [visited_keys] + 精确 key: title='FDE工程师（财法税Agent方向）-火山引擎', company='字节跳动', hr_name='' → key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t' (size=69)
+17:35:20 INFO      [29] → FDE工程师（财法税Agent方向）-火山引擎（字节跳动）
+17:35:20 [SKILL] INFO    [navigate_to_job] → FDE工程师（财法税Agent方向）-火山引擎 @ (406, 2023)
+17:35:20 [SKILL] INFO    [navigate_to_job] ← 成功
+17:35:58 INFO      分数 9/10  ['JD要求「快速开发AI应用原型验证，迭代推进至生产级Agent系统」→ 候选人「主导能碳管理3月1前端+3后端从MVP到0-1闭环上线，独立完成医疗仪器Prism AI 47+核心业务路由蓝图+Demo」', 'JD要求「熟练掌握Vibe Coding并在实际工作中有充分应用」→ 候选人「FDE岗位日常使用Vibe Coding拉起高保真可运行Demo，含Sleepless Agent/PixelClaw/Civic-Mind等多项目生产级落地」', 'JD要求「基于云服务API/SDK开发，自动化部署，高可用架构」→ 候选人「自研Agent OS三层产品形态+统一AI网关（权限管控/路由/流式输出），CI/CD与Docker自动化流水线完备」']
+17:35:58 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=10 | growth_fit=9 | basic_fit=8
+17:35:58 INFO      差距：['候选人FDE型产品+前端主导，与岗位纯后端研发视角存在权重差异，复杂高可用/分布式架构深度未在简历中显性体现', '未显性呈现LangGraph/CrewAI等主流Agent框架生产经验（具备自研Agent OS同类能力但不直接对应栈名）']
+17:35:58 INFO      大厂加权「字节」×1.15 → 分数 9→10
+17:35:58 INFO      ✓ 达标！打招呼：刘总好，看到你们要 Vibe Coding 在客户环境快速搭 AI Agent 原型并推到生产级，我日常正是这套打法——…
+17:36:15 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:36:23 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:36:25 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:36:28 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：刘总好，看到你们要 Vibe Codin
+17:36:28 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:36:28 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:36:30 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:36:30 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:36:33 INFO      ✓ 打招呼成功 — 刘总好，看到你们要 Vibe Coding 在客户环境快速搭 AI Agent 
+17:36:55 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=72）
+17:36:55 INFO    [find_next]   屏幕卡 y=862  'FDE工程师（企业级AGI）北上广深都看'  /  '润应麟'  /  hr='赵女士'
+17:36:55 INFO    [find_next]   屏幕卡 y=1443  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:36:55 INFO    [find_next]   屏幕卡 y=2023  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr=''
+17:36:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（企业级AGI）北上广深都看\t润应麟\t赵女士', visits=1)
+17:36:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=1)
+17:36:55 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t', visits=1)
+17:36:58 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:37:07 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=72）
+17:37:07 INFO    [find_next]   屏幕卡 y=901  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:37:07 INFO    [find_next]   屏幕卡 y=1481  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr='刘先生'
+17:37:07 INFO    [find_next]   屏幕卡 y=2036  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr=''
+17:37:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=1)
+17:37:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t刘先生', visits=1)
+17:37:07 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2036)
+17:37:07 INFO      [visited_keys] + 精确 key: title='培训专家 (商务拓展)(A114421)', company='上海科学智能研究院', hr_name='' → key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t' (size=73)
+17:37:07 INFO      [30] → 培训专家 (商务拓展)(A114421)（上海科学智能研究院）
+17:37:07 [SKILL] INFO    [navigate_to_job] → 培训专家 (商务拓展)(A114421) @ (387, 2036)
+17:37:08 [SKILL] INFO    [navigate_to_job] ← 成功
+17:37:47 INFO      分数 4/10  ['JD要求「能快速理解AI for Science、FDE方法论等前沿业务概念」→ 候选人本人即FDE型产品经理，主导过FDE产品体系0-1落地与多客户复配', 'JD要求「项目管理能力，多项目全生命周期管理」→ 候选人作为团队唯一产品+设计+售前角色统筹4人3个月能碳0-1闭环，并行多租户交付', 'JD要求「文案表达与培训方案撰写」→ 候选人有Figma Design System + Vibe Coding Demo + 售前蓝图演示经验，沟通表达强']
+17:37:47 INFO      维度分：role_fit=4 | skill_match=3 | ai_native=6 | growth_fit=4 | basic_fit=7
+17:37:47 INFO      差距：['JD首要能力是商务BD与大客户资源运营（40%权重），候选人无BD实战经验、无校企资源/头部科技企业背景，这是核心差距', 'JD第二大板块是培训产品全周期运营（30%），候选人无培训行业经验，不熟悉学员招募、排期管理、专家库管理等培训专属流程', 'JD要求区域市场开拓（西南/东南/华南），候选人工作轨迹集中在上海，无区域BD资源积累', '候选人核心能力栈（FDE产品交付/AI Agent产品化/系统抽象/售前蓝图）与本岗BD+培训运营方向存在结构性错位，更适合研究院内FDE产品/课程设计/AI培训内容研发相关岗位而非商务培训专家岗']
+17:37:47 INFO      → 跳过（4 < 7）
+17:37:59 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=74）
+17:37:59 INFO    [find_next]   屏幕卡 y=901  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:37:59 INFO    [find_next]   屏幕卡 y=1481  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr='刘先生'
+17:37:59 INFO    [find_next]   屏幕卡 y=2036  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr=''
+17:37:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=1)
+17:37:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t刘先生', visits=1)
+17:37:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t', visits=1)
+17:38:02 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:38:12 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=74）
+17:38:12 INFO    [find_next]   屏幕卡 y=952  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr='刘先生'
+17:38:12 INFO    [find_next]   屏幕卡 y=1507  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr='陈女士'
+17:38:12 INFO    [find_next]   屏幕卡 y=2028  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr=''
+17:38:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t刘先生', visits=1)
+17:38:12 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1507)
+17:38:12 INFO      [visited_keys] + 精确 key: title='培训专家 (商务拓展)(A114421)', company='上海科学智能研究院', hr_name='陈女士' → key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t陈女士' (size=75)
+17:38:13 INFO      [31] → 培训专家 (商务拓展)(A114421)（上海科学智能研究院）
+17:38:13 [SKILL] INFO    [navigate_to_job] → 培训专家 (商务拓展)(A114421) @ (387, 1507)
+17:38:13 [SKILL] INFO    [navigate_to_job] ← 成功
+17:38:54 INFO      分数 5/10  ['JD要求「FDE课程内容理解与AI产品语言转化」→ 候选人有FDE型产品经理2年实战，熟悉流程中心+Agent OS+能碳/EHS多行业蓝图设计', 'JD要求「项目全生命周期交付能力」→ 候选人主导能碳3个月4人0-1闭环、多租户复配、WBS拆解与边界管理', 'JD要求「跨职能枢纽沟通与文案表达」→ 候选人作为团队唯一产品/设计/售前角色，对外做售前蓝图演示、对内主导PRD与后端联调']
+17:38:54 INFO      维度分：role_fit=3 | skill_match=4 | ai_native=6 | growth_fit=6 | basic_fit=6
+17:38:54 INFO      差距：['岗位核心驱动力是商务BD与高端客户资源运营（占40%权重），候选人无独立BD经验、无企业客户资源积累，是核心差距', '岗位要求培训行业经验（培训产品运营、课程排期、讲师库维护、学员招募），候选人是产品交付而非培训交付，行业经验缺失', '岗位要求区域市场开拓（西南/东南/华南）与政府-高校-科研院所生态协作，候选人无相关经验', 'JD要求P7级独立业务操盘能力，候选人虽交付密度高但BD与培训运营是全新领域，需时间补齐']
+17:38:54 INFO      → 跳过（5 < 7）
+17:39:07 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=76）
+17:39:07 INFO    [find_next]   屏幕卡 y=952  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr='刘先生'
+17:39:07 INFO    [find_next]   屏幕卡 y=1507  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr='陈女士'
+17:39:07 INFO    [find_next]   屏幕卡 y=2028  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr=''
+17:39:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t刘先生', visits=1)
+17:39:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t陈女士', visits=2)
+17:39:07 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2028)
+17:39:07 INFO      [visited_keys] + 精确 key: title='前端部署工程师(FDE）', company='上海亮界未来智能科技', hr_name='' → key='前端部署工程师(FDE）\t上海亮界未来智能科技\t' (size=77)
+17:39:07 INFO      [32] → 前端部署工程师(FDE）（上海亮界未来智能科技）
+17:39:07 [SKILL] INFO    [navigate_to_job] → 前端部署工程师(FDE） @ (300, 2028)
+17:39:07 [SKILL] INFO    [navigate_to_job] ← 成功
+17:39:50 INFO      分数 8/10  ['JD要求「AI Agent从PoC到生产部署完整交付」→ 候选人「主导 Agent OS 三层产品（控制台/协作/台账）+ 统一AI网关，能碳 3 个月 1 前端 + 3 后端从 0-1 上线」', 'JD要求「MCP协议/Agent评测/可观测性/ToB交付经验」→ 候选人「深度集成 MCP Protocol，FastAPI + Edge Functions 事件驱动，企业级 EHS/能碳多租户 8+ 客户 0 代码差异化发版」', 'JD要求「Python + HTTP API + Docker + 数据库 + Git + CI/CD」→ 候选人「FastAPI/PostgreSQL(GIN索引)/Docker/GitHub Actions 全栈实战，发布 PyPI 开源工具 sleepless-agent」']
+17:39:50 INFO      维度分：role_fit=8 | skill_match=7 | ai_native=10 | growth_fit=9 | basic_fit=9
+17:39:50 INFO      差距：['JD明确要求 LangGraph/LangChain/LlamaIndex/AutoGen/CrewAI 等至少一种主流框架的实战经验，候选人简历未明确出现这些框架（自研流程引擎 + Claude SDK 路线，理念相通但生态不重合）', 'JD强调「亲自编写代码完成后端服务」，候选人工程深度集中在 FastAPI/Supabase 轻量级服务，无 Spring/Go/Java 生产级高并发后端经验']
+17:39:50 INFO      ✓ 达标！打招呼：丁总好，看到你们要 AI Agent FDE 深入客户现场做 PoC 到生产部署，我过去主导 Agent OS 三层架构…
+17:40:07 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:40:15 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:40:18 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:40:20 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：丁总好，看到你们要 AI Agent F
+17:40:20 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:40:20 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:40:23 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:40:23 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:40:26 INFO      ✓ 打招呼成功 — 丁总好，看到你们要 AI Agent FDE 深入客户现场做 PoC 到生产部署
+17:40:47 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=80）
+17:40:47 INFO    [find_next]   屏幕卡 y=952  'FDE工程师（财法税Agent方向）-火山引擎'  /  '字节跳动'  /  hr='刘先生'
+17:40:47 INFO    [find_next]   屏幕卡 y=1507  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr='陈女士'
+17:40:47 INFO    [find_next]   屏幕卡 y=2028  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr=''
+17:40:47 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE工程师（财法税Agent方向）-火山引擎\t字节跳动\t刘先生', visits=1)
+17:40:47 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t陈女士', visits=2)
+17:40:47 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t', visits=1)
+17:40:51 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:41:00 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=80）
+17:41:00 INFO    [find_next]   屏幕卡 y=967  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr='陈女士'
+17:41:00 INFO    [find_next]   屏幕卡 y=1488  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr='丁翔'
+17:41:00 INFO    [find_next]   屏幕卡 y=2010  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:41:00 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t陈女士', visits=2)
+17:41:00 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t丁翔', visits=1)
+17:41:00 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2010)
+17:41:00 INFO      [visited_keys] + 精确 key: title='AI应用负责人 &@ ', company='深圳市鼎阳科技股...', hr_name='温女士' → key='AI应用负责人\t深圳市鼎阳科技股...\t温女士' (size=81)
+17:41:01 INFO      [33] → AI应用负责人 &@ （深圳市鼎阳科技股...）
+17:41:01 [SKILL] INFO    [navigate_to_job] → AI应用负责人 &@  @ (236, 2010)
+17:41:01 [SKILL] INFO    [navigate_to_job] ← 成功
+17:41:37 INFO      分数 8/10  ['JD要求「AI场景0-1全链路PoC→上线」→候选人「主导能碳管理3个月1前端+3后端0-1闭环通过验收上线」', 'JD要求「Agent Workflow+统一AI网关+MCP集成」→候选人「Agent OS三层形态+统一AI网关接入+LifeOS基于MCP Protocol三代迭代」', 'JD要求「售前蓝图+流程访谈+业务Owner识别」→候选人「独立负责医疗仪器Prism AI全栈蓝图规划+售前现场演示+客户真实诉求深挖」']
+17:41:37 INFO      维度分：role_fit=8 | skill_match=7 | ai_native=9 | growth_fit=8 | basic_fit=7
+17:41:37 INFO      差距：['RAG知识库全流程（文档解析/Embedding/Reranker/混合检索/引用溯源/权限隔离）在简历中未明确体现，需面试验证深度', 'LangGraph/LlamaIndex等主流Agent框架未在简历中出现，候选人以自研架构为主', '制造业PLM/MES/ERP/WMS/SRM真实接口对接经验缺失，仅有能碳/EHS边缘接触', 'JD要求的GPU推理私有化部署经验未体现']
+17:41:37 INFO      地点「深圳」权重 0.90 → 分数 8→7
+17:41:37 INFO      ✓ 达标！打招呼：温总好，看到鼎阳在招AI应用负责人，要深入制造现场识别高价值场景并主导PoC→上线全链路。我过去2年作为团队唯一的产品+…
+17:41:54 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:42:02 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:42:05 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:42:07 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：温总好，看到鼎阳在招AI应用负责人，要深
+17:42:07 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:42:07 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:42:10 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:42:10 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:42:13 INFO      ✓ 打招呼成功 — 温总好，看到鼎阳在招AI应用负责人，要深入制造现场识别高价值场景并主导PoC→上
+17:42:34 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=82）
+17:42:34 INFO    [find_next]   屏幕卡 y=967  '培训专家 (商务拓展)(A114421)'  /  '上海科学智能研究院'  /  hr='陈女士'
+17:42:34 INFO    [find_next]   屏幕卡 y=1488  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr='丁翔'
+17:42:34 INFO    [find_next]   屏幕卡 y=2010  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:42:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='培训专家 (商务拓展)(A114421)\t上海科学智能研究院\t陈女士', visits=2)
+17:42:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t丁翔', visits=1)
+17:42:34 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:42:37 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:42:47 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=82）
+17:42:47 INFO    [find_next]   屏幕卡 y=952  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr='丁翔'
+17:42:47 INFO    [find_next]   屏幕卡 y=1474  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:42:47 INFO    [find_next]   屏幕卡 y=1993  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:42:47 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t丁翔', visits=1)
+17:42:47 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:42:47 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1993)
+17:42:47 INFO      [visited_keys] + 精确 key: title='AI Forward Deployed Engineer', company='世纪华通', hr_name='胡巳倩' → key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩' (size=83)
+17:42:47 INFO      [34] → AI Forward Deployed Engineer（世纪华通）
+17:42:47 [SKILL] INFO    [navigate_to_job] → AI Forward Deployed Engineer @ (380, 1993)
+17:42:48 [SKILL] INFO    [navigate_to_job] ← 成功
+17:43:23 INFO      分数 8/10  ['JD要求「业务流诊断+模糊痛点→技术方案+投入产出判断」→候选人「EHS/能碳/医疗仪器多行业0-1业务解构+自主Trade-off边界管理+优先级决策」', 'JD要求「Agent架构+Prompt工程+数据管道+生产级交付」→候选人「Agent OS三层产品+统一AI网关+任务路由Fallback+能碳系统3个月4人从0到1稳定上线」', 'JD要求「沉淀可复用方法+建立AI工程标准」→候选人「1套平台基座+N客户0代码复配+三视角正交架构+流程中心自研,正是方法论沉淀范式」']
+17:43:23 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=8 | growth_fit=9 | basic_fit=7
+17:43:23 INFO      差距：['JD要求8年软件工程经验，候选人FDE实战约2年但交付密度高（多行业0-1+多租户复配+Agent OS三层+流程中心），按高密度等价于常规资深FDE', '后端深度以FastAPI/Supabase为主，未涉及Spring/Go等大型生产级后端栈，复杂分布式场景需补强', '无游戏行业直接经历（属加分项非必须）', 'CS本科为辅修，与JD CS相关专业本科以上要求存在解读空间']
+17:43:23 INFO      ✓ 达标！打招呼：胡总好，看到你们要FDE深入业务流做AI机会识别与0-1交付，这正是我过去两年的日常，独立主导过Agent OS与能碳管…
+17:43:40 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:43:47 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:43:50 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:43:53 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：胡总好，看到你们要FDE深入业务流做AI
+17:43:53 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:43:53 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:43:55 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:43:55 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:43:58 INFO      ✓ 打招呼成功 — 胡总好，看到你们要FDE深入业务流做AI机会识别与0-1交付，这正是我过去两年的
+17:44:19 INFO    [find_next] 屏幕共 3 张卡（visited_keys size=84）
+17:44:19 INFO    [find_next]   屏幕卡 y=952  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr='丁翔'
+17:44:19 INFO    [find_next]   屏幕卡 y=1474  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:44:19 INFO    [find_next]   屏幕卡 y=1993  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:44:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t丁翔', visits=1)
+17:44:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:44:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:44:22 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:44:32 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=84）
+17:44:32 INFO    [find_next]   屏幕卡 y=710  '前端部署工程师(FDE）'  /  '上海亮界未来智能科技'  /  hr='丁翔'
+17:44:32 INFO    [find_next]   屏幕卡 y=1232  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:44:32 INFO    [find_next]   屏幕卡 y=1751  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:44:32 INFO    [find_next]   屏幕卡 y=2269  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr=''
+17:44:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='前端部署工程师(FDE）\t上海亮界未来智能科技\t丁翔', visits=1)
+17:44:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:44:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:44:32 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t', visits=2)
+17:44:35 INFO      当前屏幕无未访问目标，列表短滑 2/12 (px=500, wait=2.5s)
+17:44:45 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=84）
+17:44:45 INFO    [find_next]   屏幕卡 y=685  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:44:45 INFO    [find_next]   屏幕卡 y=1204  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:44:45 INFO    [find_next]   屏幕卡 y=1722  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:44:45 INFO    [find_next]   屏幕卡 y=2244  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr=''
+17:44:45 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:44:45 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:44:45 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1722)
+17:44:45 INFO      [35] 跳过（已打过招呼）：FDE前沿部署工程师
+17:44:45 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=86
+17:44:50 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=86）
+17:44:50 INFO    [find_next]   屏幕卡 y=685  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:44:50 INFO    [find_next]   屏幕卡 y=1204  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:44:50 INFO    [find_next]   屏幕卡 y=1722  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:44:50 INFO    [find_next]   屏幕卡 y=2244  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr=''
+17:44:50 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:44:50 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:44:50 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:44:50 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2244)
+17:44:50 INFO      [visited_keys] + 精确 key: title='FDE（产品交付工程师）', company='数智建材研究院', hr_name='' → key='FDE（产品交付工程师）\t数智建材研究院\t' (size=87)
+17:44:51 INFO      [36] → FDE（产品交付工程师）（数智建材研究院）
+17:44:51 [SKILL] INFO    [navigate_to_job] → FDE（产品交付工程师） @ (316, 2244)
+17:44:51 [SKILL] INFO    [navigate_to_job] ← 成功
+17:45:31 INFO      分数 9/10  ['JD要求「智能体项目需求调研、方案输出、实施推进、上线部署、验收交付闭环」→ 候选人「主导能碳管理系统3个月1前端+3后端从MVP到0-1闭环并通过验收上线」', 'JD要求「深度理解业务场景，完成流程拆解、痛点分析、智能体能力匹配与场景化定义」→ 候选人「主导EHS/能碳/医疗仪器多场景业务解构，输出流程节点+表单+报告三位一体架构，定义Agent OS三层+三类业务节点编排模型」', 'JD要求「沉淀智能体交付标准、最佳实践与流程规范」→ 候选人「沉淀1套平台基座+N个客户复配交付方案，多租户架构0代码差异化发版8+客户复用」', 'JD要求「ToB项目交付流程」+「协同客户、产品、研发、测试多方资源」→ 候选人「作为团队唯一产品/设计/售前角色承担PM+交互+AI售前，研发/后端/AI工程师之间的跨职能协调枢纽，主导棱镜泰克47+核心业务路由蓝图规划」']
+17:45:31 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=9 | growth_fit=9 | basic_fit=9
+17:45:31 INFO      差距：['JD提到「偶尔出差」「客户调研」需高频现场对接，候选人过往以远程+售前现场演示为主，现场调研颗粒度需进一步验证', '建材行业为新垂直领域，候选人虽有多行业快速解构记录，但行业Know-how深度仍需客户现场沉淀']
+17:45:31 INFO      ✓ 达标！打招呼：您好，看到你们要做大模型智能体项目从调研到验收的全链路交付，我这边日常就是产品+设计+售前+AI单兵闭环，主导过Agen…
+17:45:48 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:45:55 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:45:58 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:46:01 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：您好，看到你们要做大模型智能体项目从调研
+17:46:01 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:46:01 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:46:03 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:46:03 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:46:06 INFO      ✓ 打招呼成功 — 您好，看到你们要做大模型智能体项目从调研到验收的全链路交付，我这边日常就是产品+
+17:46:06 WARNING   兜底告警：刚发的招呼 hr_name 为空（dedup_key=FDE（产品交付工程师）	数智建材研究院	），后续仅靠 title+company 去重
+17:46:27 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=88）
+17:46:27 INFO    [find_next]   屏幕卡 y=685  'AI应用负责人 &@ '  /  '深圳市鼎阳科技股...'  /  hr='温女士'
+17:46:27 INFO    [find_next]   屏幕卡 y=1204  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:46:27 INFO    [find_next]   屏幕卡 y=1722  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:46:27 INFO    [find_next]   屏幕卡 y=2244  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr=''
+17:46:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI应用负责人\t深圳市鼎阳科技股...\t温女士', visits=1)
+17:46:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:46:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:46:27 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t', visits=1)
+17:46:30 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:46:40 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=88）
+17:46:40 INFO    [find_next]   屏幕卡 y=666  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:46:40 INFO    [find_next]   屏幕卡 y=1184  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:46:40 INFO    [find_next]   屏幕卡 y=1706  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:46:40 INFO    [find_next]   屏幕卡 y=2253  'AI FDE (Forward Deployed Engineer)'  /  ''  /  hr=''
+17:46:40 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:46:40 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:46:40 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1706)
+17:46:40 INFO      [37] 跳过（已打过招呼）：FDE（产品交付工程师）
+17:46:40 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=90
+17:46:46 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=90）
+17:46:46 INFO    [find_next]   屏幕卡 y=666  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:46:46 INFO    [find_next]   屏幕卡 y=1184  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:46:46 INFO    [find_next]   屏幕卡 y=1706  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:46:46 INFO    [find_next]   屏幕卡 y=2253  'AI FDE (Forward Deployed Engineer)'  /  ''  /  hr=''
+17:46:46 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:46:46 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:46:46 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:46:46 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2253)
+17:46:46 INFO      [38] 跳过（已打过招呼）：AI FDE (Forward Deployed Engineer)
+17:46:46 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=91
+17:46:52 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=91）
+17:46:52 INFO    [find_next]   屏幕卡 y=666  'AI Forward Deployed Engineer'  /  '世纪华通'  /  hr='胡巳倩'
+17:46:52 INFO    [find_next]   屏幕卡 y=1184  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:46:52 INFO    [find_next]   屏幕卡 y=1706  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:46:52 INFO    [find_next]   屏幕卡 y=2253  'AI FDE (Forward Deployed Engineer)'  /  ''  /  hr=''
+17:46:52 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Forward Deployed Engineer\t世纪华通\t胡巳倩', visits=1)
+17:46:52 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:46:52 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:46:52 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\t\t', visits=3)
+17:46:55 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:47:04 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=91）
+17:47:04 INFO    [find_next]   屏幕卡 y=654  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+17:47:04 INFO    [find_next]   屏幕卡 y=1176  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:47:04 INFO    [find_next]   屏幕卡 y=1723  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:47:04 INFO    [find_next]   屏幕卡 y=2268  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr=''
+17:47:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+17:47:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:47:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:47:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t', visits=3)
+17:47:07 INFO      当前屏幕无未访问目标，列表短滑 2/12 (px=500, wait=2.5s)
+17:47:17 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=91）
+17:47:17 INFO    [find_next]   屏幕卡 y=644  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:47:17 INFO    [find_next]   屏幕卡 y=1191  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:47:17 INFO    [find_next]   屏幕卡 y=1736  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:47:17 INFO    [find_next]   屏幕卡 y=2258  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr=''
+17:47:17 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:47:17 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:47:17 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1736)
+17:47:17 INFO      [39] 跳过（已打过招呼）：FDE前沿部署工程师
+17:47:17 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=93
+17:47:23 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=93）
+17:47:23 INFO    [find_next]   屏幕卡 y=644  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:47:23 INFO    [find_next]   屏幕卡 y=1191  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:47:23 INFO    [find_next]   屏幕卡 y=1736  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:47:23 INFO    [find_next]   屏幕卡 y=2258  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr=''
+17:47:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:47:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:47:23 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:47:23 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2258)
+17:47:23 INFO      [visited_keys] + 精确 key: title='AI产品经理（移动端方向）', company='遥望科技', hr_name='' → key='AI产品经理（移动端方向）\t遥望科技\t' (size=94)
+17:47:23 INFO      [40] → AI产品经理（移动端方向）（遥望科技）
+17:47:23 [SKILL] INFO    [navigate_to_job] → AI产品经理（移动端方向） @ (344, 2258)
+17:47:24 [SKILL] INFO    [navigate_to_job] ← 成功
+17:47:59 INFO      分数 7/10  ['JD要求「AI Coding深度使用+大模型工程化认知（MCP/Token/流式）」→ 候选人深度使用Claude SDK/MCP协议，FastAPI+Sleepless Agent开源项目集成Claude SDK发布于PyPI', 'JD要求「全栈原型开发（后端API+前端页面）」→ 候选人React+TS+FastAPI+Vibe Coding独立交付过LifeOS三代、Civic-Mind黑客松作品等可运行原型', 'JD要求「产品方案设计+PRD输出+蓝图规划」→ 候选人能碳平台3个月1前端+3后端从0-1主导落地，独立输出PRD+WBS主导优先级决策']
+17:47:59 INFO      维度分：role_fit=6 | skill_match=6 | ai_native=9 | growth_fit=8 | basic_fit=7
+17:47:59 INFO      差距：['移动端原生开发框架（React Native/Flutter/SwiftUI）在简历中无明确实战证据，需要快速补课', 'B端AI平台为主，移动端C端交互Sense与手势/碎片化场景理解相对薄弱', '本科主修为建筑学，计算机为辅修（虽GPA 4.0），与JD「计算机/软件/AI专业」主修背景存在轻微形式差距', '无移动端App指标体系（Crash/商店评分/A/B灰度）的直接经验']
+17:47:59 INFO      ✓ 达标！打招呼：张总好，看到你们在招移动端AI产品+AI Coding实战方向，我日常是产品+设计+前端单兵闭环，习惯用Claude S…
+17:48:16 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:48:24 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:48:27 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:48:29 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：张总好，看到你们在招移动端AI产品+AI
+17:48:29 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:48:29 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:48:31 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:48:32 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:48:35 INFO      ✓ 打招呼成功 — 张总好，看到你们在招移动端AI产品+AI Coding实战方向，我日常是产品+设
+17:48:56 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=97）
+17:48:56 INFO    [find_next]   屏幕卡 y=644  'FDE（产品交付工程师）'  /  '数智建材研究院'  /  hr='马女士'
+17:48:56 INFO    [find_next]   屏幕卡 y=1191  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:48:56 INFO    [find_next]   屏幕卡 y=1736  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:48:56 INFO    [find_next]   屏幕卡 y=2258  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr=''
+17:48:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE（产品交付工程师）\t数智建材研究院\t马女士', visits=2)
+17:48:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:48:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:48:56 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t', visits=1)
+17:48:59 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:49:08 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=97）
+17:49:08 INFO    [find_next]   屏幕卡 y=660  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:49:08 INFO    [find_next]   屏幕卡 y=1205  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:49:08 INFO    [find_next]   屏幕卡 y=1727  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:49:08 INFO    [find_next]   屏幕卡 y=2276  'AI 应用开发工程师（Agent方向）… &@ '  /  ''  /  hr=''
+17:49:08 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:49:08 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:49:08 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:49:08 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2276)
+17:49:08 INFO      [visited_keys] + 精确 key: title='AI 应用开发工程师（Agent方向）… &@ ', company='', hr_name='' → key='AI 应用开发工程师（Agent方向）…\t\t' (size=98)
+17:49:09 INFO      [41] → AI 应用开发工程师（Agent方向）… &@ （）
+17:49:09 [SKILL] INFO    [navigate_to_job] → AI 应用开发工程师（Agent方向）… &@  @ (406, 2276)
+17:49:09 [SKILL] INFO    [navigate_to_job] ← 成功
+17:49:53 INFO      分数 8/10  ['JD要求「综合运用LLM/多模态/RAG/Agent/工具调用构建可评测可迭代的应用」→ 候选人主导Agent OS三层产品形态（流程中心+Agents协作+工作台账）+ Task Routing/Fallback + 自研sleepless-agent发布PyPI + LifeOS基于MCP Protocol', 'JD要求「将模型与专业数据/业务知识/产品工作流结合」→ 候选人在能碳/EHS/医疗仪器场景以「流程节点+表单+报告」正交架构承载异构业务，多租户配置层复配多客户', 'JD要求「扎实工程基础+AI素养+产品意识」→ 候选人FDE型产品经理，React18+TS+FastAPI+Supabase全栈实战+企业级Design System+售前蓝图演示，跨研发/后端/AI工程师枢纽']
+17:49:53 INFO      维度分：role_fit=7 | skill_match=7 | ai_native=9 | growth_fit=8 | basic_fit=8
+17:49:53 INFO      差距：['岗位JD主体偏"AI应用开发工程师"（构建可评测可迭代的Agent），候选人履历主体偏"产品/FDE/设计/售前"，需澄清是以产品主导身份还是工程实现身份切入', '后端深度为轻量级服务级（FastAPI/Supabase），JD未硬性要求Java/Go分布式高并发但候选人无大型生产系统背书', '智慧芽涉及专利/生物医药/材料等垂直专业领域，候选人业务解构能力强但无直接行业经验，需面试确认迁移节奏']
+17:49:53 INFO      ✓ 达标！打招呼：您好，看到智慧芽要把LLM/Agent/工具调用整合进专利与生物医药检索工作流，我过去主导过Agent OS三层编排（流…
+17:49:58 WARNING   ⚠️ chat_btn tap 失败：AI 应用开发工程师（Agent方向）… &@ （智慧芽信息科技（苏州）有限公司）
+17:50:10 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=99）
+17:50:10 INFO    [find_next]   屏幕卡 y=660  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+17:50:10 INFO    [find_next]   屏幕卡 y=1205  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:50:10 INFO    [find_next]   屏幕卡 y=1727  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:50:10 INFO    [find_next]   屏幕卡 y=2276  'AI 应用开发工程师（Agent方向）… &@ '  /  ''  /  hr=''
+17:50:10 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+17:50:10 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:50:10 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:50:10 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t\t', visits=1)
+17:50:13 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:50:22 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=99）
+17:50:22 INFO    [find_next]   屏幕卡 y=675  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:50:22 INFO    [find_next]   屏幕卡 y=1197  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:50:22 INFO    [find_next]   屏幕卡 y=1754  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:50:22 INFO    [find_next]   屏幕卡 y=2306  '产品经理 AI产品经理 UI设计能力'  /  ''  /  hr=''
+17:50:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:50:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:50:22 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1754)
+17:50:22 INFO      [visited_keys] + 精确 key: title='AI 应用开发工程师（Agent方向）… &@ ', company='智慧芽', hr_name='郭女士' → key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士' (size=100)
+17:50:23 INFO      [42] → AI 应用开发工程师（Agent方向）… &@ （智慧芽）
+17:50:23 [SKILL] INFO    [navigate_to_job] → AI 应用开发工程师（Agent方向）… &@  @ (406, 1754)
+17:50:23 [SKILL] INFO    [navigate_to_job] ← 成功
+17:51:03 INFO      分数 8/10  ['JD要求「AI Agent编排 + 工具调用 + RAG/工具调用能力结合业务工作流」→ 候选人「设计 Agent OS 三层产品形态 + 三类业务节点编排模型（AI自动执行/人工介入/规则联锁）+ 统一AI网关」', 'JD要求「扎实工程基础（Python/React/TS）+ AI素养」→ 候选人「React 18 + TS + Python FastAPI 全栈实战，发布 sleepless-agent 于 PyPI，MCP 协议 + Claude Agent SDK 深度应用」', 'JD要求「高专业度长链路真实业务任务」→ 候选人「能碳管理系统 3 个月 1 前端 + 3 后端 0-1 闭环上线，医疗仪器 Prism AI 覆盖 47+ 业务路由」']
+17:51:03 INFO      维度分：role_fit=8 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=8
+17:51:03 INFO      差距：['岗位面向"高潜应届毕业生"，候选人 2 年 FDE 单兵闭环密度等价于常规 5 年 PM，年限略超属软性差距', '候选人后端深度为 FastAPI/Supabase 轻量级服务，无 Spring/Go 高并发生产系统，但 JD 强调"扎实工程基础"而非重型工程深度', '垂直领域知识（专利/知识产权/生物医药/材料）为候选人空白，需在面试中体现快速学习能力']
+17:51:03 INFO      ✓ 达标！打招呼：郭总好，看到智慧芽把 AI Agent 接到专利检索与研发决策流上，我日常主导 Agent OS 三层产品落地 + Vi…
+17:51:08 WARNING   ⚠️ chat_btn tap 失败：AI 应用开发工程师（Agent方向）… &@ （智慧芽信息科技（苏州）有限公司）
+17:51:21 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=102）
+17:51:21 INFO    [find_next]   屏幕卡 y=675  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:51:21 INFO    [find_next]   屏幕卡 y=1197  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:51:21 INFO    [find_next]   屏幕卡 y=1754  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:51:21 INFO    [find_next]   屏幕卡 y=2306  '产品经理 AI产品经理 UI设计能力'  /  ''  /  hr=''
+17:51:21 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:51:21 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:51:21 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:51:21 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2306)
+17:51:21 INFO      [visited_keys] + 精确 key: title='产品经理 AI产品经理 UI设计能力', company='', hr_name='' → key='产品经理 AI产品经理 UI设计能力\t\t' (size=103)
+17:51:21 INFO      [43] → 产品经理 AI产品经理 UI设计能力（）
+17:51:21 [SKILL] INFO    [navigate_to_job] → 产品经理 AI产品经理 UI设计能力 @ (402, 2306)
+17:51:22 [SKILL] INFO    [navigate_to_job] ← 成功
+17:52:02 INFO      分数 9/10  ['JD要求「AI产品文档&原型工具：Figma AI/v0/Lovable/Cursor/Claude写PRD出高保真原型」→ 候选人「日常Figma企业级Design System+Vibe Coding构建可运行Demo+Claude SDK深度+MCP协议集成」', 'JD要求「产品主理人：泡客户一线、做需求分析版本规划、拉研发设计测试推进」→ 候选人「团队唯一产品/设计/售前，作为研发-后端-AI工程师跨职能协调枢纽，独立制定里程碑并主导优先级决策」', 'JD要求「重度AI使用者+搭过AI工作流或智能体（加分项）」→ 候选人「业余产出数十个AI Agent开源项目（LifeOS/Sleepless Agent/IssueFighter/Civic-Mind等），PyPI发布开源工具，构建基于SSoT原则的智能体网络」']
+17:52:02 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=8
+17:52:02 INFO      差距：['未直接做过学前教育/儿童AI硬件产品，需要冷启动期接触幼儿园一线场景；JD要求的薪资25-35K可能低于其FDE+全栈单兵闭环能力的市场价位']
+17:52:02 INFO      ✓ 达标！打招呼：您好，看到你们招AI原生产品主理人、用Figma AI/v0/Cursor把PRD和原型当天生出来，我日常就是Figma…
+17:52:19 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:52:27 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:52:29 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:52:32 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：您好，看到你们招AI原生产品主理人、用F
+17:52:32 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:52:32 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:52:34 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:52:34 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:52:37 INFO      ✓ 打招呼成功 — 您好，看到你们招AI原生产品主理人、用Figma AI/v0/Cursor把PR
+17:52:37 INFO      📊 进度：本次已发 30/40，今日累计约 30 条
+17:52:37 WARNING   兜底告警：刚发的招呼 hr_name 为空（dedup_key=产品经理 AI产品经理 UI设计能力		），后续仅靠 title+company 去重
+17:52:59 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=103）
+17:52:59 INFO    [find_next]   屏幕卡 y=675  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+17:52:59 INFO    [find_next]   屏幕卡 y=1197  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:52:59 INFO    [find_next]   屏幕卡 y=1754  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:52:59 INFO    [find_next]   屏幕卡 y=2306  '产品经理 AI产品经理 UI设计能力'  /  ''  /  hr=''
+17:52:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+17:52:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:52:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:52:59 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t\t', visits=1)
+17:53:03 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:53:12 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=103）
+17:53:12 INFO    [find_next]   屏幕卡 y=651  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:53:12 INFO    [find_next]   屏幕卡 y=1208  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:53:12 INFO    [find_next]   屏幕卡 y=1763  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:53:12 INFO    [find_next]   屏幕卡 y=2284  '海外HR产品经理'  /  ''  /  hr=''
+17:53:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:53:12 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:53:12 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1763)
+17:53:12 INFO      [44] 跳过（已打过招呼）：产品经理 AI产品经理 UI设计能力
+17:53:12 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=105
+17:53:18 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=105）
+17:53:18 INFO    [find_next]   屏幕卡 y=651  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:53:18 INFO    [find_next]   屏幕卡 y=1208  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:53:18 INFO    [find_next]   屏幕卡 y=1763  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:53:18 INFO    [find_next]   屏幕卡 y=2284  '海外HR产品经理'  /  ''  /  hr=''
+17:53:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:53:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:53:18 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:53:18 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2284)
+17:53:18 INFO      [visited_keys] + 精确 key: title='海外HR产品经理', company='', hr_name='' → key='海外HR产品经理\t\t' (size=106)
+17:53:19 INFO      [45] → 海外HR产品经理（）
+17:53:19 [SKILL] INFO    [navigate_to_job] → 海外HR产品经理 @ (235, 2284)
+17:53:19 [SKILL] INFO    [navigate_to_job] ← 成功
+17:53:45 WARNING   greeting 兜底修正：'蓝总好，看到你们在重构海外HR流程并结合' → '蓝总好，看到你们在重构海外HR流程并结合'
+17:53:45 INFO      分数 6/10  ['JD要求「产品设计与实施落地，协同研发与业务团队推进项目」→ 候选人「FDE型产品经理，独立主导能碳管理3个月1前端+3后端0-1闭环，跨研发/后端/AI工程师协调枢纽」', 'JD要求「对标业界主流产品，结合用户反馈持续优化产品迭代」→ 候选人「自研流程中心引擎+AI检查，业务流程可配置化，支持server/mock/离线切换与多租户复配」', 'JD要求「AI产品落地经验优先」→ 候选人「设计Agent OS三层产品形态+统一AI网关，落地LifeOS/AILMA等AI Agent项目」']
+17:53:45 INFO      维度分：role_fit=7 | skill_match=4 | ai_native=9 | growth_fit=7 | basic_fit=6
+17:53:45 INFO      差距：['候选人无HR行业经验，海外HR流程与属地化合规规则积累为零，需快速补足', 'JD要求3年+海外HR产品建设经验为硬性门槛，候选人HR方向经验空白', '候选人的EHS合规/能碳/医疗仪器背景与HR领域业务理解存在结构性gap']
+17:53:45 INFO      → 跳过（6 < 7）
+17:53:58 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=107）
+17:53:58 INFO    [find_next]   屏幕卡 y=651  'AI产品经理（移动端方向）'  /  '遥望科技'  /  hr='张先生'
+17:53:58 INFO    [find_next]   屏幕卡 y=1208  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:53:58 INFO    [find_next]   屏幕卡 y=1763  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:53:58 INFO    [find_next]   屏幕卡 y=2284  '海外HR产品经理'  /  ''  /  hr=''
+17:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI产品经理（移动端方向）\t遥望科技\t张先生', visits=1)
+17:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:53:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t\t', visits=2)
+17:54:01 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:54:11 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=107）
+17:54:11 INFO    [find_next]   屏幕卡 y=674  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:54:11 INFO    [find_next]   屏幕卡 y=1229  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:54:11 INFO    [find_next]   屏幕卡 y=1750  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:54:11 INFO    [find_next]   屏幕卡 y=2271  'AI软件产品经理'  /  '中科沌序'  /  hr=''
+17:54:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:54:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:54:11 INFO    [find_next]   ↳ OK: title-only命中但DB未打过招呼，放行 (title='海外HR产品经理')
+17:54:11 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1750)
+17:54:11 INFO      [visited_keys] + 精确 key: title='海外HR产品经理', company='三一重工', hr_name='蓝女士' → key='海外HR产品经理\t三一重工\t蓝女士' (size=108)
+17:54:12 INFO      [46] → 海外HR产品经理（三一重工）
+17:54:12 [SKILL] INFO    [navigate_to_job] → 海外HR产品经理 @ (235, 1750)
+17:54:12 [SKILL] INFO    [navigate_to_job] ← 成功
+17:54:42 INFO      分数 7/10  ['JD要求「海外HR流程重构+产品设计」→ 候选人「FDE型产品经理，主导EHS合规平台『流程节点+表单+报告』三视角正交架构0-1落地，可直接对位HR流程重构范式」', 'JD要求「AI产品落地经验（优先）」→ 候选人「自研Agent OS三层产品（流程中心+协作+台账）+统一AI网关，AI产品化是核心强项」', 'JD要求「英文办公+海外跨文化协同」→ 候选人「英文流利，纽约全职工作5年+，主导ToC出海AI+多租户海外客户并发交付」']
+17:54:42 INFO      维度分：role_fit=7 | skill_match=7 | ai_native=8 | growth_fit=9 | basic_fit=6
+17:54:42 INFO      差距：['无海外HR行业经验，属软性差距但HR领域业务规则（薪酬/考勤/招聘/绩效等）需快速补齐', '薪资25-35K对候选人FDE产品岗定位可能略低于其期望区间']
+17:54:42 INFO      地点「广州」权重 0.85 → 分数 7→6
+17:54:42 INFO      → 跳过（6 < 7）
+17:54:54 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=108）
+17:54:54 INFO    [find_next]   屏幕卡 y=674  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:54:54 INFO    [find_next]   屏幕卡 y=1229  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:54:54 INFO    [find_next]   屏幕卡 y=1750  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:54:54 INFO    [find_next]   屏幕卡 y=2271  'AI软件产品经理'  /  '中科沌序'  /  hr=''
+17:54:54 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:54:54 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:54:54 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:54:54 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2271)
+17:54:54 INFO      [visited_keys] + 精确 key: title='AI软件产品经理', company='中科沌序', hr_name='' → key='AI软件产品经理\t中科沌序\t' (size=109)
+17:54:55 INFO      [47] → AI软件产品经理（中科沌序）
+17:54:55 [SKILL] INFO    [navigate_to_job] → AI软件产品经理 @ (227, 2271)
+17:54:55 [SKILL] INFO    [navigate_to_job] ← 成功
+17:55:38 WARNING   greeting 兜底修正：'季总好，看到你们招多智能体协同平台的产品' → '季总好，看到你们招多智能体协同平台的产品'
+17:55:38 INFO      分数 9/10  ['JD要求「多智能体协同平台产品定义 + 人机协同交互范式（自主程度分级/干预/告警）」→ 候选人「自研 Agent OS 三层形态（控制台/协作/台账）+ 三类业务节点编排（AI自动执行/人工介入/规则联锁）」', 'JD要求「把项目沉淀为产品基线 / 标准化模块 / 0代码改动复配新客户」→ 候选人「1套自研平台基座+同1套核心代码+多租户配置即可产出差异化工作台，0代码改动复配多个客户」', 'JD要求「读 Agent trace 定位问题 + BadCase 闭环 + 不确定性降级兜底」→ 候选人「Task Routing/Fallback机制+统一AI网关（权限管控/自动操作路由）+读trace定位产品问题」', 'JD要求「跨团队项目管理（算法/框架/端侧/交付）+售前蓝图与方案输出」→ 候选人「3个月主导1前端+3后端0-1闭环+行业深创赛售前演示+独立完成棱镜泰克全栈蓝图」']
+17:55:38 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=10 | growth_fit=8 | basic_fit=9
+17:55:38 INFO      差距：['JD涉及机器人/虚拟智能体/端侧仿真/SDK开放平台，候选人主要是B端SaaS+能碳/EHS，直接机器人或端侧产品经验较弱；算法/框架团队深度协作场景待验证']
+17:55:38 INFO      ✓ 达标！打招呼：季总好，看到你们招多智能体协同平台的产品经理，主导过Agent OS从0到1，希望您方便发份简历看看吗，方便发您一份简历…
+17:55:55 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:56:03 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:56:05 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:56:08 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：季总好，看到你们招多智能体协同平台的产品
+17:56:08 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:56:08 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:56:10 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:56:10 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:56:13 INFO      ✓ 打招呼成功 — 季总好，看到你们招多智能体协同平台的产品经理，主导过Agent OS从0到1，希
+17:56:35 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=112）
+17:56:35 INFO    [find_next]   屏幕卡 y=674  'AI 应用开发工程师（Agent方向）… &@ '  /  '智慧芽'  /  hr='郭女士'
+17:56:35 INFO    [find_next]   屏幕卡 y=1229  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:56:35 INFO    [find_next]   屏幕卡 y=1750  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:56:35 INFO    [find_next]   屏幕卡 y=2271  'AI软件产品经理'  /  '中科沌序'  /  hr=''
+17:56:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用开发工程师（Agent方向）…\t智慧芽\t郭女士', visits=2)
+17:56:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:56:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:56:35 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t', visits=1)
+17:56:38 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:56:48 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=112）
+17:56:48 INFO    [find_next]   屏幕卡 y=678  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:56:48 INFO    [find_next]   屏幕卡 y=1199  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:56:48 INFO    [find_next]   屏幕卡 y=1720  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+17:56:48 INFO    [find_next]   屏幕卡 y=2241  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr=''
+17:56:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:56:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:56:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+17:56:48 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2241)
+17:56:48 INFO      [visited_keys] + 精确 key: title='Agent产品经理（AI智能硬件）', company='深圳云天励飞', hr_name='' → key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t' (size=113)
+17:56:48 INFO      [48] → Agent产品经理（AI智能硬件）（深圳云天励飞）
+17:56:48 [SKILL] INFO    [navigate_to_job] → Agent产品经理（AI智能硬件） @ (384, 2241)
+17:56:48 [SKILL] INFO    [navigate_to_job] ← 成功
+17:57:19 INFO      分数 7/10  ['JD要求「Agent产品从0到1规划与全流程主导」→ 候选人「设计Agent OS三层产品形态+三类业务节点编排，主导能碳3个月1前端+3后端从0-1闭环」', 'JD要求「Prompt策略+多轮对话/任务执行设计」→ 候选人「海外智能穿戴项目设计Agent多轮对话Task Routing与Fallback机制，Claude SDK深度应用」', 'JD要求「与算法/硬件/设计跨职能协作」→ 候选人「作为团队唯一产品/设计/售前角色，FDE模式跨职能主导蓝图与Demo落地」']
+17:57:19 INFO      维度分：role_fit=7 | skill_match=7 | ai_native=8 | growth_fit=8 | basic_fit=7
+17:57:19 INFO      差距：['无儿童AI硬件产品经验，缺少儿童认知/未成年人内容安全与隐私法规理解', '候选人为B端工业SaaS+ToC出海智能穿戴背景，与儿童硬件场景的迁移路径需验证', '工作地与深圳岗位存在地域差距，候选人base上海']
+17:57:19 INFO      ✓ 达标！打招呼：许总好，看到你们规划儿童硬件Agent能力与跨职能软硬一体协作，我日常做产品+设计+前端单兵闭环，从0-1搭过B端Saa…
+17:57:36 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:57:43 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:57:46 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:57:49 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：许总好，看到你们规划儿童硬件Agent能
+17:57:49 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:57:49 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:57:51 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:57:51 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:57:54 INFO      ✓ 打招呼成功 — 许总好，看到你们规划儿童硬件Agent能力与跨职能软硬一体协作，我日常做产品+设
+17:58:16 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=116）
+17:58:16 INFO    [find_next]   屏幕卡 y=678  '产品经理 AI产品经理 UI设计能力'  /  '十五秒科技'  /  hr='张女士'
+17:58:16 INFO    [find_next]   屏幕卡 y=1199  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:58:16 INFO    [find_next]   屏幕卡 y=1720  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+17:58:16 INFO    [find_next]   屏幕卡 y=2241  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr=''
+17:58:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理 AI产品经理 UI设计能力\t十五秒科技\t张女士', visits=2)
+17:58:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:58:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+17:58:16 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t', visits=1)
+17:58:19 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+17:58:28 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=116）
+17:58:28 INFO    [find_next]   屏幕卡 y=668  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:58:28 INFO    [find_next]   屏幕卡 y=1189  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+17:58:28 INFO    [find_next]   屏幕卡 y=1710  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+17:58:28 INFO    [find_next]   屏幕卡 y=2231  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr=''
+17:58:28 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:58:28 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+17:58:28 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+17:58:28 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2231)
+17:58:28 INFO      [visited_keys] + 精确 key: title='AI Agent与大模型应用工程师', company='蚂蚁集团', hr_name='' → key='AI Agent与大模型应用工程师\t蚂蚁集团\t' (size=117)
+17:58:29 INFO      [49] → AI Agent与大模型应用工程师（蚂蚁集团）
+17:58:29 [SKILL] INFO    [navigate_to_job] → AI Agent与大模型应用工程师 @ (366, 2231)
+17:58:29 [SKILL] INFO    [navigate_to_job] ← 成功
+17:59:02 INFO      分数 8/10  ['JD要求「Agent/Agentic RAG智能助手类产品研发经验+大规模落地」→ 候选人「设计 Agent OS 三层产品形态（流程中心/Agents协作/台账）+ 统一 AI 网关，多租户 8+ 客户复配落地」', 'JD要求「面向业务需求设计AI原生系统架构，含记忆管理/推理策略/工具编排」→ 候选人「自研统一 AI 网关（权限管控+流式输出+自动操作路由）+ 三类业务节点编排模型（AI自动执行/人工介入/规则联锁）」', 'JD要求「熟悉Prompt Engineering/工具调用/Agent框架，懂幻觉与Prompt注入工程化应对」→ 候选人「Vibe Coding 全栈交付 + Claude Agent SDK 深度应用 + 设计 Agent Task Routing 与 Fallback 机制 + 个人项目 sleepless-agent（PR自动化）/IssueFighter（代码审查）」']
+17:59:02 INFO      维度分：role_fit=7 | skill_match=7 | ai_native=9 | growth_fit=8 | basic_fit=8
+17:59:02 INFO      差距：['候选人偏 FDE 型产品/架构设计，核心 Agent 模块（记忆管理/推理策略）的工程化研发深度未在简历中显性体现，更接近 Agent 产品的蓝图规划与售前交付而非核心代码 Owner', '后端工程深度偏轻量（FastAPI/Supabase 路线），JD 若实际期望 Java/Go 高并发 Agent 平台研发，则存在能力错位（但 JD 正文未硬性要求此类语言）', '无金融/信用行业业务经验，跨域补足需要一定周期（JD 未做硬性要求，属软性偏好）']
+17:59:02 INFO      大厂加权「蚂蚁」×1.15 → 分数 8→9
+17:59:02 INFO      ✓ 达标！打招呼：谢总好，看到你们要用 Agent+Agentic RAG 搭智能助手并兼顾架构灵活性与落地，我前阵子主导过 Agent …
+17:59:18 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+17:59:26 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+17:59:29 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+17:59:31 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：谢总好，看到你们要用 Agent+Age
+17:59:31 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+17:59:31 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+17:59:33 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+17:59:34 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+17:59:37 INFO      ✓ 打招呼成功 — 谢总好，看到你们要用 Agent+Agentic RAG 搭智能助手并兼顾架构灵
+17:59:58 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=120）
+17:59:58 INFO    [find_next]   屏幕卡 y=668  '海外HR产品经理'  /  '三一重工'  /  hr='蓝女士'
+17:59:58 INFO    [find_next]   屏幕卡 y=1189  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+17:59:58 INFO    [find_next]   屏幕卡 y=1710  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+17:59:58 INFO    [find_next]   屏幕卡 y=2231  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr=''
+17:59:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='海外HR产品经理\t三一重工\t蓝女士', visits=3)
+17:59:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+17:59:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+17:59:58 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t', visits=1)
+18:00:01 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:00:11 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=120）
+18:00:11 INFO    [find_next]   屏幕卡 y=656  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+18:00:11 INFO    [find_next]   屏幕卡 y=1177  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+18:00:11 INFO    [find_next]   屏幕卡 y=1698  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:00:11 INFO    [find_next]   屏幕卡 y=2219  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr=''
+18:00:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+18:00:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+18:00:11 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:00:11 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2219)
+18:00:11 INFO      [visited_keys] + 精确 key: title='AI 研发效能工程师（深圳/上海）', company='深圳元戎启行科技', hr_name='' → key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t' (size=121)
+18:00:11 INFO      [50] → AI 研发效能工程师（深圳/上海）（深圳元戎启行科技）
+18:00:11 [SKILL] INFO    [navigate_to_job] → AI 研发效能工程师（深圳/上海） @ (406, 2219)
+18:00:12 [SKILL] INFO    [navigate_to_job] ← 成功
+18:00:51 INFO      分数 9/10  ['JD要求「AI 编程工具（Cursor / Claude Code）落地 Agent 工具」→ 候选人「Sleepless Agent 基于 Claude SDK 开发者自动化工具已发布 PyPI，IssueFighter 在 Issue 中 @claude 触发代码审查」', 'JD要求「MCP 协议 / CLI 工具链」→ 候选人「LifeOS 最新版本基于 FastAPI + MCP Protocol；Vibe Coding CLI 封装 Git Worktree 为 Node.js 全局命令」', 'JD要求「跑通业务场景产出标杆案例 + 跨团队推动」→ 候选人「以核心产品参加行业深创赛获 9705 票第二名，能碳 UAT 3 月主导 1 前端+3 后端 0-1 闭环上线」', 'JD要求「产品意识 + 跨职能协调枢纽 + 售前蓝图能力」→ 候选人「团队唯一产品/设计/售前角色，自研 42 个 Token 驱动的企业级 Design System 支撑售前 Demo」']
+18:00:51 INFO      维度分：role_fit=8 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=7
+18:00:51 INFO      差距：['DORA 等研发效能度量体系无明确经验，属软缺口可快速补足', '智驾研发全链路（数据→标注→训练→仿真→部署）为加分项，候选人无直接经验', 'JD 实质偏研发效能工程师，需要持续对接一线研发团队，而候选人简历更侧重 PM+售前+设计一体的 FDE 模式，需在面试中证明对研发一线痛点的体感深度']
+18:00:51 INFO      ✓ 达标！打招呼：阳总好，看到你们要落地 Claude Code 类 AI 提效工具并沉淀组织知识库，我的 Sleepless Agent…
+18:01:08 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:01:16 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:01:19 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:01:21 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：阳总好，看到你们要落地 Claude C
+18:01:21 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:01:21 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:01:23 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:01:24 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:01:26 INFO      ✓ 打招呼成功 — 阳总好，看到你们要落地 Claude Code 类 AI 提效工具并沉淀组织知识
+18:01:48 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=124）
+18:01:48 INFO    [find_next]   屏幕卡 y=656  'AI软件产品经理'  /  '中科沌序'  /  hr='季武'
+18:01:48 INFO    [find_next]   屏幕卡 y=1177  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+18:01:48 INFO    [find_next]   屏幕卡 y=1698  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:01:48 INFO    [find_next]   屏幕卡 y=2219  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr=''
+18:01:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI软件产品经理\t中科沌序\t季武', visits=1)
+18:01:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+18:01:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:01:48 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t', visits=1)
+18:01:51 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:02:01 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=124）
+18:02:01 INFO    [find_next]   屏幕卡 y=628  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+18:02:01 INFO    [find_next]   屏幕卡 y=1149  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:02:01 INFO    [find_next]   屏幕卡 y=1670  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:02:01 INFO    [find_next]   屏幕卡 y=2283  '产品经理'  /  ''  /  hr=''
+18:02:01 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+18:02:01 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:02:01 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:02:01 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2283)
+18:02:01 INFO      [51] 跳过（已打过招呼）：产品经理
+18:02:01 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=125
+18:02:07 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=125）
+18:02:07 INFO    [find_next]   屏幕卡 y=628  'Agent产品经理（AI智能硬件）'  /  '深圳云天励飞'  /  hr='许女士'
+18:02:07 INFO    [find_next]   屏幕卡 y=1149  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:02:07 INFO    [find_next]   屏幕卡 y=1670  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:02:07 INFO    [find_next]   屏幕卡 y=2283  '产品经理'  /  ''  /  hr=''
+18:02:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='Agent产品经理（AI智能硬件）\t深圳云天励飞\t许女士', visits=1)
+18:02:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:02:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:02:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t\t', visits=57)
+18:02:10 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:02:19 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=125）
+18:02:19 INFO    [find_next]   屏幕卡 y=601  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:02:19 INFO    [find_next]   屏幕卡 y=1122  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:02:19 INFO    [find_next]   屏幕卡 y=1735  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:02:19 INFO    [find_next]   屏幕卡 y=2256  'AI 应用项目经理'  /  '十沣'  /  hr=''
+18:02:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:02:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:02:19 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1735)
+18:02:19 INFO      [visited_keys] + 精确 key: title='产品经理', company='创想三维', hr_name='游女士' → key='产品经理\t创想三维\t游女士' (size=126)
+18:02:20 INFO      [52] → 产品经理（创想三维）
+18:02:20 [SKILL] INFO    [navigate_to_job] → 产品经理 @ (157, 1735)
+18:02:20 [SKILL] INFO    [navigate_to_job] ← 成功
+18:03:01 WARNING   greeting 兜底修正：'游总好，看到你们在找智能硬件方向的产品经' → '游总好，看到你们在找智能硬件方向的产品经'
+18:03:01 INFO      分数 5/10  ['JD要求「组织协调市场、研发、设计、供应链等多部门完成产品开发」→ 候选人作为团队唯一产品/设计/售前角色，协调研发/后端/AI工程师，主导WBS与里程碑', 'JD要求「产品卖点提炼与发布上市」→ 候选人以核心产品代表公司参加行业深创赛获9705票（第二名），具备产品宣发实战', 'JD要求「主人翁意识、对业绩与用户满意度负责」→ 候选人简历强调Ownership，独立主导能碳3月4人0-1闭环并通过UAT验收', 'JD要求「审美与创新」→ 候选人有设计学硕士+企业级Design System实战+参数化设计背景']
+18:03:01 INFO      维度分：role_fit=5 | skill_match=5 | ai_native=2 | growth_fit=6 | basic_fit=7
+18:03:01 INFO      差距：["JD硬性要求'至少2年以上智能机器人、无人机、智能座舱/车联网全生命周期管理经验'，候选人过往为B端SaaS能碳/EHS/C端AI穿戴出海，无硬件行业经历", 'JD核心场景为消费硬件产品经理（供应链/产品发布/市场调研/卖点营销），候选人偏B端SaaS与AI Agent方向，业务场景差距明显', 'JD无任何AI工具/Agent/Vibe Coding相关要求，候选人核心AI原生优势在此岗无法发挥', '候选人能力画像为FDE型产品+设计+前端单兵闭环，与传统消费硬件PM的职责颗粒度有差异']
+18:03:01 INFO      地点「深圳」权重 0.90 → 分数 5→4
+18:03:01 INFO      → 跳过（4 < 7）
+18:03:13 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=127）
+18:03:13 INFO    [find_next]   屏幕卡 y=601  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:03:13 INFO    [find_next]   屏幕卡 y=1122  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:03:13 INFO    [find_next]   屏幕卡 y=1735  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:03:13 INFO    [find_next]   屏幕卡 y=2256  'AI 应用项目经理'  /  '十沣'  /  hr=''
+18:03:13 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:03:13 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:03:13 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t创想三维\t游女士', visits=3)
+18:03:13 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2256)
+18:03:13 INFO      [visited_keys] + 精确 key: title='AI 应用项目经理', company='十沣', hr_name='' → key='AI 应用项目经理\t十沣\t' (size=128)
+18:03:13 INFO      [53] → AI 应用项目经理（十沣）
+18:03:13 [SKILL] INFO    [navigate_to_job] → AI 应用项目经理 @ (233, 2256)
+18:03:14 [SKILL] INFO    [navigate_to_job] ← 成功
+18:03:54 INFO      分数 9/10  ['JD要求「必须有 Agent 智能体应用落地项目完整管理经验」→ 候选人「在 EHS/能碳/医疗仪器平台主导 Agent OS 三层（流程中心/Agents 协作/工作台账）+ 统一 AI 网关从 0-1 闭环」', 'JD要求「具备独立售前能力：独立撰写方案、PPT、面向客户讲解」→ 候选人「作为唯一产品/设计/售前角色独立完成棱镜泰克全栈蓝图与高保真 Demo，以核心产品代表公司参加行业深创赛获 9705 票第二名」', 'JD要求「对接业务方梳理真实业务场景，拆解业务需求，输出需求规格与业务流程图」→ 候选人「3 个月主导 1 前端 + 3 后端完成能碳管理 UAT 交付，覆盖能耗采集与碳排核算全链路，精修 PRD 消除研发歧义并主动精简边界风险缩减 240h」', 'JD要求「熟悉 Agent/Skill/工具编排/MCP 工具相关项目经验」→ 候选人「深度集成 MCP Protocol（LifeOS & AILMA 基于 FastAPI+MCP）、自研流程中心引擎含 AI 对话生成与模拟执行、统一 AI 网关自动调取后端接口」']
+18:03:54 INFO      维度分：role_fit=9 | skill_match=9 | ai_native=9 | growth_fit=9 | basic_fit=7
+18:03:54 INFO      差距：['JD 表面要求 3-5 年 IT/AI 项目管理经验，候选人 2 年核心实战但交付密度高（多项目 0-1 + 多租户复配 + 跨领域 4 个垂直行业），任期密度等价于常规 PM', '薪资 JD 给出 18-30K，对应中级岗位区间，候选人 FDE + 全栈 + AI Agent 多重技能叠加的实际市场期望可能略高于该上限，需与 HR 进一步对齐']
+18:03:54 INFO      ✓ 达标！打招呼：黄总好，看到你们要在 AI Agent 应用项目里主导从需求调研到验收交付的全流程管控，我过去主导过 Agent OS …
+18:04:12 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:04:19 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:04:22 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:04:24 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：黄总好，看到你们要在 AI Agent 
+18:04:24 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:04:24 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:04:27 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:04:27 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:04:30 INFO      ✓ 打招呼成功 — 黄总好，看到你们要在 AI Agent 应用项目里主导从需求调研到验收交付的全流
+18:04:51 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=131）
+18:04:51 INFO    [find_next]   屏幕卡 y=601  'AI Agent与大模型应用工程师'  /  '蚂蚁集团'  /  hr='谢先生'
+18:04:51 INFO    [find_next]   屏幕卡 y=1122  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:04:51 INFO    [find_next]   屏幕卡 y=1735  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:04:51 INFO    [find_next]   屏幕卡 y=2256  'AI 应用项目经理'  /  '十沣'  /  hr=''
+18:04:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI Agent与大模型应用工程师\t蚂蚁集团\t谢先生', visits=1)
+18:04:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:04:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t创想三维\t游女士', visits=3)
+18:04:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t', visits=1)
+18:04:54 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:05:04 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=131）
+18:05:04 INFO    [find_next]   屏幕卡 y=590  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:05:04 INFO    [find_next]   屏幕卡 y=1203  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:05:04 INFO    [find_next]   屏幕卡 y=1724  'AI 应用项目经理'  /  '十沣'  /  hr='黄女士'
+18:05:04 INFO    [find_next]   屏幕卡 y=2245  '后端开发工程师'  /  '偶城科技'  /  hr=''
+18:05:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:05:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t创想三维\t游女士', visits=3)
+18:05:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t黄女士', visits=1)
+18:05:04 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2245)
+18:05:04 INFO      [visited_keys] + 精确 key: title='后端开发工程师', company='偶城科技', hr_name='' → key='后端开发工程师\t偶城科技\t' (size=132)
+18:05:04 INFO      [54] → 后端开发工程师（偶城科技）
+18:05:04 [SKILL] INFO    [navigate_to_job] → 后端开发工程师 @ (227, 2245)
+18:05:05 [SKILL] INFO    [navigate_to_job] ← 成功
+18:05:45 INFO      分数 2/10  ['JD要求「熟悉数据架构和接口设计」→ 候选人「主导能碳管理 0-1 闭环中负责 API 规范与数据表结构设计，配合 1 前端 + 3 后端团队」', 'JD要求「良好的团队合作和沟通能力」→ 候选人「跨研发/后端/AI 工程师统筹枢纽，售前深挖客户需求并主导 WBS」', 'JD要求「协助项目经理完成项目计划」→ 候选人「独立制定里程碑、拆解 WBS、主导优先级决策，对交付节奏有完整主导权」']
+18:05:45 INFO      维度分：role_fit=2 | skill_match=2 | ai_native=1 | growth_fit=3 | basic_fit=2
+18:05:45 INFO      差距：['JD为纯传统后端工程师岗（MySQL/Oracle、高可用、容错备份），候选人主定位为产品/FDE/设计/售前，后端深度严重不足', 'JD硬性要求 985/211 计算机专业，候选人海外 QS TOP 50 建筑学背景，不满足该硬性学历门槛', 'JD要求 2-5 年大厂后端经验，候选人 2 年创业公司 FDE 经验，无大厂背景', 'JD技术栈为 MySQL/Oracle，候选人主要使用 PostgreSQL 且深度有限']
+18:05:45 INFO      → 跳过（2 < 7）
+18:05:57 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=135）
+18:05:57 INFO    [find_next]   屏幕卡 y=590  'AI 研发效能工程师（深圳/上海）'  /  '深圳元戎启行科技'  /  hr='阳女士'
+18:05:57 INFO    [find_next]   屏幕卡 y=1203  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:05:57 INFO    [find_next]   屏幕卡 y=1724  'AI 应用项目经理'  /  '十沣'  /  hr='黄女士'
+18:05:57 INFO    [find_next]   屏幕卡 y=2245  '后端开发工程师'  /  '偶城科技'  /  hr=''
+18:05:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 研发效能工程师（深圳/上海）\t深圳元戎启行科技\t阳女士', visits=1)
+18:05:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t创想三维\t游女士', visits=3)
+18:05:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t黄女士', visits=1)
+18:05:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t', visits=1)
+18:06:00 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:06:09 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=135）
+18:06:09 INFO    [find_next]   屏幕卡 y=741  '产品经理'  /  '创想三维'  /  hr='游女士'
+18:06:09 INFO    [find_next]   屏幕卡 y=1262  'AI 应用项目经理'  /  '十沣'  /  hr='黄女士'
+18:06:09 INFO    [find_next]   屏幕卡 y=1783  '后端开发工程师'  /  '偶城科技'  /  hr='王晓晨'
+18:06:09 INFO    [find_next]   屏幕卡 y=2304  'FDE前沿部署工程师'  /  ''  /  hr=''
+18:06:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='产品经理\t创想三维\t游女士', visits=3)
+18:06:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t黄女士', visits=1)
+18:06:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t王晓晨', visits=1)
+18:06:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t\t', visits=6)
+18:06:12 INFO      当前屏幕无未访问目标，列表短滑 2/12 (px=500, wait=2.5s)
+18:06:22 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=135）
+18:06:22 INFO    [find_next]   屏幕卡 y=715  'AI 应用项目经理'  /  '十沣'  /  hr='黄女士'
+18:06:22 INFO    [find_next]   屏幕卡 y=1236  '后端开发工程师'  /  '偶城科技'  /  hr='王晓晨'
+18:06:22 INFO    [find_next]   屏幕卡 y=1758  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:06:22 INFO    [find_next]   屏幕卡 y=2291  'AI业务工程师【FDE】一Agent交付方向'  /  ''  /  hr=''
+18:06:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t黄女士', visits=1)
+18:06:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t王晓晨', visits=1)
+18:06:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:06:22 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2291)
+18:06:22 INFO      [visited_keys] + 精确 key: title='AI业务工程师【FDE】一Agent交付方向', company='', hr_name='' → key='AI业务工程师【FDE】一Agent交付方向\t\t' (size=136)
+18:06:23 INFO      [55] → AI业务工程师【FDE】一Agent交付方向（）
+18:06:23 [SKILL] INFO    [navigate_to_job] → AI业务工程师【FDE】一Agent交付方向 @ (409, 2291)
+18:06:23 [SKILL] INFO    [navigate_to_job] ← 成功
+18:07:05 INFO      分数 9/10  ['JD要求「深入业务线、诊断AI机会并端到端交付试点」→ 候选人「未来方舟作为团队唯一产品/设计/售前，3 个月主导 1 前端 + 3 后端从 MVP 到 UAT 闭环上线，独立完成医疗仪器 Prism AI 全栈蓝图与 Demo」', 'JD要求「两周内从外行到能与业务 Lead 有效对话，快速进入陌生业务域」→ 候选人「2 年内主导 EHS 合规 / 能碳核算 / 医疗仪器三个陌生垂直领域 0-1 闭环，提炼出 1 套平台基座 + N 复配方法论」', 'JD要求「AI 是日常主要生产力工具，设计多 Agent 并行工作流与提示工程」→ 候选人「自研 Agent OS 三层产品形态（流程中心 / Agents 协作 / 台账）+ 三类业务节点编排 + 统一 AI 网关，Vibe Coding 贯穿全交付链」']
+18:07:05 INFO      维度分：role_fit=9.5 | skill_match=9 | ai_native=10 | growth_fit=9 | basic_fit=8
+18:07:05 INFO      差距：['JD 强调「业务指标变化」为效果衡量标准，候选人简历对业务指标闭环（如 KPI 提升百分比、ROI 数据）披露相对单薄，建议面试中补充展开', '候选人后端以 FastAPI/Supabase 轻量级为主，未提及 Java/Go 生产级高并发经验，若业务线后期需要复杂数据工程需补位']
+18:07:05 INFO      ✓ 达标！打招呼：李总好，看到你们要在真实业务线里端到端交付 AI 试点，我之前作为团队唯一的产品/设计/售前，3 个月主导 1 前端 +…
+18:07:22 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:07:30 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:07:33 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:07:35 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：李总好，看到你们要在真实业务线里端到端交
+18:07:35 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:07:35 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:07:37 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:07:37 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:07:40 INFO      ✓ 打招呼成功 — 李总好，看到你们要在真实业务线里端到端交付 AI 试点，我之前作为团队唯一的产品
+18:08:02 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=137）
+18:08:02 INFO    [find_next]   屏幕卡 y=715  'AI 应用项目经理'  /  '十沣'  /  hr='黄女士'
+18:08:02 INFO    [find_next]   屏幕卡 y=1236  '后端开发工程师'  /  '偶城科技'  /  hr='王晓晨'
+18:08:02 INFO    [find_next]   屏幕卡 y=1758  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:08:02 INFO    [find_next]   屏幕卡 y=2291  'AI业务工程师【FDE】一Agent交付方向'  /  ''  /  hr=''
+18:08:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 应用项目经理\t十沣\t黄女士', visits=1)
+18:08:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t王晓晨', visits=1)
+18:08:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:08:02 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI业务工程师【FDE】一Agent交付方向\t\t', visits=1)
+18:08:05 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:08:15 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=137）
+18:08:15 INFO    [find_next]   屏幕卡 y=688  '后端开发工程师'  /  '偶城科技'  /  hr='王晓晨'
+18:08:15 INFO    [find_next]   屏幕卡 y=1210  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:08:15 INFO    [find_next]   屏幕卡 y=1766  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:08:15 INFO    [find_next]   屏幕卡 y=2312  'FDE专家'  /  ''  /  hr=''
+18:08:15 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t王晓晨', visits=1)
+18:08:15 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:08:15 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:08:15 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2312)
+18:08:15 INFO      [visited_keys] + 精确 key: title='FDE专家', company='', hr_name='' → key='FDE专家\t\t' (size=138)
+18:08:15 INFO      [56] → FDE专家（）
+18:08:15 [SKILL] INFO    [navigate_to_job] → FDE专家 @ (151, 2312)
+18:08:15 [SKILL] INFO    [navigate_to_job] ← 成功
+18:08:54 INFO      分数 9/10  ['JD要求「业务流诊断与AI机会识别，0-1产品构建」→ 候选人「未来方舟FDE，3个月主导1前端+3后端团队从MVP到UAT上线，覆盖47+业务路由」', 'JD要求「Agent架构/Prompt工程/全栈端到端交付」→ 候选人「Agent OS三层产品形态（控制台/Agents/台账）+ 流程中心+设计系统42个原子组件，单兵闭环Figma+Vibe Coding产出生产级Demo」', 'JD要求「能力沉淀与跨组织协同」→ 候选人「1套平台基座+N租户0代码复配，跨研发/后端/AI工程师的多方枢纽，售前蓝图演示与Trade-off边界管理」']
+18:08:54 INFO      维度分：role_fit=9.5 | skill_match=8 | ai_native=9 | growth_fit=9 | basic_fit=9
+18:08:54 INFO      差距：['RAG与模型评估体系未在简历中明确体现，候选人强项在Agent编排与流程引擎，RAG深度需面试验证', '后端以FastAPI/Supabase轻量级为主，未涉及Spring/Go生产级高并发深度，独立交付生产级超大流量应用的经验需考察', '无游戏业务背景（为加分项非硬性）', '2年内完成0-1闭环6+真实项目，交付密度等价于常规5年PM']
+18:08:54 INFO      ✓ 达标！打招呼：欧阳总好，看到你们要 FDE 搭建生产级 AI 应用并沉淀工程标准，我过去正好单兵闭环 PM+设计+前端+售前，3 个月…
+18:09:12 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:09:19 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:09:22 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:09:24 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：欧阳总好，看到你们要 FDE 搭建生产级
+18:09:24 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:09:24 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:09:26 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:09:27 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:09:29 INFO      ✓ 打招呼成功 — 欧阳总好，看到你们要 FDE 搭建生产级 AI 应用并沉淀工程标准，我过去正好单
+18:09:51 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=139）
+18:09:51 INFO    [find_next]   屏幕卡 y=688  '后端开发工程师'  /  '偶城科技'  /  hr='王晓晨'
+18:09:51 INFO    [find_next]   屏幕卡 y=1210  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:09:51 INFO    [find_next]   屏幕卡 y=1766  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:09:51 INFO    [find_next]   屏幕卡 y=2312  'FDE专家'  /  ''  /  hr=''
+18:09:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='后端开发工程师\t偶城科技\t王晓晨', visits=1)
+18:09:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:09:51 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:09:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE专家\t\t', visits=3)
+18:09:54 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:10:03 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=139）
+18:10:03 INFO    [find_next]   屏幕卡 y=679  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:10:03 INFO    [find_next]   屏幕卡 y=1235  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:10:03 INFO    [find_next]   屏幕卡 y=1791  'FDE专家'  /  '世纪华通'  /  hr='欧阳女士'
+18:10:03 INFO    [find_next]   屏幕卡 y=2307  '现场开发工程师（FDE）(A93096)'  /  ''  /  hr=''
+18:10:03 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:10:03 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:10:03 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='FDE专家')
+18:10:03 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2307)
+18:10:03 INFO      [visited_keys] + 精确 key: title='现场开发工程师（FDE）(A93096)', company='', hr_name='' → key='现场开发工程师（FDE）(A93096)\t\t' (size=140)
+18:10:04 INFO      [57] → 现场开发工程师（FDE）(A93096)（）
+18:10:04 [SKILL] INFO    [navigate_to_job] → 现场开发工程师（FDE）(A93096) @ (406, 2307)
+18:10:04 [SKILL] INFO    [navigate_to_job] ← 成功
+18:10:39 INFO      分数 3/10  ['JD要求「跨职能协作与客户需求洞察」→ 候选人「作为团队唯一的产品/设计/售前角色,主导过医疗仪器/能碳/EHS等多个行业的客户蓝图设计与交付」', 'JD要求「技术沉淀与文档输出」→ 候选人「主导参与行业深创赛获9705票(第二名),输出精细化PRD直连研发」']
+18:10:39 INFO      维度分：role_fit=3 | skill_match=2 | ai_native=4 | growth_fit=3 | basic_fit=6
+18:10:39 INFO      差距：['岗位核心要求嵌入式Linux/C/C++/BSP/NPU模型部署等底层工程能力,候选人技能栈以React/TS/Python前端为主,缺乏硬件底层与驱动开发经验', 'JD聚焦AI SoC芯片的算法适配与性能优化,候选人AI经验集中在Agent应用层产品化,与芯片级部署优化存在方向性差距', '客户现场场景为机器人/自动驾驶等硬件领域,候选人过往客户场景集中在软件SaaS/EHS/能碳平台,行业经验不直接相关']
+18:10:39 INFO      地点「远程」权重 1.10 → 分数 3→3
+18:10:39 INFO      → 跳过（3 < 7）
+18:10:51 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=141）
+18:10:51 INFO    [find_next]   屏幕卡 y=679  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='张女士'
+18:10:51 INFO    [find_next]   屏幕卡 y=1235  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:10:51 INFO    [find_next]   屏幕卡 y=1791  'FDE专家'  /  '世纪华通'  /  hr='欧阳女士'
+18:10:51 INFO    [find_next]   屏幕卡 y=2307  '现场开发工程师（FDE）(A93096)'  /  ''  /  hr=''
+18:10:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t张女士', visits=2)
+18:10:51 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:10:51 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='FDE专家')
+18:10:51 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='现场开发工程师（FDE）(A93096)\t\t', visits=2)
+18:10:53 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:11:02 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=141）
+18:11:02 INFO    [find_next]   屏幕卡 y=688  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:11:02 INFO    [find_next]   屏幕卡 y=1244  'FDE专家'  /  '世纪华通'  /  hr='欧阳女士'
+18:11:02 INFO    [find_next]   屏幕卡 y=1794  '现场开发工程师（FDE）(A93096)'  /  '辉羲'  /  hr='张子璇'
+18:11:02 INFO    [find_next]   屏幕卡 y=2323  'FDE前沿部署工程师'  /  ''  /  hr=''
+18:11:02 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:11:02 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='FDE专家')
+18:11:02 INFO    [find_next]   ↳ OK: title-only命中但DB未打过招呼，放行 (title='现场开发工程师（FDE）(A93096)')
+18:11:02 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1794)
+18:11:02 INFO      [visited_keys] + 精确 key: title='现场开发工程师（FDE）(A93096)', company='辉羲', hr_name='张子璇' → key='现场开发工程师（FDE）(A93096)\t辉羲\t张子璇' (size=142)
+18:11:03 INFO      [58] → 现场开发工程师（FDE）(A93096)（辉羲）
+18:11:03 [SKILL] INFO    [navigate_to_job] → 现场开发工程师（FDE）(A93096) @ (406, 1794)
+18:11:03 [SKILL] INFO    [navigate_to_job] ← 成功
+18:11:45 INFO      分数 4/10  ['JD要求「作为技术接口人，快速响应客户现场技术问题并协调内部研发攻关」→ 候选人「独立主导过3个月1前端+3后端团队从0-1闭环搭建，承担跨职能协调枢纽角色」', 'JD要求「市场及客户需求洞察与反馈，驱动产品迭代」→ 候选人「深挖客户真实诉求，售前蓝图打磨并反馈业务边界，主导优先级决策」', 'JD要求「技术沉淀与知识传递，输出应用笔记与参考设计」→ 候选人「沉淀1套平台基座+N客户复配的交付方案，含42个Token驱动原子组件的设计系统」']
+18:11:45 INFO      维度分：role_fit=4 | skill_match=3 | ai_native=5 | growth_fit=3 | basic_fit=6
+18:11:45 INFO      差距：['JD核心要求C/C++、Linux BSP、驱动开发、ONNX/TensorRT/NCNN NPU部署等嵌入式硬性工程深度，候选人完全没有相关技术栈', "JD定位是'现场开发工程师'偏技术落地岗，候选人背景是产品+设计+AI售前主导型FDE，职能定位错位", '候选人AI能力集中在AI Agent产品化与Vibe Coding全栈交付，与JD所需的AI模型在NPU上的优化部署路径不同']
+18:11:45 INFO      → 跳过（4 < 7）
+18:11:57 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=142）
+18:11:57 INFO    [find_next]   屏幕卡 y=688  'AI业务工程师【FDE】一Agent交付方向'  /  '深圳烈炎之鑫'  /  hr='李先生'
+18:11:57 INFO    [find_next]   屏幕卡 y=1244  'FDE专家'  /  '世纪华通'  /  hr='欧阳女士'
+18:11:57 INFO    [find_next]   屏幕卡 y=1794  '现场开发工程师（FDE）(A93096)'  /  '辉羲'  /  hr='张子璇'
+18:11:57 INFO    [find_next]   屏幕卡 y=2323  'FDE前沿部署工程师'  /  ''  /  hr=''
+18:11:57 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI业务工程师【FDE】一Agent交付方向')
+18:11:57 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='FDE专家')
+18:11:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='现场开发工程师（FDE）(A93096)\t辉羲\t张子璇', visits=3)
+18:11:57 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t\t', visits=6)
+18:12:00 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:12:09 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=142）
+18:12:09 INFO    [find_next]   屏幕卡 y=700  'FDE专家'  /  '世纪华通'  /  hr='欧阳女士'
+18:12:09 INFO    [find_next]   屏幕卡 y=1250  '现场开发工程师（FDE）(A93096)'  /  '辉羲'  /  hr='张子璇'
+18:12:09 INFO    [find_next]   屏幕卡 y=1799  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+18:12:09 INFO    [find_next]   屏幕卡 y=2311  'AI FDE (Forward Deployed Engineer)'  /  ''  /  hr=''
+18:12:09 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='FDE专家')
+18:12:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='现场开发工程师（FDE）(A93096)\t辉羲\t张子璇', visits=3)
+18:12:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+18:12:09 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\t\t', visits=3)
+18:12:12 INFO      当前屏幕无未访问目标，列表短滑 2/12 (px=500, wait=2.5s)
+18:12:22 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=142）
+18:12:22 INFO    [find_next]   屏幕卡 y=718  '现场开发工程师（FDE）(A93096)'  /  '辉羲'  /  hr='张子璇'
+18:12:22 INFO    [find_next]   屏幕卡 y=1267  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+18:12:22 INFO    [find_next]   屏幕卡 y=1813  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:12:22 INFO    [find_next]   屏幕卡 y=2330  'AI 软件产品经理'  /  ''  /  hr=''
+18:12:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='现场开发工程师（FDE）(A93096)\t辉羲\t张子璇', visits=3)
+18:12:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+18:12:22 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:12:22 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2330)
+18:12:22 INFO      [visited_keys] + 精确 key: title='AI 软件产品经理', company='', hr_name='' → key='AI 软件产品经理\t\t' (size=143)
+18:12:22 INFO      [59] → AI 软件产品经理（）
+18:12:22 [SKILL] INFO    [navigate_to_job] → AI 软件产品经理 @ (233, 2330)
+18:12:23 [SKILL] INFO    [navigate_to_job] ← 成功
+18:13:02 WARNING   JSON 解析失败（attempt 1）：Expecting ',' delimiter: line 2 column 1075 (char 1076) — 写入 debug + 触发 LLM 重试
+18:13:10 INFO      分数 9/10  ['JD要求「深入业务一线识别痛点，将AI能力转化为产品方案」→ 候选人「FDE深入EHS/能碳/医疗仪器一线，主导Agent OS三层产品化+统一AI网关，将业务规则转化为可落地AI流程」', 'JD要求「熟悉Agent基础架构+评测体系+Badcase闭环」→ 候选人「自研Agent OS三层形态（控制台/协作/台账）+流程中心双模式编辑器支持AI模拟执行，自建闭环回归与CI/CD」', 'JD要求「业务洞察+工业流程工艺管理转化」→ 候选人「能碳管理3个月1前端+3后端从0到1上线，棱镜泰克医疗仪器47+核心路由蓝图规划，工业SaaS实战」']
+18:13:10 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=10 | growth_fit=9 | basic_fit=9
+18:13:10 INFO      差距：['JD明确点Dify/Coze/LangChain平台经验，候选人简历未直接体现这些平台使用，更偏自研Agent OS；工程机械B端为软性优先项非硬性要求']
+18:13:10 INFO      ✓ 达标！打招呼：梁总好，看到你们要给各事业部做AI Agent落地与评测体系，我前阵子自研过Agent OS三层+统一AI网关，工业Sa…
+18:13:27 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:13:34 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:13:37 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:13:40 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：梁总好，看到你们要给各事业部做AI Ag
+18:13:40 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:13:40 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:13:42 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:13:42 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:13:45 INFO      ✓ 打招呼成功 — 梁总好，看到你们要给各事业部做AI Agent落地与评测体系，我前阵子自研过Ag
+18:14:06 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=144）
+18:14:06 INFO    [find_next]   屏幕卡 y=718  '现场开发工程师（FDE）(A93096)'  /  '辉羲'  /  hr='张子璇'
+18:14:06 INFO    [find_next]   屏幕卡 y=1267  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+18:14:06 INFO    [find_next]   屏幕卡 y=1813  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:14:06 INFO    [find_next]   屏幕卡 y=2330  'AI 软件产品经理'  /  ''  /  hr=''
+18:14:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='现场开发工程师（FDE）(A93096)\t辉羲\t张子璇', visits=3)
+18:14:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+18:14:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:14:06 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI 软件产品经理\t\t', visits=1)
+18:14:09 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:14:19 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=144）
+18:14:19 INFO    [find_next]   屏幕卡 y=733  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+18:14:19 INFO    [find_next]   屏幕卡 y=1279  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:14:19 INFO    [find_next]   屏幕卡 y=1824  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:14:19 INFO    [find_next]   屏幕卡 y=2324  '高级ai产品经理'  /  ''  /  hr=''
+18:14:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+18:14:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:14:19 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:14:19 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2324)
+18:14:19 INFO      [60] 跳过（已打过招呼）：高级ai产品经理
+18:14:19 INFO      [visited_keys] + 精确+title-only 已打过招呼: size=145
+18:14:25 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=145）
+18:14:25 INFO    [find_next]   屏幕卡 y=733  'FDE前沿部署工程师'  /  '上海嘉驰信息技术咨询'  /  hr='徐静怡'
+18:14:25 INFO    [find_next]   屏幕卡 y=1279  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:14:25 INFO    [find_next]   屏幕卡 y=1824  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:14:25 INFO    [find_next]   屏幕卡 y=2324  '高级ai产品经理'  /  ''  /  hr=''
+18:14:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='FDE前沿部署工程师\t上海嘉驰信息技术咨询\t徐静怡', visits=2)
+18:14:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:14:25 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:14:25 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级ai产品经理\t\t', visits=6)
+18:14:28 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:14:37 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=145）
+18:14:37 INFO    [find_next]   屏幕卡 y=733  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:14:37 INFO    [find_next]   屏幕卡 y=1278  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:14:37 INFO    [find_next]   屏幕卡 y=1800  '高级ai产品经理'  /  '触普九旋'  /  hr='何女士'
+18:14:37 INFO    [find_next]   屏幕卡 y=2312  '软件产品经理'  /  ''  /  hr=''
+18:14:37 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:14:37 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:14:37 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1800)
+18:14:37 INFO      [visited_keys] + 精确 key: title='高级ai产品经理', company='触普九旋', hr_name='何女士' → key='高级ai产品经理\t触普九旋\t何女士' (size=146)
+18:14:38 INFO      [61] → 高级ai产品经理（触普九旋）
+18:14:38 [SKILL] INFO    [navigate_to_job] → 高级ai产品经理 @ (222, 1800)
+18:14:38 [SKILL] INFO    [navigate_to_job] ← 成功
+18:15:16 INFO      分数 9/10  ['JD要求「AI 相关产品落地经验，把技术约束转化为产品决策」→ 候选人「主导 Agent OS 三层产品形态（控制台/协作/台账）+ 三类业务节点编排 + 统一 AI 网关，定义 AI 能力边界并产品化」', 'JD要求「0 到 1 完整经历，能讲清楚决策与结果数据」→ 候选人「能碳管理系统 3 个月主导 1 前端 + 3 后端从 MVP 到 0-1 闭环上线；医疗仪器 Prism AI 独立完成 47+ 核心业务路由全栈蓝图」', 'JD要求「团队管理与项目交付，扛住交付压力」→ 候选人「作为团队唯一产品/设计/售前角色，独立制定里程碑与 WBS，主导优先级决策与多租户并发复配」']
+18:15:16 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=8 | basic_fit=8
+18:15:16 INFO      差距：['工作年限 2 年（表面）vs JD 写「5 年以上」，已通过交付密度（多项目 0-1 / 多租户复配 / 1+N 杠杆）抵消', '无明确插件/开放平台经验（JD 加分项），但 FDE 多租户架构与扩展性设计与开放平台思路相通', '商业化、定价、增长实验的实操经验为加分项非硬性，候选人当前以交付效率与复配降本为商业成果体现形式']
+18:15:16 INFO      地点「深圳」权重 0.90 → 分数 9→8
+18:15:16 INFO      ✓ 达标！打招呼：何总好，看到你们要带 AI 产品线小团队主导从 0 到 1 与业务结果，我日常作为唯一产品/设计/售前，主导 AI Ag…
+18:15:33 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:15:41 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:15:44 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:15:47 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：何总好，看到你们要带 AI 产品线小团队
+18:15:47 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:15:47 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:15:49 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:15:49 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:15:52 INFO      ✓ 打招呼成功 — 何总好，看到你们要带 AI 产品线小团队主导从 0 到 1 与业务结果，我日常作
+18:16:13 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=147）
+18:16:13 INFO    [find_next]   屏幕卡 y=733  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:16:13 INFO    [find_next]   屏幕卡 y=1278  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:16:13 INFO    [find_next]   屏幕卡 y=1800  '高级ai产品经理'  /  '触普九旋'  /  hr='何女士'
+18:16:13 INFO    [find_next]   屏幕卡 y=2312  '软件产品经理'  /  ''  /  hr=''
+18:16:13 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:16:13 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:16:13 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级ai产品经理\t触普九旋\t何女士', visits=2)
+18:16:13 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2312)
+18:16:13 INFO      [visited_keys] + 精确 key: title='软件产品经理', company='', hr_name='' → key='软件产品经理\t\t' (size=148)
+18:16:14 INFO      [62] → 软件产品经理（）
+18:16:14 [SKILL] INFO    [navigate_to_job] → 软件产品经理 @ (204, 2312)
+18:16:14 [SKILL] INFO    [navigate_to_job] ← 成功
+18:16:54 INFO      分数 6/10  ['JD要求「负责机器人实时监控平台/调度系统/管理平台等系统软件设计与PRD撰写+交互原型+UI/UX优化」→ 候选人独立主导EHS管理系统的流程中心+三视角正交架构，并手动输出42 Token企业级Design System驱动前端联调', 'JD要求「客户现场业务调研、需求导入、产品定义和方案设计」→ 候选人FDE核心职责即售前阶段深挖客户真实诉求、蓝图设计与Trade-off边界管理，主导医疗仪器Prism AI覆盖47+核心业务路由', 'JD要求「跨部门团队统筹协调全链路高效协同+对销售售前市场团队做产品培训输出销售工具包」→ 候选人作为唯一产品/设计/售前跨职能枢纽统筹交付，并代表公司参加行业深创赛获9705票第二名', 'JD要求「AI技术应用（机器学习/计算机视觉）」→ 候选人设计Agent OS三层产品形态+统一AI网关，含Prompt工程/Task Routing/Fallback机制']
+18:16:54 INFO      维度分：role_fit=6 | skill_match=5 | ai_native=6 | growth_fit=7 | basic_fit=8
+18:16:54 INFO      差距：["候选人无机器人行业经验，缺乏RCS、ROS、AMR/复合机器人集群管理等岗位硬性要求的行业背景与系统知识（JD原文表述为'3年以上机器人系统经验'+'有RCS/AMR经验者优先'，属硬性差距）", '候选人对机器人本体机械结构、嵌软架构等技术栈陌生，需较长时间补足垂直行业 know-how']
+18:16:54 INFO      → 跳过（6 < 7）
+18:17:07 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=149）
+18:17:07 INFO    [find_next]   屏幕卡 y=733  'AI FDE (Forward Deployed Engineer)'  /  'NIO蔚来'  /  hr='陈先生'
+18:17:07 INFO    [find_next]   屏幕卡 y=1278  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:17:07 INFO    [find_next]   屏幕卡 y=1800  '高级ai产品经理'  /  '触普九旋'  /  hr='何女士'
+18:17:07 INFO    [find_next]   屏幕卡 y=2312  '软件产品经理'  /  ''  /  hr=''
+18:17:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='AI FDE (Forward Deployed Engineer)\tNIO蔚来\t陈先生', visits=2)
+18:17:07 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:17:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级ai产品经理\t触普九旋\t何女士', visits=2)
+18:17:07 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='软件产品经理\t\t', visits=4)
+18:17:10 INFO      当前屏幕无未访问目标，列表短滑 1/12 (px=500, wait=2.5s)
+18:17:19 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=149）
+18:17:19 INFO    [find_next]   屏幕卡 y=740  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:17:19 INFO    [find_next]   屏幕卡 y=1262  '高级ai产品经理'  /  '触普九旋'  /  hr='何女士'
+18:17:19 INFO    [find_next]   屏幕卡 y=1783  '软件产品经理'  /  '瑞为技术'  /  hr='江思瑜'
+18:17:19 INFO    [find_next]   屏幕卡 y=2303  '高级AI Agent产品经理（语音客服方向）'  /  ''  /  hr=''
+18:17:19 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:17:19 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级ai产品经理\t触普九旋\t何女士', visits=2)
+18:17:19 INFO    [find_next]   ↳ OK: title-only命中但DB未打过招呼，放行 (title='软件产品经理')
+18:17:19 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=1783)
+18:17:19 INFO      [visited_keys] + 精确 key: title='软件产品经理', company='瑞为技术', hr_name='江思瑜' → key='软件产品经理\t瑞为技术\t江思瑜' (size=150)
+18:17:20 INFO      [63] → 软件产品经理（瑞为技术）
+18:17:20 [SKILL] INFO    [navigate_to_job] → 软件产品经理 @ (204, 1783)
+18:17:20 [SKILL] INFO    [navigate_to_job] ← 成功
+18:17:51 INFO      分数 5/10  ['JD要求「B端系统软件产品设计+PRD+UI/UX+原型设计」→ 候选人2年B端SaaS FDE经验，主导EHS平台、能碳系统、Prism AI等多条产品线，手动搭建企业级Design System与高保真Demo', 'JD要求「跨部门统筹+售前培训+市场策略支持」→ 候选人作为团队唯一产品/设计/售前角色，承担PM+交互设计+AI售前与蓝图规划，主导客户调研、蓝图设计与售前演示', 'JD要求「产品路标+分阶段上市+全链路协同」→ 候选人独立制定里程碑、拆解WBS、主导优先级决策，对业务目标和交付节奏拥有完整主导权']
+18:17:51 INFO      维度分：role_fit=4 | skill_match=5 | ai_native=5 | growth_fit=6 | basic_fit=6
+18:17:51 INFO      差距：['核心硬性要求：3年以上机器人系统及平台软件产品设计经验+RCS设计与开发经验+AMR/复合机器人集群管理经验，候选人完全无机器人行业经历', '专业背景要求计算机/机器人/自动化/机械等相关，候选人为建筑学+计算机辅修，与机器人技术栈（ROS/本体机械/嵌软架构）无直接关联', '机器人调度系统、集群管理属于需要长期行业积累的垂直领域，候选人虽有跨域学习能力但弥补周期较长']
+18:17:51 INFO      地点「深圳」权重 0.90 → 分数 5→4
+18:17:51 INFO      → 跳过（4 < 7）
+18:18:04 INFO    [find_next] 屏幕共 4 张卡（visited_keys size=150）
+18:18:04 INFO    [find_next]   屏幕卡 y=740  'AI 软件产品经理'  /  '三一重工'  /  hr='梁女士'
+18:18:04 INFO    [find_next]   屏幕卡 y=1262  '高级ai产品经理'  /  '触普九旋'  /  hr='何女士'
+18:18:04 INFO    [find_next]   屏幕卡 y=1783  '软件产品经理'  /  '瑞为技术'  /  hr='江思瑜'
+18:18:04 INFO    [find_next]   屏幕卡 y=2303  '高级AI Agent产品经理（语音客服方向）'  /  ''  /  hr=''
+18:18:04 INFO    [find_next]   ↳ skip: title-only命中 + DB已打过招呼 (title='AI 软件产品经理')
+18:18:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='高级ai产品经理\t触普九旋\t何女士', visits=2)
+18:18:04 INFO    [find_next]   ↳ skip: visited_keys命中 + job_visits有记录 (v_key='软件产品经理\t瑞为技术\t江思瑜', visits=2)
+18:18:04 INFO    [find_next]   ↳ OK: 屏幕卡不在 initial 集合（new card），返回 v (y=2303)
+18:18:04 INFO      [visited_keys] + 精确 key: title='高级AI Agent产品经理（语音客服方向）', company='', hr_name='' → key='高级AI Agent产品经理（语音客服方向）\t\t' (size=151)
+18:18:04 INFO      [64] → 高级AI Agent产品经理（语音客服方向）（）
+18:18:04 [SKILL] INFO    [navigate_to_job] → 高级AI Agent产品经理（语音客服方向） @ (406, 2303)
+18:18:05 [SKILL] INFO    [navigate_to_job] ← 成功
+18:18:45 INFO      分数 9/10  ['JD要求「企业级Agent产品从0-1搭建、效果调优及交付验收」→ 候选人FDE岗位主导医疗仪器Prism AI全栈蓝图(47+核心业务路由)与能碳管理UAT交付(3个月4人团队0-1闭环)', 'JD要求「Prompt调优、Agent Harness设计、工具调用、知识库/RAG、上下文管理」→ 候选人自研Agent OS三层形态+三类业务节点编排(AI自动执行/人工介入/规则联锁)+统一AI网关(权限管控/自动操作路由)', 'JD要求「跨团队协同(销售/售前/交付/研发/算法)、客户沟通」→ 候选人作为团队唯一产品/设计/售前角色，统筹研发+后端+AI工程师，以核心产品代表公司参加行业深创赛获9705票第二名']
+18:18:45 INFO      维度分：role_fit=9 | skill_match=8 | ai_native=9 | growth_fit=8 | basic_fit=8
+18:18:45 INFO      差距：["语音客服/智能外呼/AICC垂直行业经验为软性优先项（JD表述为'优先'而非硬性），候选人需在POC期补齐ASR/TTS对接与打断处理等语音交互细节", '客户成功后的效果评测体系(大模型评测集/对话数据构建)简历未明确体现，需在面试中说明思路']
+18:18:45 INFO      ✓ 达标！打招呼：张总好，看到你们在做语音客服Agent的POC到投产全链路，我过去主导过Agent OS三层产品形态与统一AI网关，从需…
+18:19:02 [SKILL] INFO    [send_greeting] → 发送消息 (verify=False)
+18:19:10 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_01_before_type.png
+18:19:12 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_02_after_type.png
+18:19:15 [SKILL] INFO    [send_greeting] ✓ 输入框已有文字（前20字）：张总好，看到你们在做语音客服Agent的
+18:19:15 [SKILL] INFO    [send_greeting] 按位置找到发送按钮 bounds=(964, 2107, 1038, 2181)
+18:19:15 [SKILL] INFO    [send_greeting] 点击发送按钮 bounds=(964, 2107, 1038, 2181) center=(1001, 2144)
+18:19:17 [SKILL] INFO    [debug] 截图：/var/tmp/claude-code/pixelclaw_output/debug_send_03_after_send.png
+18:19:17 [SKILL] INFO    [send_greeting] ← 发送成功（未验证）
+18:19:20 INFO      ✓ 打招呼成功 — 张总好，看到你们在做语音客服Agent的POC到投产全链路，我过去主导过Agen
+18:19:20 INFO      📊 进度：本次已发 40/40，今日累计约 40 条
+18:19:21 INFO    📊 评分分布（共 54 个职位打分）: ≥8分=38  6-7分=7  <6分=9  均分=7.6  跳过=22
+✓ 简历已加载：current.md（6300 字符）
+
+🤖 单阶段循环（关键词：FDE，阈值：7，严格模式，最多发送 40 条）
+[prompt] 加载 match_score (mtime=1791796861)
+[prompt] 加载 strict_rules (mtime=1791625168)
+
+============================================================
+执行结果摘要
+============================================================
+✓ 打招呼成功：40 条
+  · AI解决方案工程师（FDE / 智能体交付方向）（进化涌现）9/10 —— 打招呼成功
+    刘总好，看到进化涌现这个 FDE 岗位要做 RAG/Agent/工作流的企业级落地，我过去两年做的就是 FDE 单兵闭环——Agent OS 三层产品 + 流程
+  · AI FDE (Forward Deployed Engineer) &@ （NIO蔚来）9/10 —— 打招呼成功
+    付总好，看到你们要重构车控研发的Agent工作流与业务瓶颈识别，我过去主导Agent OS三层架构+统一AI网关，从0-1落过B端SaaS，方便发您一份简历看看
+  · FDE前沿部署工程师（上海）-金融行业（上海嘉驰信息技术咨询）8/10 —— 打招呼成功
+    郭总好，看到你们要深入金融客户现场做智能体场景蓝图与交付，我日常就是跨职能统筹+FDE模式落Agent方案，主导过Agent OS与流程中心从0-1交付多客户复
+  · FDE工程师（前线部署）（上海）（上海城建数字产业）9/10 —— 打招呼成功
+    徐总好，看到你们要落地FDE模式做智能体集成与AI Coding交付，我日常就是产品+设计+全栈单兵闭环，Vibe Coding拉高保真Demo直连后端与Age
+  · FDE前沿部署工程师-上海 &@ （Datablau）9/10 —— 打招呼成功
+    朱总好，看到你们要 FDE 深入客户现场主导 AI 方案设计与汇报，我过去两年正是这种 FDE 模式——产品+设计+前端+售前单兵闭环，主导过 AI Agent
+  · UX设计师（WILL实验室）（宽德投资）7/10 —— 打招呼成功
+    卢总好，看到你们要为 WILL 实验室做 AI 产品的反馈与异常处理机制设计，我日常用 Figma 搭企业级 Design System、结合 Vibe Cod
+  · DuMate智能体前沿部署工程师FDE(J105691)（百度在线）9/10 —— 打招呼成功
+    郑总好，看到你们基于 DuMate 做客户现场 Agent 场景落地与连接器集成，我日常就是产品+设计+前端单兵闭环，主导过工业 SaaS 智能体从 0 到 1
+  · 大客户FDE（营销侧）（上海星际章鱼智能科技）9/10 —— 打招呼成功
+    李总好，看到贵司在招能用AI工具快速搭Demo主导POC的大客户FDE，我日常即靠Vibe Coding独立跑通高保真Demo直连后端，曾主导能碳管理从MVP到
+  · FDE现场部署工程师（财法税方向Agent开发）（字节跳动）9/10 —— 打招呼成功
+    寇总好，看到字节FDE要在客户现场快速搭AI Agent原型并推进生产部署，我这边日常就是产品+设计+前端单兵闭环，主导过多客户0-1落地，方便发您一份简历看看
+  · MaaS解决方案架构师-政企方向-上海（阿里云）9/10 —— 打招呼成功
+    徐总好，看到你们要在政企场景端到端搭多 Agent POC 并跑通 MaaS 落地，我日常就是 PM + 设计 + 售前单兵闭环，自研过 Agent OS 三层
+  · FDE AI架构师（蚂蚁集团）9/10 —— 打招呼成功
+    李总好，看到你们要找AI原生、能用AI快速搭原型的FDE。我过去两年作为团队唯一产品+设计+前端，单兵主导能碳/医疗仪器/EHS多个0-1闭环，日常重度Vibe
+  · 交付开发负责人（合合信息）8/10 —— 打招呼成功
+    您好，看到合合信息交付开发岗位强调 FDE 体系与 B 端定制交付，我日常就是产品 + 设计 + 前端单兵闭环，主导过 3 个月 1 前端 + 3 后端 0-1
+  · 高级前沿部署工程师 FDE（Grab）7/10 —— 打招呼成功
+    黄总好，看到Grab在招嵌入合作伙伴现场的FDE，负责Carri机器人落地与产品路线图。我过去两年作为团队唯一的产品+设计+售前，独立统筹蓝图设计、客户work
+  · 消费品及流通行业合伙人（AI方向）（埃林哲）8/10 —— 打招呼成功
+    管总好，看到你们要为消费品客户做AI转型场景组合与FDE试点落地，我日常就是跨职能统筹+蓝图设计+高保真Demo单兵闭环，从0-1落过AI Agent与B端Sa
+  · AI项目经理 / FDE &@ （索为资讯）9/10 —— 打招呼成功
+    张总好，看到你们要在企业AI转型里用Agent + Workflow深挖场景、Cursor类工具跑通Demo，我日常就是产品+设计+前端单兵闭环，带队做过能碳0
+  · AI FDE（三一重工股份有限公司）11/10 —— 打招呼成功
+    田总好，看到你们招 AI FDE 做场景洞察与解决方案推广，我日常作为业务与研发的跨职能枢纽，主导 0-1 蓝图设计与多客户复配交付，方便发您过目简历吗，方便发
+  · FDE前沿部署工程师（上海嘉驰信息技术咨询）9/10 —— 打招呼成功
+    马总好，看到你们要招FDE做Agent现场落地+工作流编排，我日常就是产品+设计+全栈单兵闭环，主导过医疗仪器Prism AI全栈蓝图与能碳0-1交付，方便发您
+  · AI 解决方案工程师（FDE）（世纪鲲鹏传媒）8/10 —— 打招呼成功
+    简总好，看到你们招AI解决方案工程师做客户陪跑与提示词优化，我过去两年一直以FDE模式主导B端SaaS售前蓝图与0-1交付，沉淀过1套平台基座+N个客户复配方案
+  · AI项目业务合作人（品牌联盟方向）（一宠一恩）9/10 —— 打招呼成功
+    陈总好，看到你们做 AI 早期项目的品牌联盟认证与对接，我现职就是 FDE 型 PM，单兵主导 PM+交互+AI 售前闭环，3 个月带 4 人从 0 到 1 上
+  · FDE工程师（英仕健康）8/10 —— 打招呼成功
+    杨总好，看到你们在做保险核心系统私有化交付+智能核保RAG方向，我过去两年做FDE型产品+售前+实施，能碳EHS多租户0到1闭环交付经验可直接迁移，方便发您一份
+  · AI To B产品经理/解决方案（美团）9/10 —— 打招呼成功
+    卢总好，看到你们要为药企与连锁药店搭建Agent/Skill/工作流并沉淀标准化产品，我日常做FDE型产品+设计+售前单兵闭环，主导过Agent OS三层产品形
+  · FDE工程师（顺丰同城）8/10 —— 打招呼成功
+    顾总好，看到顺丰同城要深入战区一线端到端交付AI智能体与自动化场景，我做过FDE型产品，主导Agent OS与工作流编排从0-1落地，习惯跨职能驻场推进，方便发
+  · FDE工程师（企业级AGI）北上广深都看（润应麟）9/10 —— 打招呼成功
+    赵总好，看到润应麟在招FDE作为客户唯一交付窗口、要做AgentOS+DataOS重型POC，我现职FDE即唯一产品/设计/售前，主导过能碳3个月4人从0到1上
+  · FDE工程师（财法税Agent方向）-火山引擎（字节跳动）10/10 —— 打招呼成功
+    刘总好，看到你们要 Vibe Coding 在客户环境快速搭 AI Agent 原型并推到生产级，我日常正是这套打法——3 个月主导 4 人团队从 0 到 1 
+  · 前端部署工程师(FDE）（上海亮界未来智能科技）8/10 —— 打招呼成功
+    丁总好，看到你们要 AI Agent FDE 深入客户现场做 PoC 到生产部署，我过去主导 Agent OS 三层架构 + 统一 AI 网关，3 个月带 4 
+  · AI应用负责人 &@ （深圳市鼎阳科技股...）7/10 —— 打招呼成功
+    温总好，看到鼎阳在招AI应用负责人，要深入制造现场识别高价值场景并主导PoC→上线全链路。我过去2年作为团队唯一的产品+设计+FDE，主导过能碳0-1闭环与多客
+  · AI Forward Deployed Engineer（世纪华通）8/10 —— 打招呼成功
+    胡总好，看到你们要FDE深入业务流做AI机会识别与0-1交付，这正是我过去两年的日常，独立主导过Agent OS与能碳管理从蓝图到上线的全闭环，不知是否方便发简
+  · FDE（产品交付工程师）（数智建材研究院）9/10 —— 打招呼成功
+    您好，看到你们要做大模型智能体项目从调研到验收的全链路交付，我这边日常就是产品+设计+售前+AI单兵闭环，主导过Agent OS与多租户平台0-1落地，方便发您
+  · AI产品经理（移动端方向）（遥望科技）7/10 —— 打招呼成功
+    张总好，看到你们在招移动端AI产品+AI Coding实战方向，我日常是产品+设计+前端单兵闭环，习惯用Claude SDK和Vibe Coding独立交付可运
+  · 产品经理 AI产品经理 UI设计能力（）9/10 —— 打招呼成功
+    您好，看到你们招AI原生产品主理人、用Figma AI/v0/Cursor把PRD和原型当天生出来，我日常就是Figma企业级Design System+Vib
+  · AI软件产品经理（中科沌序）9/10 —— 打招呼成功
+    季总好，看到你们招多智能体协同平台的产品经理，主导过Agent OS从0到1，希望您方便发份简历看看吗，方便发您一份简历看看吗？
+  · Agent产品经理（AI智能硬件）（深圳云天励飞）7/10 —— 打招呼成功
+    许总好，看到你们规划儿童硬件Agent能力与跨职能软硬一体协作，我日常做产品+设计+前端单兵闭环，从0-1搭过B端SaaS与Agent产品并主导多客户复配，方便
+  · AI Agent与大模型应用工程师（蚂蚁集团）9/10 —— 打招呼成功
+    谢总好，看到你们要用 Agent+Agentic RAG 搭智能助手并兼顾架构灵活性与落地，我前阵子主导过 Agent OS 三层产品化与统一 AI 网关，覆盖
+  · AI 研发效能工程师（深圳/上海）（深圳元戎启行科技）9/10 —— 打招呼成功
+    阳总好，看到你们要落地 Claude Code 类 AI 提效工具并沉淀组织知识库，我的 Sleepless Agent 已发 PyPI 做开发自动化，方便发您
+  · AI 应用项目经理（十沣）9/10 —— 打招呼成功
+    黄总好，看到你们要在 AI Agent 应用项目里主导从需求调研到验收交付的全流程管控，我过去主导过 Agent OS 三层产品形态从 0 到 1 闭环，独立做
+  · AI业务工程师【FDE】一Agent交付方向（）9/10 —— 打招呼成功
+    李总好，看到你们要在真实业务线里端到端交付 AI 试点，我之前作为团队唯一的产品/设计/售前，3 个月主导 1 前端 + 3 后端从 MVP 到 UAT 上线，
+  · FDE专家（）9/10 —— 打招呼成功
+    欧阳总好，看到你们要 FDE 搭建生产级 AI 应用并沉淀工程标准，我过去正好单兵闭环 PM+设计+前端+售前，3 个月主导 1+3 团队从 0 到 1 上线过
+  · AI 软件产品经理（）9/10 —— 打招呼成功
+    梁总好，看到你们要给各事业部做AI Agent落地与评测体系，我前阵子自研过Agent OS三层+统一AI网关，工业SaaS从0到1落过能碳/EHS多租户，方便
+  · 高级ai产品经理（触普九旋）8/10 —— 打招呼成功
+    何总好，看到你们要带 AI 产品线小团队主导从 0 到 1 与业务结果，我日常作为唯一产品/设计/售前，主导 AI Agent 三层产品形态 + 1 套基座多客
+  · 高级AI Agent产品经理（语音客服方向）（）9/10 —— 打招呼成功
+    张总好，看到你们在做语音客服Agent的POC到投产全链路，我过去主导过Agent OS三层产品形态与统一AI网关，从需求拆解到交付验收完整闭环过，方便发您一份
+- 跳过：22 条
+✗ 错误：2 个
+  · AI 应用开发工程师（Agent方向）… &@ ：无法打开聊天页
+  · AI 应用开发工程师（Agent方向）… &@ ：无法打开聊天页
