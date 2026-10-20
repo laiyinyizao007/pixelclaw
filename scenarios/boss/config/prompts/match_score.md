@@ -17,6 +17,8 @@ HR姓名：{hr_name}
 
 {scoring_rubric}
 
+{big_tech_context}
+
 评分示例（仅供校准，不要照搬措辞）：
 
 示例 A — 加权总分 8 分：
@@ -54,12 +56,15 @@ match_score: 3
 1. 列出 JD 的 3-5 个核心要求（技能/经验/职能类型）
 2. 逐项判断候选人是否满足，给出简短证据
 3. 按各维度打分，计算加权总分
+4. **is_big_tech 判定**：基于公司名 + 公司信息 + JD 描述中的蛛丝马迹（招聘规模、行业地位、薪资水平、融资阶段）独立判断该公司是否属于「大厂」。{big_tech_judge_hint}
 
 返回 JSON（仅 JSON，无其他文字，不要 ```json``` 代码块包裹，不要任何解释/道歉/前缀）：
 {{
-  "_analysis": "<推理过程：核心要求1「xxx」→候选人[满足：具体证据 / 不满足：原因]；...；各维度分：职能适配X、技能匹配X、AI原生度X、成长潜力X、基本条件X→加权总分Z>",
+  "_analysis": "<推理过程：核心要求1「xxx」→候选人[满足：具体证据 / 不满足：原因]；...；各维度分：职能适配X、技能匹配X、AI原生度X、成长潜力X、基本条件X→加权总分Z；is_big_tech判定：<company> 命中/未命中 [parents/subsidiaries/综合判断]，依据：xxx>",
   "dimension_scores": {{"role_fit": <0-10>, "skill_match": <0-10>, "ai_native": <0-10>, "growth_fit": <0-10>, "basic_fit": <0-10>}},
   "match_score": <加权总分，0-10 整数>,
+  "is_big_tech": <bool，是否大厂>,
+  "big_tech_reasoning": "<一句话说明依据，30 字内>",
   "top_matches": [
     "JD要求「<JD中具体要求词，非泛泛如「AI经验」，而是如「Agent产品从0到1」>」→ 候选人「<具体经历/项目/量化成就>」",
     "JD要求「<第二个具体要求>」→ 候选人「<具体证据>」",
