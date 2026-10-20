@@ -143,7 +143,11 @@ def main() -> int:
     xhs = XHSAutomationSkill(device_id=device_id)
     probe = CanvasProbe(device_id=device_id)
 
-    w, h = xhs.get_screen_size()
+    size = xhs.get_screen_size()
+    if not size:
+        print("❌ 无法获取屏幕尺寸（ADB 可能已断 / 设备未解锁），中止初始化\n")
+        return 1
+    w, h = size
     print(f"屏幕分辨率: {w}×{h}\n")
 
     print("[1/4] 唤屏解锁...")

@@ -226,13 +226,19 @@ class AndroidSkill:
 
     # ── 设备信息 ──────────────────────────────────────────────────────────────
 
-    def get_screen_size(self) -> Tuple[int, int]:
-        """返回 (width, height)；失败时回退到 (1080, 2400)。"""
-        _, out = self._adb("shell wm size")
+    def get_screen_size(self) -> Optional[Tuple[int, int]]:
+        """返回 (width, height)；ADB 断或解析失败时返 None（不静默 fallback）。
+
+        Why: 与 monitors/adb_manager.py:505 / skills/android/adb_runner.py 统一协议。
+        ADB 断开时静默 fallback 到默认尺寸会让后续 tap/swipe 用错误坐标。
+        """
+        ok, out = self._adb("shell wm size")
+        if not ok:
+            return None
         m = re.search(r"(\d+)x(\d+)", out)
         if m:
             return int(m.group(1)), int(m.group(2))
-        return 1080, 2400
+        return None
 
     # ── 等待 ──────────────────────────────────────────────────────────────────
 
