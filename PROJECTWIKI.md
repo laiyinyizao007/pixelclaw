@@ -404,10 +404,14 @@ if not skill.adb.is_device_connected(skill.device_id):
     return False
 ```
 
-**项目内已发现的 anti-pattern 实例**（待 grep 排查修复）：
-- `scenarios/boss/scripts/smart_match_greet.py:1333,1334,1345`（已修：commit `3f9d999`）
-- `skills/android/adb_runner.py:147` —— `get_screen_size()` 静默 fallback 到 (1080, 2400)，ADB 断时后续 tap 坐标全错
-- `skills/android/android_skill.py:231` —— 同上
+**项目内已发现的 anti-pattern 实例**（全部已修）：
+- `scenarios/boss/scripts/smart_match_greet.py:1333,1334,1345`（已修：commit `3f9d999`）—— 新增 `_check_dumpsys_or_abort()` helper，5 处 dumpsys 调用点统一 fail-fast
+- `skills/android/adb_runner.py:146` —— `get_screen_size()` 曾静默 fallback 到 (1080, 2400)
+- `skills/android/android_skill.py:229` —— 同上
+
+**`get_screen_size()` 返回类型约定**：三处实现（`ADBRunner` / `AndroidSkill` / `monitors/ADBManager`）统一返回 `Optional[Tuple[int, int]]`——ADB 断 / `wm size` 解析失败一律返 `None`，**禁止静默 fallback 到默认分辨率**。callers 必须显式处理 `None`：
+- `core/action_executor.py:219,239` —— 已有 `if not size: return False` 守卫（未改动）
+- `scenarios/xhs/scripts/init_xhs.py:146` —— 已补 `size = xhs.get_screen_size()` + `if not size: return 1` 早退
 
 **Why 此约定重要**：屏幕破坏命令（`input text`/`tap`/`swipe`/`keyevent`）前置的 dumpsys 检查必须额外用 `is_device_connected()` 复检——dumpsys 失败可能意味着 input 命令也未送达，但更糟的是 **input 命令可能送达但不是打到 PIN pad**，造成 PIN 误注入（2026-10-19 rerun 实测）。dumpsys 「stdout 空但不报错」和「ADB 真的断了」从输出看一样，从 boolean 维度看不一样——所以必须解 bool。
 

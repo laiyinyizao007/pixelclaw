@@ -143,12 +143,20 @@ class ADBRunner:
         except Exception:
             return None
 
-    def get_screen_size(self, device_id: Optional[str] = None) -> Tuple[int, int]:
-        _, out = self.shell("shell wm size", device_id)
+    def get_screen_size(self, device_id: Optional[str] = None) -> Optional[Tuple[int, int]]:
+        """获取屏幕尺寸（物理分辨率）。ADB 断或解析失败时返 None（不静默 fallback）。
+
+        Why: 与 monitors/adb_manager.py:505 保持一致（统一协议）；ADB 断开时静默
+        fallback 到默认尺寸会让后续 tap/swipe 用错误坐标。失败比静默错更安全——
+        callers 必须显式处理 None（core/action_executor.py 早就有 None 守卫）。
+        """
+        ok, out = self.shell("shell wm size", device_id)
+        if not ok:
+            return None
         m = re.search(r"(\d+)x(\d+)", out)
         if m:
             return int(m.group(1)), int(m.group(2))
-        return 1080, 2400
+        return None
 
     def is_device_connected(self, device_id: Optional[str] = None) -> bool:
         if device_id:
