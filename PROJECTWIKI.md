@@ -420,13 +420,22 @@ if not skill.adb.is_device_connected(skill.device_id):
 ```
 --keyword   搜索关键词（必填）
 --threshold 最低匹配分数 0-10（默认 6）
---max-greet 最多发送打招呼数（默认 5）
+--max-greet 最多发送招呼数（默认 5）
 --strict    严格评分模式（不明确要求 AI/Agent 经验的职位不超过 8 分）
 --score-only 仅评分打印，不发送（但仍需打开 App）
 --min-salary 月薪下限（K），低于此值在评分前跳过
 --no-verify  发送后不验证消息已发出
+--only-big-tech 仅对大厂发招呼（LLM 评，见下方「仅大厂模式」段）
 --device    ADB 设备 serial
 ```
+
+**仅大厂模式 `--only-big-tech`（2026-10-20 新增）**：
+
+启用后只对「大厂」发招呼——大厂判定由 LLM 在 score_job 内输出 `is_big_tech: bool` + `big_tech_reasoning: str` 两个字段完成。`candidate_profile.yaml` 的 `big_tech_whitelist` 段（parents 89 家 + subsidiaries 8 母公司/55 品牌）作为 LLM 参考清单**注入到 prompt**，不是硬规则——LLM 可识别未列公司（如新近 IPO 的 AI 独角兽）。
+
+**为何不用 hard substring 过滤**：原方案是 `is_big_tech(company, whitelist)` 字符串枚举，40+ 家母公司 + 旗下品牌难穷举；撞名（如「百度烤肉」）会误伤；新公司无法命中。LLM 在评分时可看到 JD 描述，能区分撞名 startup（公司名相似但 JD 写得很 startup）和真大厂。
+
+**触发流程**：`_run_loop` 在 score_job 评分后插入 `if only_big_tech and not scored.is_big_tech: skip`——只看 LLM 输出，不在评分前预判（避免误伤）。LLM 漏字段时退化为 `_is_big_tech_string_match()`（保留旧逻辑作为安全网，加 `⚠️ LLM 未输出 is_big_tech` warning 日志）。
 
 **典型运行**：
 ```bash

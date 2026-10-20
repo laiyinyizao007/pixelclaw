@@ -516,9 +516,17 @@ def score_job(
     strict: bool = False,
     fallback: anthropic.Anthropic | None = None,
     scoring_dimensions: dict | None = None,
+    big_tech_whitelist: dict | None = None,
 ) -> dict:
-    """Call Claude Haiku to score one job and generate a personalized greeting."""
+    """Call Claude Haiku to score one job and generate a personalized greeting.
+
+    Args:
+        big_tech_whitelist: candidate_profile.yaml 的 big_tech_whitelist 段（parents +
+            subsidiaries）。注入到 prompt 作为 LLM 判定 is_big_tech 的参考清单（不是
+            硬过滤——LLM 仍可识别名单外的大厂）。None 或空时不注入，LLM 自主判断。
+    """
     description = job.get("description") or ""
+    big_tech_context = _build_big_tech_context(big_tech_whitelist)
     prompt = _load_prompt("match_score").format(
         resume=resume,
         title=job.get("title", ""),
@@ -531,6 +539,12 @@ def score_job(
         requirements=job.get("requirements_text") or "  无标签",
         strict_rules=_load_prompt("strict_rules") if strict else "",
         scoring_rubric=_build_scoring_rubric(scoring_dimensions or {}),
+        big_tech_context=big_tech_context,
+        big_tech_judge_hint=(
+            "本字段用于 --only-big-tech 模式过滤：True 表示该公司属于大厂，"
+            "False 表示不属于。当公司名 + 公司信息 + 描述指向不同时以描述为准 "
+            "（有些大厂用新主体名招聘；有些公司名撞名但实为 startup）。"
+        ) if big_tech_context else "本字段为额外判定，可直接根据公司名 + 信息 + 描述综合判断。",
     )
     response = _call_with_fallback(
         primary, fallback,
@@ -857,6 +871,65 @@ def _build_scoring_rubric(dimensions: dict) -> str:
     return "\n".join(lines)
 
 
+def _is_big_tech_string_match(company: str, whitelist: dict | None) -> bool:
+    """硬字符串 fallback（仅在 LLM 未输出 is_big_tech 字段时使用）。
+
+    与 2026-10-20 之前的 `is_big_tech()` 函数行为完全一致——保留代码便于回滚，
+    但不再作为主要判断路径（已被 LLM 评替代，理由：枚举难维护/撞名/未列公司
+    无法命中）。whitelist=None → True（视作未启用过滤）。
+    """
+    if not whitelist:
+        return True
+    if not company:
+        return False
+    parents = whitelist.get("parents", []) or []
+    subsidiaries = whitelist.get("subsidiaries", {}) or {}
+    if any(p and p in company for p in parents):
+        return True
+    for brands in subsidiaries.values():
+        if any(b and b in company for b in (brands or [])):
+            return True
+    return False
+
+
+def _build_big_tech_context(whitelist: dict | None) -> str:
+    """Build the big-tech reference section injected into match_score.md prompt.
+
+    Returns "" when whitelist is None or empty (LLM judges purely from training data).
+    Returns formatted text listing parents + subsidiary brands when provided.
+
+    Why a reference, not a hard rule:
+        Hard-coding 40+ companies misses new entrants (e.g., a startup that just IPO'd
+        in 2027) and breaks on company-name collisions. LLM can use the list as a
+        hint but still recognize 未列公司.
+    """
+    if not whitelist:
+        return ""
+    parts = ["## 大厂参考清单（用户口径，仅供参考；你仍可独立判定名单外的公司）"]
+    parts.append(
+        "判定标准：互联网头部（BAT/TMD/华为/京东/拼多多/小米/网易/快手）+ AI 新势力 "
+        "（月之暗面/智谱/MiniMax/阶跃星辰/深度求索/百川/零一万物）+ 半导体/芯片 "
+        "（寒武纪/地平线/摩尔线程/燧原）+ 自动驾驶（小马智行/Momenta/文远知行）+ "
+        "外企中国（Google/Microsoft/Meta/OpenAI/Anthropic）+ 准大厂 "
+        "（SHEIN/Shopee/米哈游/莉莉丝/鹰角/理想/蔚来/小鹏/B站/知乎/得物）。"
+    )
+    parents = whitelist.get("parents") or []
+    if parents:
+        # 截断到前 30 防 prompt 过长；LLM 见到关键样本即可推断其他
+        sample = parents[:30]
+        parts.append("**母公司样本**（共 {} 家）：{}".format(
+            len(parents), "、".join(sample) + (" …等" if len(parents) > 30 else "")
+        ))
+    subsidiaries = whitelist.get("subsidiaries") or {}
+    if subsidiaries:
+        # 每个母公司只展示前 5 个品牌
+        lines = []
+        for parent, brands in list(subsidiaries.items())[:8]:
+            lines.append(f"- {parent}: {'/'.join(brands[:5])}")
+        parts.append("**旗下品牌样本**（每个母公司取前 5 个）：\n" + "\n".join(lines))
+    return "\n\n".join(parts)
+
+
 def _extract_publish_days(job: dict) -> float | None:
     """Parse publish time from raw_texts. Returns days (float) or None."""
     import re as _re
@@ -1057,6 +1130,8 @@ def live_greet_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
+    big_tech_whitelist: dict | None = None,  # candidate_profile.yaml 的 big_tech_whitelist 段；注入 score_job prompt 作为 LLM 参考
+    only_big_tech: bool = False,             # True 时 LLM 输出 is_big_tech=False 则 skip（仍需评分但不发问候）
     daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
     max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
     scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
@@ -1113,6 +1188,8 @@ def live_greet_loop(
                          scoring_dimensions=scoring_dimensions,
                          company_tier_weights=company_tier_weights,
                          hr_active_weights=hr_active_weights,
+                         big_tech_whitelist=big_tech_whitelist,
+                         only_big_tech=only_big_tech,
                          daily_hard_limit=daily_hard_limit,
                          max_list_scrolls=max_list_scrolls,
                          scroll_px=scroll_px,
@@ -1486,6 +1563,8 @@ def _run_loop(
     scoring_dimensions: dict | None = None,
     company_tier_weights: dict | None = None,
     hr_active_weights: dict | None = None,
+    big_tech_whitelist: dict | None = None,  # candidate_profile.yaml 的 big_tech_whitelist 段；注入 score_job prompt 作为 LLM 参考
+    only_big_tech: bool = False,             # True 时 LLM 输出 is_big_tech=False 则 skip（仍需评分但不发问候）
     daily_hard_limit: int = 0,  # 0 = 不设硬限（Boss 无公布每日上限）
     max_list_scrolls: int = 12,    # 列表无新卡时最大连滑次数（默认 12，原硬编码 5）
     scroll_px: int = 500,          # 单次下滑距离 px（默认 500，原硬编码 320）
@@ -2007,7 +2086,7 @@ def _run_loop(
         # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
             scored = _with_screen_heartbeat(
-                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions)
+                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist)
             )
         except Exception as exc:
             reset_at = _extract_reset_at(exc)
@@ -2020,7 +2099,7 @@ def _run_loop(
                 time.sleep(wait_secs)
                 try:
                     scored = _with_screen_heartbeat(
-                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions)
+                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist)
                     )
                 except Exception as exc2:
                     logger.error("  配额恢复后仍失败：%s — %s", title, exc2)
@@ -2045,6 +2124,32 @@ def _run_loop(
             logger.info("  维度分：%s", parts)
         if scored.get("mismatch_concerns"):
             logger.info("  差距：%s", scored["mismatch_concerns"])
+
+        # 大厂判定（2026-10-20 改由 LLM 评，scored.is_big_tech + big_tech_reasoning）
+        # 评分之后做是因为 LLM 需要看 JD 描述才能准确判断（有些公司名撞名但实为 startup，
+        # 有些大厂用新主体名招聘——光看公司名不够）。
+        # 注意：仅当 only_big_tech=True 时才检查；False 时不读此字段（旧行为零开销）。
+        # 兜底：LLM 偶发漏输出 is_big_tech 字段 → 默认 False 会丢失所有发送机会；此
+        # 时退化到硬字符串检查（big_tech_whitelist 是用户配置的口径，作为安全网）。
+        if only_big_tech:
+            _raw_ibt = scored.get("is_big_tech")
+            _llm_judged = _raw_ibt is not None
+            if _llm_judged:
+                is_big = bool(_raw_ibt)
+                reasoning = scored.get("big_tech_reasoning", "") or "（LLM 未给原因）"
+                source = "LLM"
+            else:
+                logger.warning("  ⚠️ LLM 未输出 is_big_tech，回退硬字符串检查：%s", title)
+                is_big = _is_big_tech_string_match(company, big_tech_whitelist)
+                reasoning = "LLM 未给，硬白名单兜底"
+                source = "硬白名单兜底"
+            if not is_big:
+                logger.info("  [%d] 跳过（%s判非大厂）：%s（%s）— %s", processed, source, title, company, reasoning)
+                result["skipped"].append(f"{title}（{company}）：{source}判非大厂（{reasoning}）")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                              skip_reason=f"{source}判非大厂({reasoning})", job_dict=job_dict, scored_result=scored)
+                continue
+            logger.info("  %s判大厂：%s — %s", source, company, reasoning)
 
         # ── 地点权重调整 ───────────────────────────────────────────────────────
         if location_weights and score > 0:
@@ -2376,6 +2481,7 @@ def main() -> int:
     scoring_dimensions: dict = profile.get("scoring_dimensions", {})
     company_tier_weights: dict = profile.get("company_tier_weights", {})
     hr_active_weights: dict = profile.get("hr_active_weights", {})
+    big_tech_whitelist: dict = profile.get("big_tech_whitelist", {}) or {}
     daily_hard_limit: int = int(profile.get("daily_hard_limit", 0))
 
     parser = argparse.ArgumentParser(description="Boss直聘实时评分 + 个性化打招呼（单阶段）")
@@ -2393,6 +2499,10 @@ def main() -> int:
     parser.add_argument("--min-salary", type=float, default=_profile_min_salary,
                         help=f"月薪下限（K），低于此值跳过（默认来自 candidate_profile.yaml：{_profile_min_salary}K）")
     parser.add_argument("--no-verify", action="store_true", help="发送后不验证消息已发出")
+    parser.add_argument(
+        "--only-big-tech", action="store_true",
+        help="只对大厂白名单（candidate_profile.yaml big_tech_whitelist 段）发招呼；非白名单直接 skip",
+    )
     parser.add_argument("--device", default=None, help="ADB 设备 serial")
     parser.add_argument(
         "--no-adb-retry", action="store_true",
@@ -2477,6 +2587,8 @@ def main() -> int:
                 scoring_dimensions=scoring_dimensions,
                 company_tier_weights=company_tier_weights,
                 hr_active_weights=hr_active_weights,
+                big_tech_whitelist=big_tech_whitelist,
+                only_big_tech=args.only_big_tech,
                 daily_hard_limit=daily_hard_limit,
                 max_list_scrolls=args.max_list_scrolls,
                 scroll_px=args.scroll_px,
