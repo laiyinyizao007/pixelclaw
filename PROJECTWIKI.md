@@ -377,6 +377,40 @@ WHERE title = ?
 
 **遗留**：本次只解决「ADB 掉了要立刻知道」，**不修 ADB 断开的根本原因**（WiFi 睡眠 / DHCP IP 漂移 → 见 §8.4.1）。断线本身由 `_main_with_adb_recovery()` 自动重联兜底（见 §5）。
 
+**项目级代码约定（2026-10-20 起生效）**：
+
+`skill._adb(cmd)` 返回 `Tuple[bool, str]`——`success=False` 通常意味着设备已断/命令未触达。但 `_, out = skill._adb(...)` 这种反模式**丢弃 bool**，调用方只能用「stdout 空不空」反推状态，而空 stdout 也可能是命令合法返回空（`dumpsys | grep` 无匹配）。
+
+**反模式**：
+```python
+# ❌ 错：丢弃 bool，ADB 断时无法区分
+_, out = skill._adb("shell dumpsys ...")
+if "xxx" in out: ...
+```
+
+**正确模式**：
+```python
+# ✅ 对：必须解 bool
+ok, out = skill._adb("shell dumpsys ...")
+if not ok:
+    logger.error("adb 不可达，按断开处理")
+    return False
+if "xxx" in out: ...
+```
+
+或用专门 helper 二次复检：
+```python
+if not skill.adb.is_device_connected(skill.device_id):
+    return False
+```
+
+**项目内已发现的 anti-pattern 实例**（待 grep 排查修复）：
+- `scenarios/boss/scripts/smart_match_greet.py:1333,1334,1345`（已修：commit `3f9d999`）
+- `skills/android/adb_runner.py:147` —— `get_screen_size()` 静默 fallback 到 (1080, 2400)，ADB 断时后续 tap 坐标全错
+- `skills/android/android_skill.py:231` —— 同上
+
+**Why 此约定重要**：屏幕破坏命令（`input text`/`tap`/`swipe`/`keyevent`）前置的 dumpsys 检查必须额外用 `is_device_connected()` 复检——dumpsys 失败可能意味着 input 命令也未送达，但更糟的是 **input 命令可能送达但不是打到 PIN pad**，造成 PIN 误注入（2026-10-19 rerun 实测）。dumpsys 「stdout 空但不报错」和「ADB 真的断了」从输出看一样，从 boolean 维度看不一样——所以必须解 bool。
+
 **CLI 参数**：
 
 ```
