@@ -89,10 +89,10 @@ class TestReconnectIpDrift:
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         monkeypatch.setattr(smg.subprocess, "run", _fake_run)
-        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: "10.32.7.199:5555")
+        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: (True, "10.32.7.199:5555"))
         monkeypatch.setattr(smg.time, "sleep", lambda _s: None)
 
-        assert smg._adb_reconnect("10.32.7.135:5555") is True
+        assert smg._adb_reconnect("10.32.7.135:5555") == "10.32.7.199:5555"
         assert ["adb", "connect", "10.32.7.199:5555"] in tried
 
     def test_no_refresh_when_first_connect_succeeds(self, monkeypatch):
@@ -106,10 +106,10 @@ class TestReconnectIpDrift:
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         monkeypatch.setattr(smg.subprocess, "run", _fake_run)
-        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: called.append(1) or "")
+        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: called.append(1) or (False, ""))
         monkeypatch.setattr(smg.time, "sleep", lambda _s: None)
 
-        assert smg._adb_reconnect("10.32.7.135:5555") is True
+        assert smg._adb_reconnect("10.32.7.135:5555") == "10.32.7.135:5555"
         assert not called, "第一次就连上时不该触发子网扫描"
 
     def test_refresh_disabled_skips_drift_recovery(self, monkeypatch):
@@ -121,23 +121,95 @@ class TestReconnectIpDrift:
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         monkeypatch.setattr(smg.subprocess, "run", _fake_run)
-        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: called.append(1) or "")
+        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: called.append(1) or (False, ""))
         monkeypatch.setattr(smg.time, "sleep", lambda _s: None)
 
-        assert smg._adb_reconnect("10.32.7.135:5555", allow_ip_refresh=False) is False
+        assert smg._adb_reconnect("10.32.7.135:5555", allow_ip_refresh=False) is None
         assert not called
 
-    def test_returns_false_when_refresh_finds_nothing(self, monkeypatch):
+    def test_returns_none_when_refresh_finds_nothing(self, monkeypatch):
         def _fake_run(cmd, **kwargs):
             if cmd[:2] == ["adb", "connect"]:
                 return subprocess.CompletedProcess(cmd, 1, stdout="failed to connect", stderr="")
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         monkeypatch.setattr(smg.subprocess, "run", _fake_run)
-        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: None)
+        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: (False, ""))
         monkeypatch.setattr(smg.time, "sleep", lambda _s: None)
 
-        assert smg._adb_reconnect("10.32.7.135:5555") is False
+        assert smg._adb_reconnect("10.32.7.135:5555") is None
+
+    def test_refresh_result_on_same_ip_counts_as_success(self, monkeypatch):
+        """refresh 校验了 serial 且 IP 没变 → 手机就在线上，不该报失败。
+
+        回归：`refresh_device_ip` 在缓存 IP 可用时返回 (True, cached_ip)，
+        旧实现把它当成「没找到」→ 返回 False，白白丢掉一次重试机会。
+        """
+        def _fake_run(cmd, **kwargs):
+            if cmd[:2] == ["adb", "connect"]:
+                return subprocess.CompletedProcess(cmd, 1, stdout="failed to connect", stderr="")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(smg.subprocess, "run", _fake_run)
+        monkeypatch.setattr(smg, "_refresh_device_ip", lambda: (True, "10.32.7.135:5555"))
+        monkeypatch.setattr(smg.time, "sleep", lambda _s: None)
+
+        assert smg._adb_reconnect("10.32.7.135:5555") == "10.32.7.135:5555"
+
+
+class TestRefreshDeviceIpCall:
+    def test_passes_config_path_and_standard_port(self, monkeypatch, cfg_file):
+        """必须用 config/devices.json + standard_port（不是会被 VPN 劫持的 port）。"""
+        captured = {}
+
+        def _fake_refresh(**kwargs):
+            captured.update(kwargs)
+            return True, "10.32.7.135"
+
+        import utils.refresh_device_ip as rdi
+
+        monkeypatch.setattr(rdi, "refresh_device_ip", _fake_refresh)
+        ok, target = smg._refresh_device_ip()
+
+        assert ok is True
+        assert target == "10.32.7.135:5555"
+        assert captured["standard_port"] == 5555
+        assert captured["config_path"] == str(cfg_file)
+        assert captured["log_dir"].endswith("logs")
+
+
+class TestScanNetworkDisconnect:
+    def test_disconnects_non_matching_candidate(self, monkeypatch):
+        """扫到 serial 不匹配的 adbd 设备必须断开——否则 adb devices 有两台，
+        ADBRunner.shell() 不带 -s 会报 "more than one device" 整轮挂掉。"""
+        from utils import refresh_device_ip as rdi
+
+        calls = []
+
+        def _fake_run(cmd, timeout):
+            calls.append(cmd)
+            if cmd[:2] == ["ping"]:
+                return subprocess.CompletedProcess(cmd, 0, stdout="1 packets", stderr="")
+            if cmd[:2] == ["adb", "connect"]:
+                return subprocess.CompletedProcess(cmd, 0, stdout="connected", stderr="")
+            if cmd[:3] == ["adb", "-s"]:
+                return subprocess.CompletedProcess(cmd, 0, stdout="OTHER-SERIAL", stderr="")
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(rdi, "_run", _fake_run)
+
+        found = rdi._scan_network(
+            network="10.0.0.0/29",
+            expected_serial="TARGET-SERIAL",
+            port=5555,
+            ping_timeout=0.1,
+            adb_timeout=0.5,
+        )
+
+        assert found is None, "serial 不匹配不该被当成目标设备"
+        disconnects = [c for c in calls if c[:2] == ["adb", "disconnect"]]
+        assert len(disconnects) == 6, "6 个候选都该被断开"
+        assert ["adb", "disconnect", "10.0.0.1:5555"] in disconnects
 
 
 class TestSourceGuards:

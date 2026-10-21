@@ -42,9 +42,6 @@ REPO_ROOT = Path(__file__).parents[3]
 SMART_MATCH = REPO_ROOT / "scenarios" / "boss" / "scripts" / "smart_match_greet.py"
 PROFILE = REPO_ROOT / "scenarios" / "boss" / "config" / "candidate_profile.yaml"
 
-# 这些词搜不出有效职位（或会搜到一堆同名噪音），跳过
-_SKIP_KEYWORDS = {"1688", "UC", "QQ", "Riot", "POCO", "Redmi", "黑鲨"}
-
 
 def _has_cjk(text: str) -> bool:
     """Boss 是中文站，纯英文/拼音的词条搜不出对应公司。"""
@@ -59,18 +56,22 @@ def load_keywords(profile_path: Path = PROFILE) -> list[str]:
 
     母公司 + 旗下品牌都算大厂（用户 2026-10-20 确认），所以 subsidiaries
     的品牌名也进搜索列表。
+
+    ``skip_keywords``（yaml）里的词条跳过——它们搜不出有效职位，或只搜到
+    同名噪音。放 yaml 不放代码：避免在代码里硬编码公司/品牌名。
     """
     import yaml
 
     profile = yaml.safe_load(profile_path.read_text(encoding="utf-8")) or {}
     whitelist = profile.get("big_tech_whitelist") or {}
+    skip = {s.strip() for s in (whitelist.get("skip_keywords") or []) if s}
 
     keywords: list[str] = []
     seen: set[str] = set()
 
     def _add(name: str) -> None:
         name = (name or "").strip()
-        if not name or name in seen or name in _SKIP_KEYWORDS:
+        if not name or name in seen or name in skip:
             return
         if not _has_cjk(name):
             return
@@ -97,17 +98,31 @@ def load_keywords(profile_path: Path = PROFILE) -> list[str]:
 _RE_SENT = re.compile(r"打招呼成功：(\d+)\s*条")
 
 
+def _is_network_device(device: str) -> bool:
+    """判断 device 是不是 ``host:port`` 形式的网络地址。
+
+    ``--adb-reconnect-ip`` 只接受网络地址。传 USB serial（``42231JEKB04971``）
+    会让 ``adb connect <serial>`` 失败，重连逻辑会转去扫网段找另一台设备。
+    """
+    host = device.split(":", 1)[0]
+    return ":" in device and "." in host
+
+
 def run_one(
     keyword: str,
     max_greet: int,
     device: str | None,
-    threshold: float,
+    threshold: int,
     min_salary: int,
     timeout: int,
 ) -> tuple[int, str, int]:
-    """跑一个关键词，返回 (发出条数, 输出文本, 退出码)。"""
+    """跑一个关键词，返回 (发出条数, 输出文本, 退出码)。
+
+    退出码非 0 不一定是失败——子脚本在「没打够 max-greet」时也返回 1
+    （例如某个职位详情页加载失败）。真正要区分的是「一条都没发出去」。
+    """
     cmd = [
-        sys.executable, str(SMART_MATCH),
+        sys.executable, "-u", str(SMART_MATCH),
         "--keyword", keyword,
         "--only-big-tech",
         "--max-greet", str(max_greet),
@@ -118,15 +133,31 @@ def run_one(
     if device:
         cmd += ["--device", device]
         # 断连自动重连要指向同一台设备，否则重连到别的 IP 上
-        cmd += ["--adb-reconnect-ip", device]
+        if _is_network_device(device):
+            cmd += ["--adb-reconnect-ip", device]
     try:
         proc = subprocess.run(
             cmd, cwd=REPO_ROOT, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=timeout,
         )
-        return _parse_sent(proc.stdout or ""), proc.stdout or "", proc.returncode
+        out = proc.stdout or ""
+        sent = _parse_sent(out)
+        if proc.returncode != 0 and not sent:
+            # 一条都没发出去 + 非零退出 → 基本是参数错/环境问题，必须让人看见
+            err = (proc.stderr or "").strip()
+            print(f"  ⚠️ 子进程退出码 {proc.returncode} 且未发出任何招呼")
+            if err:
+                print(f"  ⚠️ stderr: {err[:500]}")
+        return sent, out, proc.returncode
     except subprocess.TimeoutExpired as exc:
-        out = exc.stdout if isinstance(exc.stdout, str) else ""
+        # TimeoutExpired.stdout 可能是 bytes / None / str（取决于 Python 版本与
+        # 子进程是否来得及 flush）。子命令用 -u 起（无缓冲），能拿到多少算多少。
+        raw = exc.stdout
+        if isinstance(raw, bytes):
+            out = raw.decode("utf-8", "replace")
+        else:
+            out = raw or ""
+        print(f"  ⚠️ 关键词「{keyword}」超时（{timeout}s），已发 {_parse_sent(out)} 条")
         return _parse_sent(out), out, -1
 
 
@@ -140,7 +171,7 @@ def main() -> int:
     parser.add_argument("--target", type=int, default=30, help="累计发送目标条数")
     parser.add_argument("--per-company", type=int, default=8, help="单个公司最多发多少条")
     parser.add_argument("--device", default=None, help="ADB 设备 serial（如 10.32.7.135:5555）")
-    parser.add_argument("--threshold", type=float, default=7, help="最低匹配分数")
+    parser.add_argument("--threshold", type=int, default=7, help="最低匹配分数（与子脚本同类型）")
     parser.add_argument("--min-salary", type=int, default=18, help="月薪下限（K）")
     parser.add_argument("--timeout", type=int, default=3600, help="单个关键词超时秒数")
     parser.add_argument("--logdir", default="/tmp/sweep_logs", help="日志目录")
@@ -183,7 +214,8 @@ def main() -> int:
             summary.append((keyword, got, elapsed))
             mf.write(f"---- exit={code} sent={got} cumulative={sent} elapsed={elapsed}s\n")
             mf.flush()
-            (logdir / f"{stamp}_{i:03d}_{keyword}.out").write_text(output, encoding="utf-8")
+            safe = re.sub(r"[^\w一-鿿-]+", "_", keyword)[:40]
+            (logdir / f"{stamp}_{i:03d}_{safe}.out").write_text(output, encoding="utf-8")
             print(f"[{i}/{len(keywords)}] {keyword}: +{got} (累计 {sent}/{args.target}) {elapsed}s",
                   flush=True)
 

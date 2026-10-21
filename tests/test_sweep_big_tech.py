@@ -18,6 +18,7 @@ ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 
 from scenarios.boss.scripts.sweep_big_tech import (  # noqa: E402
+    _is_network_device,
     _parse_sent,
     load_keywords,
     run_one,
@@ -40,9 +41,26 @@ class TestLoadKeywords:
         assert not any(k.isascii() for k in kws), "不应有纯 ASCII 关键词"
 
     def test_skips_noise_keywords(self):
+        """噪音词条由 yaml 的 skip_keywords 控制（不在代码里硬编码品牌名）。"""
+        import yaml
+
         kws = load_keywords()
-        for noise in ("1688", "UC", "QQ", "Riot", "POCO"):
+        profile = yaml.safe_load(
+            (ROOT / "scenarios" / "boss" / "config" / "candidate_profile.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        skip = profile["big_tech_whitelist"]["skip_keywords"]
+        assert skip, "yaml 里应声明 skip_keywords"
+        for noise in skip:
             assert noise not in kws, f"{noise} 搜不出有效职位，应跳过"
+
+    def test_no_company_names_hardcoded_in_script(self):
+        """关键词噪音名单必须在 yaml，不能在代码里硬编码公司/品牌名。"""
+        src = (ROOT / "scenarios" / "boss" / "scripts" / "sweep_big_tech.py").read_text(
+            encoding="utf-8"
+        )
+        assert "_SKIP_KEYWORDS" not in src, "跳过名单不应硬编码在代码里"
 
     def test_dedups_parent_prefix_only(self):
         """母公司内部：短名是长名前缀 → 去掉短名。"""
@@ -100,6 +118,69 @@ class TestRunOne:
         assert "--strict" in cmd
         assert got == 1 and code == 0
 
+    def test_threshold_type_matches_child_argparse(self):
+        """--threshold 的类型必须与子脚本一致。
+
+        子脚本是 ``type=int``；sweep 曾用 ``type=float`` → 拼出 "7.0" →
+        子脚本 argparse 直接报 "invalid int value" 退出 2，一条也发不出去。
+        """
+        import ast
+
+        def _threshold_type(path: Path) -> str:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr == "add_argument"
+                    and node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and node.args[0].value == "--threshold"
+                ):
+                    for kw in node.keywords:
+                        if kw.arg == "type":
+                            return getattr(kw.value, "id", getattr(kw.value, "attr", "?"))
+            return "?"
+
+        sweep_t = _threshold_type(ROOT / "scenarios" / "boss" / "scripts" / "sweep_big_tech.py")
+        child_t = _threshold_type(
+            ROOT / "scenarios" / "boss" / "scripts" / "smart_match_greet.py"
+        )
+        assert sweep_t == child_t, f"threshold 类型不一致：sweep={sweep_t} child={child_t}"
+
+    def test_child_rejects_float_threshold(self):
+        """回归防线：子脚本确实拒绝 "7.0"（证明上一条断言有意义）。"""
+        proc = subprocess.run(
+            [
+                sys.executable, str(ROOT / "scenarios" / "boss" / "scripts" / "smart_match_greet.py"),
+                "--threshold", "7.0",
+            ],
+            capture_output=True, text=True, timeout=60,
+        )
+        assert "invalid int value" in (proc.stderr or "")
+
+    def test_assembled_cmd_is_accepted_by_child_argparse(self, monkeypatch):
+        """把真实拼出的命令行喂给子脚本的 argparse（--help 收尾，无副作用）。
+
+        这是最贴近真跑的回归防线：参数类型/拼写对不上时，子脚本会直接
+        exit 2 拒绝执行——sweep 却会把「0 条」当成正常结果继续跑。
+        """
+        captured = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+        run_one("字节跳动", 5, "10.32.7.135:5555", 7, 18, 60)
+
+        proc = subprocess.run(
+            captured["cmd"] + ["--help"], capture_output=True, text=True, timeout=120,
+        )
+        assert proc.returncode == 0, (
+            f"子脚本拒绝 sweep 拼出的命令行：\n{proc.stderr[-800:]}"
+        )
+
     def test_omits_device_flags_when_not_given(self, monkeypatch):
         captured = {}
 
@@ -112,3 +193,39 @@ class TestRunOne:
         cmd = captured["cmd"]
         assert "--device" not in cmd
         assert "--adb-reconnect-ip" not in cmd
+
+    def test_usb_serial_device_does_not_set_reconnect_ip(self, monkeypatch):
+        """USB serial 不是网络地址，--adb-reconnect-ip 不能照抄它。"""
+        captured = {}
+
+        def _fake_run(cmd, **kwargs):
+            captured["cmd"] = cmd
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+        run_one("腾讯", 3, "42231JEKB04971", 7, 18, 60)
+        cmd = captured["cmd"]
+        assert cmd[cmd.index("--device") + 1] == "42231JEKB04971"
+        assert "--adb-reconnect-ip" not in cmd
+
+    def test_timeout_keeps_partial_output(self, monkeypatch):
+        """超时也要保住已发出的条数（子命令以 -u 无缓冲启动）。"""
+
+        def _fake_run(cmd, **kwargs):
+            raise subprocess.TimeoutExpired(cmd, 60, output="✓ 打招呼成功：3 条".encode())
+
+        monkeypatch.setattr(subprocess, "run", _fake_run)
+        got, out, code = run_one("腾讯", 5, None, 7, 18, 60)
+        assert got == 3
+        assert code == -1
+
+
+class TestIsNetworkDevice:
+    def test_host_port(self):
+        assert _is_network_device("10.32.7.135:5555") is True
+
+    def test_usb_serial(self):
+        assert _is_network_device("42231JEKB04971") is False
+
+    def test_serial_with_colon(self):
+        assert _is_network_device("emulator-5554:5555") is False
