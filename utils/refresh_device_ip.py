@@ -139,6 +139,11 @@ def _scan_network(
             _run(["adb", "disconnect", f"{ip}:{port}"], timeout=adb_timeout)
             return ip
 
+        # 不是目标设备 → 断开。留着会让 adb devices 同时列出两台设备，
+        # 而 ADBRunner.shell() 不带 -s，adb 会报 "more than one device"
+        # 直接让整轮跑挂掉。
+        _run(["adb", "disconnect", f"{ip}:{port}"], timeout=adb_timeout)
+
     return None
 
 

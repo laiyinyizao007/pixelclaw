@@ -2761,36 +2761,43 @@ def _resolve_reconnect_ip(fallback: str = "10.32.7.105:5555") -> str:
     ip = dev.get("ip")
     if not ip:
         return fallback
-    port = dev.get("standard_port") or dev.get("port") or 5555
+    port = dev.get("standard_port") or 5555
     return f"{ip}:{port}"
 
 
-def _refresh_device_ip() -> str | None:
-    """扫网段找回漂移后的手机 IP（按 serial 校验），成功返回 ``ip:port``。
+def _refresh_device_ip() -> tuple[bool, str]:
+    """扫网段找回漂移后的手机 IP。返回 ``(手机是否在线, ip:port)``。
 
     复用 ``utils/refresh_device_ip``（2026-10-15 实现）：ping 快筛 + adb connect
-    + ``ro.serialno`` 二次校验 + 回写 config。找不到返回 None。
+    + ``ro.serialno`` 二次校验 + 回写 config。**ok=True 表示手机此刻就在那个
+    IP 上**（模块内部已经 adb connect 并按 serial 校验过），调用方不必再连一次。
+
+    超时参数比模块默认更紧（ping 0.2s / adb 1.0s）：子网扫描最坏要遍历
+    254 个 IP，默认参数下可能拖十几分钟。
     """
     try:
         from utils.refresh_device_ip import refresh_device_ip as _refresh
     except Exception as e:
         print(f"  ⚠️ 导入 refresh_device_ip 失败：{e}")
-        return None
+        return False, ""
 
     dev = _active_device(_load_device_config())
-    port = dev.get("standard_port") or dev.get("port") or 5555
+    port = dev.get("standard_port") or 5555
     try:
         ok, ip = _refresh(
             config_path=str(DEVICES_CONFIG),
+            log_dir=str(REPO_ROOT / "logs"),
             standard_port=int(port),
+            ping_timeout=0.2,
+            adb_timeout=1.0,
         )
     except Exception as e:
         print(f"  ⚠️ IP 漂移恢复异常：{e}")
-        return None
+        return False, ""
     if not ok or not ip:
         print("  ⚠️ IP 漂移恢复失败：网段内没找到 serial 匹配的设备")
-        return None
-    return f"{ip}:{port}"
+        return False, ""
+    return True, f"{ip}:{port}"
 
 
 def _adb_connect_and_verify(target: str, timeout: float) -> bool:
@@ -2821,14 +2828,14 @@ def _adb_connect_and_verify(target: str, timeout: float) -> bool:
     return True
 
 
-def _adb_reconnect(ip: str, timeout: float = 15.0, allow_ip_refresh: bool = True) -> bool:
+def _adb_reconnect(ip: str, timeout: float = 15.0, allow_ip_refresh: bool = True) -> str | None:
     """Best-effort: ``adb disconnect`` + ``adb connect <ip>`` + 验证。
 
     连不上时按「IP 漂移」处理：扫网段按 serial 找回当前 IP 再重试一次
     （2026-10-15 实测 DHCP 续期把手机从 .125 挪到了 .135，写死 IP 会一直连不上）。
 
     Returns:
-        True 当 ``adb devices`` 出现 ``\\tdevice`` 状态行；False 任何步骤失败。
+        连上的目标 ``ip:port``（调用方应据此更新下次的重连目标）；失败返回 None。
     """
     try:
         subprocess.run(["adb", "disconnect"], capture_output=True, timeout=timeout)
@@ -2838,16 +2845,19 @@ def _adb_reconnect(ip: str, timeout: float = 15.0, allow_ip_refresh: bool = True
     time.sleep(1)
 
     if _adb_connect_and_verify(ip, timeout):
-        return True
+        return ip
 
     if not allow_ip_refresh:
-        return False
+        return None
 
-    new_target = _refresh_device_ip()
-    if not new_target or new_target == ip:
-        return False
-    print(f"  ↻ IP 漂移恢复：{ip} → {new_target}，重试连接…")
-    return _adb_connect_and_verify(new_target, timeout)
+    ok, target = _refresh_device_ip()
+    if not ok or not target:
+        return None
+    if target == ip:
+        # refresh 模块内部已经 adb connect + serial 校验过，手机就在这个 IP 上
+        return target
+    print(f"  ↻ IP 漂移恢复：{ip} → {target}，重试连接…")
+    return target if _adb_connect_and_verify(target, timeout) else None
 
 
 def _main_with_adb_recovery() -> int:
@@ -2864,10 +2874,13 @@ def _main_with_adb_recovery() -> int:
     - 最多 --adb-retry-max 次（默认 3），避免无线 ADB 长时间不可用时
       无限重试浪费 LLM 配额。
     - ``--no-adb-retry`` 完全禁用，保留逃生口。
+    - ``--no-ip-refresh`` 禁用「连不上时扫网段找漂移后的 IP」——子网扫描最坏
+      要遍历 254 个 IP，耗时可达数分钟，在有明确目标 IP 时应该关掉。
     """
-    # 预解析（不与 main() 内部 argparse 冲突）—— 只关心 3 个 retry 相关参数
+    # 预解析（不与 main() 内部 argparse 冲突）—— 只关心 retry 相关参数
     _pre = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     _pre.add_argument("--no-adb-retry", action="store_true")
+    _pre.add_argument("--no-ip-refresh", action="store_true")
     _pre.add_argument("--adb-reconnect-ip", default=_resolve_reconnect_ip())
     _pre.add_argument("--adb-retry-max", type=int, default=3)
     pre_args, _unknown = _pre.parse_known_args()
@@ -2887,9 +2900,14 @@ def _main_with_adb_recovery() -> int:
                 f"\n⚠️ Attempt {attempt}/{max_attempts}：自动重联 ADB {ip}…"
             )
             time.sleep(3)
-            if not _adb_reconnect(ip):
+            new_target = _adb_reconnect(
+                ip, allow_ip_refresh=not pre_args.no_ip_refresh
+            )
+            if not new_target:
                 print("  ❌ 重联失败，继续下一轮…")
                 continue
+            # IP 漂移恢复后目标变了，后续 attempt 直接用新目标，避免重复扫网段
+            ip = new_target
             print("  ✓ ADB 重联成功，重跑 main()（已发 job 靠 DB 自动去重）")
 
         rc, result = main()

@@ -387,11 +387,13 @@ Boss 返回的是该公司在招的职位，且排序把 AI/产品岗顶到前�
 
 **关键词来源**：`candidate_profile.yaml` 的 `big_tech_whitelist` 段（母公司 + 旗下品牌），顺序即 yaml 书写顺序（互联网头部 → AI 新势力 → 半导体/自动驾驶 → 外企 → 准大厂）。`load_keywords()` 做三件事：
 
-1. 跳过搜不出有效职位的噪音词（`1688` / `UC` / `QQ` / `Riot` / `POCO` / `Redmi` / `黑鲨`）
+1. 跳过 yaml `big_tech_whitelist.skip_keywords` 里的噪音词条（`1688` / `UC` / `QQ` / `Riot` / `POCO` / `Redmi` / `黑鲨`）——**名单放 yaml 不放代码**，避免在代码里硬编码公司/品牌名
 2. 过滤纯 ASCII 词条（Boss 是中文站，搜 `Alibaba` 没意义）
 3. 母公司组内「短名是长名前缀」去重（`阿里` → `阿里巴巴`），**跨组不去重**（`百度` 是母公司、`百度网盘` 是旗下品牌，前缀关系但都要留）
 
 > ⚠️ 白名单只用来生成**搜索词** + 给 LLM 做参考（`_build_big_tech_context`），**是否算大厂仍由 LLM 在 `score_job` 里判定**（见上文「`--only-big-tech` 模式改由 LLM 评判」）。sweep 脚本本身不含任何公司名硬匹配。
+
+**参数类型必须与子脚本一致**：`--threshold` 两边都是 `type=int`。sweep 曾用 `type=float` → 拼出 `"7.0"` → 子脚本 argparse 直接 `invalid int value` 退出 2 → **一条也发不出去**，而 sweep 把「0 条」当正常结果继续跑。`tests/test_sweep_big_tech.py` 有一条 AST 断言（两边 type 必须相同）+ 一条把真实命令行喂给子脚本 argparse 的端到端断言（`--help` 收尾，无副作用）。
 
 **去重**：`smart_match_greet.py` 的 `greetings` / `job_visits` 表负责，同一个岗位换个关键词再搜到也不会重复打招呼。
 
@@ -840,11 +842,20 @@ adb shell settings get global wifi_sleep_policy       # 期望 1
 
 `Settings.Global` 持久化，重启后仍生效；恢复默认写回 `2`。代价是拔电时 WiFi 不休眠会多耗电——本项目手机常年插电，可接受。
 
-**自愈链补全**：`_adb_reconnect()` 连不上时按「IP 漂移」处理——调 `utils.refresh_device_ip.refresh_device_ip()`（ping 快筛 + `adb connect` + `ro.serialno` 校验 + 回写 config）拿到新 IP 后**再连一次**。`allow_ip_refresh=False` 可关闭该行为（逃生口）。
+**自愈链补全**：`_adb_reconnect()` 连不上时按「IP 漂移」处理——调 `utils.refresh_device_ip.refresh_device_ip()`（ping 快筛 + `adb connect` + `ro.serialno` 校验 + 回写 config）拿到新 IP 后**再连一次**。
 
 > ⚠️ 顺序很重要：先试原 IP，**失败才扫网段**。网段扫描最坏要扫 254 个 IP（`ping_timeout=0.3` + `adb_timeout=1.5`），不能在连得上的情况下付这个代价。
 
-**回归测试**：`tests/test_adb_reconnect_ip_drift.py` 10 个用例（`_resolve_reconnect_ip` 4 + IP 漂移重连 4 + 源码防回归 2）。
+细节约定（2026-10-21 code review 后补）：
+
+- `_adb_reconnect()` **返回连上的目标 `ip:port`**（失败返 `None`）。调用方 `_main_with_adb_recovery()` 据此更新下一轮的 `ip`——IP 漂移恢复后不必每轮都重新扫网段。
+- `--no-ip-refresh` CLI 开关可关掉漂移恢复（逃生口：明确知道目标 IP 时，别让扫描拖几分钟）。
+- `refresh_device_ip` 在「缓存 IP 本来就可用」时返回 `(True, cached_ip)`——**这时手机已经在线**，不能当成「没找到」（旧实现把它当失败，白丢一次重试机会）。
+- `utils/refresh_device_ip._scan_network()` 扫到 **serial 不匹配** 的 adbd 设备时必须 `adb disconnect`——否则 `adb devices` 同时列出两台，而 `ADBRunner.shell()` 不带 `-s`，adb 会报 `more than one device` 让整轮跑挂掉。
+- 端口只取 `standard_port`（5555），**不回退到 `port`**（42527 是配对后随机开、会被 VPN 劫持成不可达的那个）。
+- 扫网段用更紧的超时（ping 0.2s / adb 1.0s），避免最坏十几分钟的阻塞。
+
+**回归测试**：`tests/test_adb_reconnect_ip_drift.py` 13 个用例（`_resolve_reconnect_ip` 4 + IP 漂移重连 5 + `_refresh_device_ip` 参数 1 + 扫描断开 1 + 源码防回归 2）。
 
 **待办**：`adb disconnect` 演练（真机验证漂移恢复）需在 sweep 跑完后做——演练会主动断链，会打断正在进行的打招呼。
 
