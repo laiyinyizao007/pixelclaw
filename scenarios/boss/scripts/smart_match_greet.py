@@ -203,6 +203,82 @@ def _bigram_overlap(a: str, b: str) -> float:
     return len(bg_a & bg_b) / min(len(bg_a), len(bg_b))
 
 
+# 公司名里的「通用词」——判定同一家公司前先剥掉，否则
+# 「北京字跳网络技术有限公司」和「字节跳动」永远对不上。
+_CORP_GENERIC_TOKENS = (
+    "股份有限公司", "有限责任公司", "集团有限公司", "有限公司", "集团", "公司",
+    "网络科技", "科技有限公司", "信息技术", "网络", "科技", "技术", "互联网",
+    "信息", "软件", "数字", "智能", "移动", "通信", "服务", "控股",
+)
+# 行政区前缀——「北京字节跳动」==「字节跳动」
+_CORP_GEO_PREFIXES = (
+    "北京", "上海", "深圳", "广州", "杭州", "成都", "南京", "苏州", "西安",
+    "武汉", "天津", "重庆", "青岛", "厦门", "长沙", "郑州", "合肥", "福州",
+    "济南", "大连", "沈阳", "哈尔滨", "中国", "香港", "新加坡",
+)
+
+
+def _company_core(name: str) -> str:
+    """Strip geographic prefix and generic corporate-form words from a company name.
+
+    例：
+        「北京字跳网络技术有限公司」→「字跳」
+        「深圳市腾讯计算机系统有限公司」→「腾讯计算机系统」
+        「字节跳动」→「字节跳动」（无通用词可剥）
+
+    空串（剥光）时回退到原名，避免把「有限公司」这种壳当成核心。
+    """
+    if not name:
+        return ""
+    core = name
+    for geo in _CORP_GEO_PREFIXES:
+        if core.startswith(geo):
+            core = core[len(geo):]
+            break
+    # 「深圳市」/「广东省」这类行政区后缀
+    if core[:1] in ("市", "省"):
+        core = core[1:]
+    for token in _CORP_GENERIC_TOKENS:
+        core = core.replace(token, "")
+    return core or name
+
+
+def _company_compatible(a: str, b: str) -> bool:
+    """Return True if two company strings may refer to the same employer.
+
+    场景（2026-10-21 实测）：Boss 三个视图给的公司名不一样 ——
+        列表卡：字节跳动 / 详情页：北京字跳网络技术有限公司 / 聊天页：字节跳动
+    严格字符串比较会「误判成两家公司」，后果有二：
+      1. 聊天页公司校验把合法发送拦掉（Boss 已自动发了默认招呼，个性化招呼没发出去）；
+      2. job_visits 去重查不到记录 → 同卡无限重试（实测同一张卡刷了 15 次，0 产出）。
+
+    判定顺序（任一命中即视为同一家）：
+      1. 任一为空 → True（退化：字段缺失时不该当成两家公司）
+      2. 完全相等
+      3. 互为子串
+      4. bigram 重叠 ≥ 0.66（见 `_bigram_overlap`，覆盖「融和科技」类变体）
+      5. 剥通用词后的**字符集**重叠 ≥ 0.66（按较短一方归一化）
+         例：核心「字节跳动」{字,节,跳,动} vs「字跳」{字,跳} → 2/2 = 1.0 → 同一家
+         反例：核心「小米」{小,米} vs「小鹏汽车」{小,鹏,汽,车} → 1/2 = 0.5 → 不同家
+    """
+    if not a or not b:
+        return True
+    if a == b:
+        return True
+    if a in b or b in a:
+        return True
+    if _bigram_overlap(a, b) >= 0.66:
+        return True
+    core_a, core_b = _company_core(a), _company_core(b)
+    if not core_a or not core_b:
+        return False
+    if len(core_a) < 2 or len(core_b) < 2:
+        return False
+    set_a, set_b = set(core_a), set(core_b)
+    overlap = len(set_a & set_b) / min(len(set_a), len(set_b))
+    return overlap >= 0.66
+
+
 def _is_already_greeted(
     conn: sqlite3.Connection, title: str, company: str, hr_name: str | None
 ) -> bool:
@@ -1271,19 +1347,6 @@ def _find_next_job(
             list_hr = v.hr_name or ""
             _matched = False
             for _row_co, _row_hr in _candidates:
-                # ── company 4-tier: 精确 / INSTR (双向) / bigram 重叠 / list 空退化
-                if list_co == "":
-                    _co_ok = True
-                else:
-                    _co_ok = (
-                        _row_co == list_co
-                        or (list_co and list_co in _row_co)
-                        or (_row_co and _row_co in list_co)
-                        or (len(list_co) >= 3
-                            and _bigram_overlap(list_co, _row_co) >= 0.66)
-                    )
-                if not _co_ok:
-                    continue
                 # ── hr_name 3-tier: 精确 / INSTR (双向) / list 空退化
                 if list_hr == "":
                     _hr_ok = True
@@ -1294,6 +1357,18 @@ def _find_next_job(
                         or (_row_hr and _row_hr in list_hr)
                     )
                 if not _hr_ok:
+                    continue
+                # ── company：精确 / INSTR / bigram / 剥通用词字符集（见 _company_compatible）
+                # 2026-10-21 修复：列表卡「字节跳动」vs 详情页「北京字跳网络技术有限公司」
+                # 四档全不匹配 → 误判「未访问」→ 兜底放行 → 同卡刷 15 次、0 产出。
+                #
+                # 注意：不能退化成「同 title + 同 HR 就当同一家公司」——
+                # 「A科技」vs「B科技有限公司」同 HR 也是两家公司
+                # （tests/test_find_next_job_company_mismatch.py 覆盖）。
+                # 品牌名 vs 法定全称救不回来的场景（如「美团」/「北京三快在线科技有限公司」），
+                # 由 _is_already_greeted 第 4 层（title + hr_name 命中已打过招呼）兜底。
+                _co_ok = _company_compatible(list_co, _row_co)
+                if not _co_ok:
                     continue
                 _matched = True
                 break
@@ -1742,6 +1817,8 @@ def _run_loop(
     greeted_count = 0
     no_target_scrolls = 0
     processed = 0  # 用于日志显示的「第 N 条」计数器
+    # 同一 (title, hr) 本轮处理次数——2026-10-21 跨视图去重链断裂的硬闸兜底
+    _session_job_counts: dict[str, int] = {}
 
     # ── 每日上限保护（主动检查，不依赖弹窗被动检测）──
     # 2026-10-12 修订：用户实测 Boss 直聘**无公布每日硬限**——dialy_hard_limit=0
@@ -1815,6 +1892,25 @@ def _run_loop(
         title = target.title or ""
         company = target.company or ""
         hr_name = target.hr_name or ""
+        # ── 2026-10-21 兜底：同一张卡本轮最多处理 2 次 ──
+        # 跨视图不一致（列表卡公司名 vs 详情页法定全称）会让 visited_keys /
+        # job_visits 去重链断裂，同一张卡被反复取出评分（实测刷了 15 次、0 产出、
+        # 白烧 LLM 配额）。_company_compatible 已修根因，这里再加一道硬闸：
+        # 同一 (title, hr) 第 3 次出现就强制跳过并记账。
+        _session_key = f"{normalize_card_title(title)}\t{hr_name or ''}"
+        _seen_count = _session_job_counts.get(_session_key, 0) + 1
+        _session_job_counts[_session_key] = _seen_count
+        if _seen_count > 2:
+            logger.warning(
+                "  同一职位本轮已处理 %d 次（%s / %s），强制跳过——疑似跨视图去重链断裂",
+                _seen_count - 1, title, hr_name,
+            )
+            result["skipped"].append(f"{title}（{company}）：本轮重复处理超过 2 次")
+            _record_visit(db_conn, title, company, hr_name, keyword, None,
+                          skip_reason="本轮重复处理超限", job_dict={"company": company})
+            visited_keys.add(f"{normalize_card_title(title)}\t{company}\t{hr_name}")
+            visited_keys.add(f"{normalize_card_title(title)}\t\t{hr_name}")
+            continue
         # ── 2026-10-14 修复（兜底死循环 v2）：所有「在写 visited_keys 之前」的
         # skip 路径必须 **自己** 写 job_visits（_record_visit），否则下次
         # _find_next_job item 4 兜底查 job_visits COUNT=0 → 兜底放行 → fall through
@@ -2307,23 +2403,34 @@ def _run_loop(
                 or title in _chat_position_text
                 or _chat_position_text in title
             )
-            _chat_company_match = (
-                not company
-                or not _chat_company_text
-                or company[:6] in _chat_company_text
-                or _chat_company_text[:6] in company
-            )
+            # 2026-10-21 修复：详情页给法定全称（详情页：字节跳动）、
+            # 聊天页给品牌名（聊天页：字节跳动）→ 旧的前 6 字 INSTR 比较判不匹配，
+            # 把合法发送拦掉（此时 Boss 已自动发了默认招呼，个性化招呼没发出去）。
+            # 改用 _company_compatible（容忍品牌名 vs 全称）。
+            _chat_company_match = _company_compatible(company, _chat_company_text)
             _target_hr_surname = (effective_hr_name or "")[:2]
             _chat_hr_match = (
                 not _target_hr_surname
                 or _target_hr_surname in _chat_title_text
             )
-            if _chat_title_match and _chat_company_match:
+            # 「点 A 跳 B」兜底：职位名与 HR 都对得上时，公司名不一致只是渲染差异，放行
+            _chat_identity_ok = (
+                bool(_chat_position_text)
+                and _chat_position_text == title
+                and _chat_hr_match
+            )
+            if _chat_title_match and (_chat_company_match or _chat_identity_ok):
                 # title + company 匹配即可发送；HR 仅作 warning 不阻断
                 # 原因：HR 名字在不同页（搜索列表 vs 聊天页）可能显示差异
                 # （如「某总」→「某女士」），过度严格会让本来正确的发送被跳过。
                 # 真正致命的"点 A 跳 B"仍会被 title 或 company 不匹配捕获。
                 _chat_ok = True
+                if not _chat_company_match:
+                    logger.warning(
+                        "  聊天页公司名与详情页不一致（职位名+HR 匹配，放行）— "
+                        "详情页=%s，聊天页=%s",
+                        company, _chat_company_text,
+                    )
                 if not _chat_hr_match and _target_hr_surname:
                     logger.warning(
                         "  聊天页 HR 不匹配（仅 warning，不阻断）— 目标 hr=%s，"
