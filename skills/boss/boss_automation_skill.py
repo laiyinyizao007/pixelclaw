@@ -782,7 +782,20 @@ class BOSSAutomationSkill(AndroidSkill):
         Returns:
             True only if text was confirmed entered AND the send button was tapped
             (and message verified when verify=True).
+
+        Side effect:
+            Sets ``self.last_send_state`` to one of:
+            - ``"sent"``     — 确认已发出
+            - ``"not_sent"`` — 确定没发出（没找到输入框/发送按钮，或点击失败且设备在线）
+            - ``"unknown"``  — **可能已发出但无法确认**（点击后设备掉线、发送后验证失败）
+
+            Why 需要这个三态：发送按钮的 tap 一旦执行，消息就可能已经发出去。
+            若此时 ADB 掉线导致校验失败，调用方只看到 ``False``，无法区分
+            「压根没发」和「发了但没验证上」。若一律当成「没发」，下一轮重跑
+            会给同一个 HR 再发一条（2026-10-21 code review 发现）。
+            调用方应据此决定是否记账为「已发送」。
         """
+        self.last_send_state = "not_sent"
         self._logger.info("[send_greeting] → 发送消息 (verify=%s)", verify)
 
         # Save current IME so we can restore it after sending.
@@ -895,19 +908,37 @@ class BOSSAutomationSkill(AndroidSkill):
             self._adb(f"shell ime set {prev_ime}")
 
         if not ok:
-            self._logger.warning("[send_greeting] ← 点击发送按钮失败")
+            # tap 没生效——但如果此刻设备已经不可达，tap 是否真的没送到设备上
+            # 无法确认（消息可能已发出）→ 记 unknown，让调用方按「可能已发」处理。
+            if self._is_device_reachable():
+                self.last_send_state = "not_sent"
+            else:
+                self.last_send_state = "unknown"
+            self._logger.warning("[send_greeting] ← 点击发送按钮失败（状态=%s）",
+                                 self.last_send_state)
             return False
 
         if verify:
             time.sleep(1.0)
             verified = self.verify_message_sent(message)
+            # tap 已经执行 → 消息很可能已经发出。验证失败无法区分「没发出去」
+            # 和「发出去了但没验证上」→ 一律记 unknown，交给调用方保守记账。
+            self.last_send_state = "sent" if verified else "unknown"
             self._logger.info(
                 "[send_greeting] ← %s", "已验证发送" if verified else "发送后验证失败"
             )
             return verified
 
+        self.last_send_state = "sent"
         self._logger.info("[send_greeting] ← 发送成功（未验证）")
         return True
+
+    def _is_device_reachable(self) -> bool:
+        """设备此刻是否在线。探测失败（adb 异常）按「不可达」处理——保守侧。"""
+        try:
+            return bool(self.adb.is_device_connected(self.device_id))
+        except Exception:
+            return False
 
     def _save_debug_screenshot(self, tag: str) -> None:
         path = self.screenshot(f"debug_{tag}.png")

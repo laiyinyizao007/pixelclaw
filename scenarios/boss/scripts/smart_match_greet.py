@@ -28,6 +28,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1217,7 +1218,8 @@ def live_greet_loop(
         _skill_log.addHandler(_sh)
         _skill_log.setLevel(_logging.INFO)
         _skill_log.propagate = False
-    result: dict = {"greeted": [], "skipped": [], "errors": [], "all_scores": []}
+    result: dict = {"greeted": [], "skipped": [], "errors": [], "all_scores": [],
+                    "device_id": skill.device_id}
 
     # Keep screen on (all charge types) + push lock/screen-off timeouts to 30 min.
     # Disable Adaptive Sleep (Pixel face-detection that bypasses screen_off_timeout).
@@ -1675,7 +1677,7 @@ def _run_loop(
                     break
             if not _unlocked:
                 logger.error("    12 次重试后仍锁屏，最终状态: %s", _dumpsys_keyguard_state(skill))
-                result["errors"].append("手机锁屏未解，无法启动")
+                _append_ui_error(result, "手机锁屏未解，无法启动")
                 return result
     elif not skill._is_screen_on():
         skill._wake_screen()
@@ -1691,7 +1693,7 @@ def _run_loop(
                     _unlocked = True
                     break
             if not _unlocked:
-                result["errors"].append("手机锁屏未解，无法启动")
+                _append_ui_error(result, "手机锁屏未解，无法启动")
                 return result
 
     # Extra check: screen may be "Awake" but the lock screen is still in front.
@@ -1716,7 +1718,7 @@ def _run_loop(
                     _unlocked2 = True
                     break
             if not _unlocked2:
-                result["errors"].append("手机锁屏未解，无法启动")
+                _append_ui_error(result, "手机锁屏未解，无法启动")
                 return result
 
     logger.info("[1/2] 启动 Boss直聘…")
@@ -1731,7 +1733,7 @@ def _run_loop(
     if not ok_start:
         # Fallback to monkey launch
         if not skill.launch(wait=6.0):
-            result["errors"].append("无法启动 App，请确认 ADB 已连接")
+            _append_ui_error(result, "无法启动 App，请确认 ADB 已连接")
             return result
     else:
         time.sleep(5.0)
@@ -1748,6 +1750,12 @@ def _run_loop(
     #      IMPORTANT: stop pressing BACK as soon as et_search appears — over-pressing
     #      backs us out past the home page into the Android launcher.
     for _startup_try in range(10):
+        # Fail fast: ADB 中途掉线时 get_ui_hierarchy() 恒返回空，循环会白转
+        # 10×3s 再带着「搜索失败：X」这种通用错误退出——自愈链看不见这种
+        # 错误文案，重连逻辑一次都不会跑（2026-10-21 真机演练实证）。
+        # 这里直接带 ADB 标记退出，交给 wrapper 重连 + 重跑。
+        if _startup_abort_if_disconnected(skill, result):
+            return result
         xml = skill.get_ui_hierarchy()
         # BOSS not present → lock screen, home screen, or lingering overlay.
         if not xml or "com.hpbr.bosszhipin" not in xml:
@@ -1803,10 +1811,10 @@ def _run_loop(
             _dbg_path = Path(skill.output_dir) / "debug_search_fail.xml"
             _dbg_path.write_text(_dbg[:12000], encoding="utf-8")
             logger.error("  搜索失败，调试 XML 已保存至 %s", _dbg_path)
-        result["errors"].append(f"搜索失败：{keyword}")
+        _append_ui_error(result, f"搜索失败：{keyword}")
         return result
     if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_position_name", timeout=6.0):
-        result["errors"].append("职位列表加载超时")
+        _append_ui_error(result, "职位列表加载超时")
         return result
 
     # 无基线：直接从当前屏幕开始处理；hr_name 等懒加载字段由详情页补全
@@ -1846,7 +1854,7 @@ def _run_loop(
         #    先回到 JOB_LIST，再 _find_next_job 看屏幕
         if skill.get_current_page() != PageState.JOB_LIST:
             if not _return_to_job_list(skill, keyword):
-                result["errors"].append("无法返回职位列表")
+                _append_ui_error(result, "无法返回职位列表")
                 break
 
         # 1. 在当前屏幕找一个未访问的目标（按 doc §4.1：每次导航前重取坐标）
@@ -2021,7 +2029,7 @@ def _run_loop(
                     _recovered = True
                     break
             if not _recovered:
-                result["errors"].append("屏幕未解锁，停止任务")
+                _append_ui_error(result, "屏幕未解锁，停止任务")
                 break
 
         # 进入详情页（用 _find_next_job 给的新鲜坐标）
@@ -2038,8 +2046,8 @@ def _run_loop(
                 visited_keys.add(_key)
                 _record_visit(db_conn, title, company, hr_name, keyword, None,
                               skip_reason=f"导航连续{_NAV_FAIL_MAX}次失败")
-                result["errors"].append(
-                    f"{title}：导航连续 {_NAV_FAIL_MAX} 次失败，放弃"
+                _append_ui_error(
+                    result, f"{title}：导航连续 {_NAV_FAIL_MAX} 次失败，放弃"
                 )
                 logger.warning(
                     "  → 连续 %d 次失败，已加入 visited_keys + DB 记录（item 2 触发）",
@@ -2047,7 +2055,7 @@ def _run_loop(
                 )
             else:
                 # 第 1 次失败：discard + 让外层循环重试（item 4 兜底会再校验 DB）
-                result["errors"].append(f"{title}：导航失败（{_nav_fail_count[_key]}/{_NAV_FAIL_MAX}）")
+                _append_ui_error(result, f"{title}：导航失败（{_nav_fail_count[_key]}/{_NAV_FAIL_MAX}）")
                 logger.warning(
                     "  → 加入 errors 列表，visited_keys 已 discard (item 3)；下次循环重试",
                 )
@@ -2086,7 +2094,7 @@ def _run_loop(
             )
             time.sleep(1.0)
         if not _detail_ok:
-            result["errors"].append(f"{title}：详情页加载超时或内容不匹配")
+            _append_ui_error(result, f"{title}：详情页加载超时或内容不匹配")
             _record_visit(db_conn, title, company, hr_name, keyword, None,
                           skip_reason="详情页title或公司名不匹配")
             continue
@@ -2095,7 +2103,7 @@ def _run_loop(
         raw_check = skill.get_job_detail()
         if any("网络异常" in t for t in raw_check.get("raw_texts", [])):
             logger.warning("  详情页网络异常，跳过")
-            result["errors"].append(f"{title}：详情页网络异常")
+            _append_ui_error(result, f"{title}：详情页网络异常")
             continue
 
         # 展开"查看更多"，重新提取完整详情
@@ -2352,7 +2360,7 @@ def _run_loop(
             if not skill.tap_element("chat_btn"):
                 # ── 2026-10-13 排查埋点：聊天按钮 tap 失败（区分「导航失败但 detail 通过」vs「聊天页打开失败」） ──
                 logger.warning("  ⚠️ chat_btn tap 失败：%s（%s）", title, company)
-                result["errors"].append(f"{title}：无法打开聊天页")
+                _append_ui_error(result, f"{title}：无法打开聊天页")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="无聊天按钮", job_dict=job_dict, scored_result=scored)
                 continue
@@ -2378,7 +2386,7 @@ def _run_loop(
                 "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
             ):
                 logger.warning("  ⚠️ 聊天页 editText 4s 超时：%s（%s）", title, company)
-                result["errors"].append(f"{title}：聊天页加载超时")
+                _append_ui_error(result, f"{title}：聊天页加载超时")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="聊天页超时", job_dict=job_dict, scored_result=scored)
                 continue
@@ -2450,7 +2458,8 @@ def _run_loop(
                 )
                 _dbg_chat = Path(skill.output_dir) / "debug_chat_mismatch.xml"
                 _dbg_chat.write_text(_chat_xml or "", encoding="utf-8")
-                result["errors"].append(
+                _append_ui_error(
+                    result,
                     f"{title}：聊天页 HR/职位/公司不匹配 "
                     f"（hr={_chat_title_text!r}, pos={_chat_position_text!r}, co={_chat_company_text!r}）"
                 )
@@ -2525,15 +2534,17 @@ def _run_loop(
                         _last[1],
                     )
             else:
-                result["errors"].append(f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
+                _append_ui_error(result, f"{title}：send_greeting 失败（未找到发送按钮或文字未进入输入框）")
                 logger.error("  ✗ 打招呼失败 — %s", title)
-                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason="发送失败", job_dict=job_dict, scored_result=scored)
+                _record_send_outcome(
+                    skill, db_conn, title, company, effective_hr_name, keyword,
+                    greeting, score, job_dict=job_dict, scored_result=scored, result=result,
+                )
             time.sleep(1.0)
 
         except Exception as exc:
             logger.error("处理 '%s' 异常", title, exc_info=True)
-            result["errors"].append(f"{title}: {exc}")
+            _append_ui_error(result, f"{title}: {exc}")
             _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                           skip_reason=f"异常:{exc}",
                           job_dict=locals().get("job_dict"),
@@ -2635,7 +2646,7 @@ def main() -> int:
     resume_path = Path(args.resume)
     if not resume_path.exists():
         print(f"错误：简历文件不存在：{resume_path}")
-        return 1
+        return 1, None
     resume_text = resume_path.read_text(encoding="utf-8")
     print(f"✓ 简历已加载：{resume_path.name}（{len(resume_text)} 字符）")
 
@@ -2729,6 +2740,131 @@ def _is_adb_disconnect_error(errors) -> bool:
         any(marker in (err or "") for marker in _ADB_ERROR_MARKERS)
         for err in (errors or [])
     )
+
+
+def _device_reachable(device_id: str | None = None) -> bool:
+    """现场探测目标 ADB 设备此刻是否真的可达。
+
+    Why 需要它（2026-10-21 真机演练发现）：
+    ``_ADB_ERROR_MARKERS`` 只覆盖 P0/P1 两个早筛点。运行**中途**掉线时，
+    落点通常是启动等待循环 / ``browse_jobs`` / 详情页，产生的都是通用错误
+    文案（"搜索失败：X"、"职位列表加载超时"），不带任何 ADB 语义 →
+    ``_is_adb_disconnect_error()`` 恒为 False → 自愈链从未触发，整轮直接死。
+
+    演练实证：中途 ``adb disconnect`` 后脚本报的是「搜索失败：商汤」，
+    重连逻辑一次都没跑。
+
+    参数语义：``device_id`` 是**本轮实际使用**的 serial（由 ``main()`` 写进
+    ``result["device_id"]``）。传 None 表示「没指定设备」→ 用「任意设备在线」
+    的宽松语义——宁可漏判也不要把业务错误误报成断连（误判会触发整轮重跑，
+    白烧 LLM 配额）。
+
+    探测本身不能抛（adb 缺失、超时等）——一律视为不可达，让自愈链接手。
+    """
+    try:
+        return bool(ADBRunner().is_device_connected(device_id))
+    except Exception:
+        return False
+
+
+def _device_reachable_stable(device_id: str | None = None, attempts: int = 2) -> bool:
+    """连续 ``attempts`` 次探测都不可达，才判设备真的掉线。
+
+    Why 需要「连续确认」：单次探测可能撞上 adb server 抖动的假阴性。误判成
+    断连的代价是**整轮重跑**（重新搜索 + 重新评分 + LLM 配额 + 重复 App
+    操作），远高于多花一次 ~50ms 的探测。真掉线是持续状态，连续探测不会
+    误伤——2026-10-21 真机演练中 `adb disconnect` 后两次探测均失败。
+    """
+    for _ in range(attempts):
+        if _device_reachable(device_id):
+            return True
+    return False
+
+
+def _append_ui_error(result: dict, message: str) -> None:
+    """记录与 UI/ADB 相关的错误，并**在报错现场**探测设备是否掉线。
+
+    Why 现场探测（而不是只在 main() 收尾时探测一次）：
+    WiFi 抖动时 adb TCP 可能 offline→自行恢复 device。等到 main() 返回再
+    探测，拿到的是 "device"（已恢复）→ 兜底不触发 → 整轮仍以「搜索失败：X」
+    死掉，正是 2026-10-21 真机演练暴露的原始现象。报错发生的那一刻才是
+    准确的探测时机。
+
+    只用于**依赖 UI/ADB** 的失败（搜索、列表、详情页、导航、解锁）。
+    LLM 评分失败、DAILY_LIMIT、致命弹窗等与设备无关的错误走普通 append，
+    否则会被误判成断连 → 无谓地整轮重跑。
+    """
+    result["errors"].append(message)
+    if not _is_adb_disconnect_error(result["errors"]):
+        if not _device_reachable_stable(result.get("device_id")):
+            result["errors"].append("ADB 设备已断开连接（报错时检测到设备不可达）")
+
+
+def _startup_abort_if_disconnected(skill, result: dict) -> bool:
+    """启动等待循环的 ADB 存活守卫：设备掉线就带标记退出。
+
+    Why 抽成独立函数（而不是内联在循环里）：这条路径是「运行中途掉线」最
+    常见的落点，也是 2026-10-21 真机演练验证过的一条——必须能被单测直接
+    驱动，而不是靠源码字符串匹配断言。
+
+    返回 True = 应中止本轮。
+    """
+    if skill.adb.is_device_connected(skill.device_id):
+        return False
+    if skill.adb.is_device_connected(skill.device_id):
+        return False
+    logger.error("❌ ADB 设备在启动过程中断开，停止重试")
+    result["errors"].append("ADB 设备已断开连接")
+    return True
+
+
+def _record_send_outcome(
+    skill,
+    db_conn,
+    title: str,
+    company: str,
+    hr_name: str | None,
+    keyword: str,
+    greeting: str,
+    score: int | None,
+    *,
+    job_dict: dict | None = None,
+    scored_result: dict | None = None,
+    result: dict | None = None,
+) -> None:
+    """发送失败后的记账：**按发送状态三态**决定要不要算「已打招呼」。
+
+    ``skill.last_send_state``（由 ``BOSSAutomationSkill.send_greeting`` 设置）：
+
+    - ``not_sent`` —— 确定没发出 → 只记 ``skip_reason="发送失败"``
+    - ``unknown``  —— **可能已经发出**（tap 之后掉线 / 发送后验证失败）→
+      按「已发送」记账（写 greetings + ``job_visits.greeted=1``）
+
+    Why ``unknown`` 必须记成已发送：去重链（``_is_already_greeted``）的每一层
+    都要求「已打过招呼」的记录。若 uncertain 的发送不记账，自愈链重跑整轮
+    或下一轮 sweep 再搜到同一岗位时，会给同一个 HR 再发一条一模一样的话。
+    掉线最易发生的时刻恰恰就是发送之后——这是重复打招呼的高发窗口。
+    宁可漏掉一个没发成的岗位，也绝不给同一个人发两条。
+    """
+    send_state = getattr(skill, "last_send_state", "not_sent")
+    if send_state == "unknown":
+        logger.warning(
+            "  ⚠️ 发送状态未知（可能已发出）→ 按已发送记账，避免重复打招呼"
+        )
+        _record_greeting(
+            db_conn, title, company, hr_name, keyword, greeting,
+            action="打招呼成功(未验证)",
+        )
+        _record_visit(
+            db_conn, title, company, hr_name, keyword, score,
+            greeted=True, greeting_text=greeting,
+            job_dict=job_dict, scored_result=scored_result,
+        )
+    else:
+        _record_visit(
+            db_conn, title, company, hr_name, keyword, score,
+            skip_reason="发送失败", job_dict=job_dict, scored_result=scored_result,
+        )
 
 
 def _load_device_config() -> dict:
@@ -2912,9 +3048,48 @@ def _main_with_adb_recovery() -> int:
             ip = new_target
             print("  ✓ ADB 重联成功，重跑 main()（已发 job 靠 DB 自动去重）")
 
-        rc, result = main()
+        try:
+            rc, result = main()
+        except Exception as exc:  # noqa: BLE001
+            # main() 抛异常通常是 ADB 掉线让 UI 操作炸了。设备确实不可达 → 按
+            # 断连处理（走重连 + 重跑）；设备还在线 → 是真 bug，原样抛出。
+            if _device_reachable_stable(None):
+                logger.error(
+                    "main() 抛出异常且设备仍在线 —— 这是真 bug，不走自愈链：\n%s",
+                    traceback.format_exc(),
+                )
+                raise
+            print(
+                f"\n⚠️ main() 抛出异常（{type(exc).__name__}: {exc}）"
+                f"且 ADB 设备不可达，按断连处理，准备自动重联…"
+            )
+            rc, result = 1, {
+                "greeted": [], "skipped": [], "all_scores": [],
+                "errors": [f"ADB 设备已断开连接：{exc}"],
+            }
         last_rc = rc
         last_result = result
+
+        # 分类兜底：main() 报的是通用错误（"搜索失败：X" 等）但设备此刻不可达
+        # → 说明这一轮是被 ADB 掉线打断的，补上断连标记让自愈链接手。
+        # 没有这一步，运行中途掉线会直接终结整轮（2026-10-21 真机演练实证）。
+        #
+        # 探测用「本轮实际使用的 serial」（main() 写进 result["device_id"]）——
+        # 不能用 config 里推导的 ip:port：手机可能正挂在 USB serial 上，用错
+        # 设备会恒判「不可达」→ 把业务错误误判成断连 → 无谓地整轮重跑。
+        errors = list((result or {}).get("errors") or [])
+        if (
+            errors
+            and not _is_adb_disconnect_error(errors)
+            and not _device_reachable_stable((result or {}).get("device_id"))
+        ):
+            errors.append("ADB 设备已断开连接（运行中检测到设备不可达）")
+            if result is not None:
+                result["errors"] = errors
+            print(
+                "\n⚠️ 运行中检测到 ADB 设备不可达（本轮错误被归类为通用错误），"
+                "按断连处理，准备自动重联…"
+            )
 
         if not _is_adb_disconnect_error((result or {}).get("errors", [])):
             return rc
