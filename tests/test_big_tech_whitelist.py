@@ -25,7 +25,6 @@ sys.path.insert(0, str(ROOT))
 from scenarios.boss.scripts import smart_match_greet as smg  # noqa: E402
 from scenarios.boss.scripts.smart_match_greet import (  # noqa: E402
     _build_big_tech_context,
-    _is_big_tech_string_match,
     _load_prompt,
 )
 
@@ -205,41 +204,50 @@ class TestMainArgparse:
 # ───────────────────────────── 旧 is_big_tech() 已删除（防回归）─────────────────────────────
 
 
-class TestIsBigTechRemoved:
-    """旧版 hard-filter 函数（`is_big_tech()`）已删除——LLM-only 判定后不再需要。
-    防止后续开发者不小心加回来。"""
+class TestNoHardFilterRemains:
+    """纯 LLM 判定——代码里不得残留任何字符串白名单匹配。
+
+    历史：早期版本用 `is_big_tech(company, whitelist)` hard substring 过滤，
+    后来又留了 `_is_big_tech_string_match()` 作 fallback。2026-10-20 用户要求
+    「不是硬过滤，用 agent 判断」→ 两者全部删除。LLM 漏输出 is_big_tech 时
+    放行 + warning，不退回字符串匹配。
+    """
 
     def test_is_big_tech_function_not_exported(self):
         assert not hasattr(smg, "is_big_tech"), (
             "is_big_tech() 已被 LLM 评判替代，禁止重新加入模块"
         )
 
+    def test_string_match_fallback_not_exported(self):
+        assert not hasattr(smg, "_is_big_tech_string_match"), (
+            "_is_big_tech_string_match() 已删除——大厂判定必须纯 LLM，禁止加回硬匹配"
+        )
 
-# ───────────────────────────── 硬字符串 fallback 行为 ─────────────────────────────
+    def test_source_has_no_company_substring_filter(self):
+        """源码里不存在对公司名做 substring 匹配的过滤逻辑。
 
+        精确判据：whitelist 的 parents / subsidiaries 键在整个模块里**只出现一次**
+        ——即 `_build_big_tech_context()` 里读出来拼 prompt。若出现第二次，就说明
+        有人在别处拿它做字符串匹配过滤。
+        """
+        src = (ROOT / "scenarios/boss/scripts/smart_match_greet.py").read_text(
+            encoding="utf-8"
+        )
+        assert "_is_big_tech_string_match" not in src
+        assert src.count('"parents"') == 1, (
+            f"whitelist['parents'] 应只在 _build_big_tech_context 出现一次，"
+            f"实际 {src.count(chr(34) + 'parents' + chr(34))} 次——疑似被用于字符串匹配过滤"
+        )
+        assert src.count('"subsidiaries"') == 1, (
+            f"whitelist['subsidiaries'] 应只在 _build_big_tech_context 出现一次，"
+            f"实际 {src.count(chr(34) + 'subsidiaries' + chr(34))} 次"
+        )
 
-class TestStringMatchFallback:
-    """`_is_big_tech_string_match()` 是 LLM 漏字段时的兜底——必须保持合理行为。
-    仅在 scored.is_big_tech 缺失时才被调用，正常路径由 LLM 评。
-    """
-
-    def test_whitelist_none_passes_through(self):
-        assert _is_big_tech_string_match("任何公司", None) is True
-        assert _is_big_tech_string_match("任何公司", {}) is True
-
-    def test_empty_company_returns_false(self):
-        wl = {"parents": ["字节跳动"], "subsidiaries": {}}
-        assert _is_big_tech_string_match("", wl) is False
-
-    def test_parent_match(self):
-        wl = {"parents": ["字节跳动"], "subsidiaries": {}}
-        assert _is_big_tech_string_match("字节跳动", wl) is True
-        assert _is_big_tech_string_match("北京字节跳动科技有限公司", wl) is True
-
-    def test_subsidiary_match(self):
-        wl = {"parents": [], "subsidiaries": {"字节": ["抖音"]}}
-        assert _is_big_tech_string_match("抖音视界", wl) is True
-
-    def test_non_big_tech_returns_false(self):
-        wl = {"parents": ["字节跳动"], "subsidiaries": {}}
-        assert _is_big_tech_string_match("某不知名创业公司", wl) is False
+    def test_llm_field_is_read_from_scored_result(self):
+        """is_big_tech 只能从 LLM 返回的 scored 里读——不是从公司名字符串推的。"""
+        src = (ROOT / "scenarios/boss/scripts/smart_match_greet.py").read_text(
+            encoding="utf-8"
+        )
+        assert 'scored.get("is_big_tech")' in src, (
+            "大厂判定必须读 LLM 输出的 scored['is_big_tech']"
+        )

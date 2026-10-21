@@ -871,27 +871,6 @@ def _build_scoring_rubric(dimensions: dict) -> str:
     return "\n".join(lines)
 
 
-def _is_big_tech_string_match(company: str, whitelist: dict | None) -> bool:
-    """硬字符串 fallback（仅在 LLM 未输出 is_big_tech 字段时使用）。
-
-    与 2026-10-20 之前的 `is_big_tech()` 函数行为完全一致——保留代码便于回滚，
-    但不再作为主要判断路径（已被 LLM 评替代，理由：枚举难维护/撞名/未列公司
-    无法命中）。whitelist=None → True（视作未启用过滤）。
-    """
-    if not whitelist:
-        return True
-    if not company:
-        return False
-    parents = whitelist.get("parents", []) or []
-    subsidiaries = whitelist.get("subsidiaries", {}) or {}
-    if any(p and p in company for p in parents):
-        return True
-    for brands in subsidiaries.values():
-        if any(b and b in company for b in (brands or [])):
-            return True
-    return False
-
-
 def _build_big_tech_context(whitelist: dict | None) -> str:
     """Build the big-tech reference section injected into match_score.md prompt.
 
@@ -2133,23 +2112,22 @@ def _run_loop(
         # 时退化到硬字符串检查（big_tech_whitelist 是用户配置的口径，作为安全网）。
         if only_big_tech:
             _raw_ibt = scored.get("is_big_tech")
-            _llm_judged = _raw_ibt is not None
-            if _llm_judged:
+            if _raw_ibt is None:
+                # LLM 漏输出 is_big_tech 字段 → 放行（宁可多发一条给小公司，
+                # 也不因为模型偶发漏字段而丢掉所有大厂机会）
+                logger.warning("  ⚠️ LLM 未输出 is_big_tech，放行：%s（%s）", title, company)
+                is_big = True
+                reasoning = "LLM 未给字段，默认放行"
+            else:
                 is_big = bool(_raw_ibt)
                 reasoning = scored.get("big_tech_reasoning", "") or "（LLM 未给原因）"
-                source = "LLM"
-            else:
-                logger.warning("  ⚠️ LLM 未输出 is_big_tech，回退硬字符串检查：%s", title)
-                is_big = _is_big_tech_string_match(company, big_tech_whitelist)
-                reasoning = "LLM 未给，硬白名单兜底"
-                source = "硬白名单兜底"
             if not is_big:
-                logger.info("  [%d] 跳过（%s判非大厂）：%s（%s）— %s", processed, source, title, company, reasoning)
-                result["skipped"].append(f"{title}（{company}）：{source}判非大厂（{reasoning}）")
+                logger.info("  [%d] 跳过（LLM 判非大厂）：%s（%s）— %s", processed, title, company, reasoning)
+                result["skipped"].append(f"{title}（{company}）：LLM 判非大厂（{reasoning}）")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
-                              skip_reason=f"{source}判非大厂({reasoning})", job_dict=job_dict, scored_result=scored)
+                              skip_reason=f"LLM判非大厂({reasoning})", job_dict=job_dict, scored_result=scored)
                 continue
-            logger.info("  %s判大厂：%s — %s", source, company, reasoning)
+            logger.info("  LLM 判大厂：%s — %s", company, reasoning)
 
         # ── 地点权重调整 ───────────────────────────────────────────────────────
         if location_weights and score > 0:
