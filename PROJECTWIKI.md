@@ -809,6 +809,45 @@ adb connect <手机_wlan0_IP>:5555
 - `com.pigeon.seppd`（鸽子，2026-10-15 实测）
 - 同类：Cloudflare WARP / Tailscale 移动端 / NordVPN / ExpressVPN 等任何 `VpnService` 类应用
 
+#### 8.4.1c ADB 断连根因与恢复（2026-10-21 排查 + 修复）
+
+`smart_match_greet.py` 自带 `_main_with_adb_recovery()`（断连自动重连），但重连目标 `--adb-reconnect-ip` 的默认值是**写死的 `10.32.7.105:5555`**——那是 Windows 主机档的地址，在 Pi 5 档上根本不存在。于是「断连 → 重连」这条自愈链在真正需要时是**空转**。本次逐条排查两条已知根因：
+
+**根因 A：DHCP IP 漂移（已确认为真实主因）**
+
+手机 WiFi IP 会随路由器 DHCP 续期变化（2026-10-15 实测 `10.32.7.125` → `10.32.7.135`）。写死的 IP 在漂移后指向一台不存在的机器，重试 3 次全白跑。
+
+**修复**：`smart_match_greet.py` 新增 `_resolve_reconnect_ip()`——从 `config/devices.json` 的目标设备派生 `ip:standard_port`（取 `standard_port` 5555，而不是会被 VPN 劫持的配对后随机 `port`），并作为 `--adb-reconnect-ip` 的默认值（`main()` 与预解析两处都改）。
+
+**根因 B：WiFi 睡眠（潜在，本次被 AC 供电掩盖）**
+
+2026-10-21 实测手机状态：
+
+| 项 | 实测值 | 含义 |
+|---|---|---|
+| `settings get global wifi_sleep_policy` | `2` | LEGACY：**插电时不睡、拔电后睡** |
+| `settings get global stay_on_while_plugged_in` | `15` | AC/Battery/USB/Wireless 全覆盖，插电时屏幕常亮 |
+| `dumpsys battery` | `AC powered: true` | 当前插电，所以 WiFi 实际没睡 |
+
+也就是说：**只要充电线一拔，WiFi 立刻进入休眠，adb over TCP 断开**——这正是 memory 里 `feedback_unlock_adb_disconnect.md` 记的现象。插电时 `stay_on_while_plugged_in=15` 已经挡住屏幕熄灭，WiFi 不会睡。
+
+**修复（设备侧设置，一次性生效）**：
+
+```bash
+adb shell settings put global wifi_sleep_policy 1   # 1 = NEVER，WiFi 永不睡眠
+adb shell settings get global wifi_sleep_policy       # 期望 1
+```
+
+`Settings.Global` 持久化，重启后仍生效；恢复默认写回 `2`。代价是拔电时 WiFi 不休眠会多耗电——本项目手机常年插电，可接受。
+
+**自愈链补全**：`_adb_reconnect()` 连不上时按「IP 漂移」处理——调 `utils.refresh_device_ip.refresh_device_ip()`（ping 快筛 + `adb connect` + `ro.serialno` 校验 + 回写 config）拿到新 IP 后**再连一次**。`allow_ip_refresh=False` 可关闭该行为（逃生口）。
+
+> ⚠️ 顺序很重要：先试原 IP，**失败才扫网段**。网段扫描最坏要扫 254 个 IP（`ping_timeout=0.3` + `adb_timeout=1.5`），不能在连得上的情况下付这个代价。
+
+**回归测试**：`tests/test_adb_reconnect_ip_drift.py` 10 个用例（`_resolve_reconnect_ip` 4 + IP 漂移重连 4 + 源码防回归 2）。
+
+**待办**：`adb disconnect` 演练（真机验证漂移恢复）需在 sweep 跑完后做——演练会主动断链，会打断正在进行的打招呼。
+
 #### 8.4.2 Keepalive 服务架构
 
 `./pixelclaw --service` 启动后由三层组成：
