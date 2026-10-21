@@ -435,7 +435,7 @@ if not skill.adb.is_device_connected(skill.device_id):
 
 **为何不用 hard substring 过滤**：原方案是 `is_big_tech(company, whitelist)` 字符串枚举，40+ 家母公司 + 旗下品牌难穷举；撞名（如「百度烤肉」）会误伤；新公司无法命中。LLM 在评分时可看到 JD 描述，能区分撞名 startup（公司名相似但 JD 写得很 startup）和真大厂。
 
-**触发流程**：`_run_loop` 在 score_job 评分后插入 `if only_big_tech and not scored.is_big_tech: skip`——只看 LLM 输出，不在评分前预判（避免误伤）。LLM 漏字段时退化为 `_is_big_tech_string_match()`（保留旧逻辑作为安全网，加 `⚠️ LLM 未输出 is_big_tech` warning 日志）。
+**触发流程**：`_run_loop` 在 score_job 评分后插入 `if only_big_tech and not scored.is_big_tech: skip`——只看 LLM 输出，不在评分前预判（避免误伤）。**代码里没有任何公司名字符串匹配逻辑**（`whitelist['parents']` / `whitelist['subsidiaries']` 在整个模块只被 `_build_big_tech_context()` 读一次用于拼 prompt）。LLM 漏输出 `is_big_tech` 字段时**放行** + `⚠️ LLM 未输出 is_big_tech` warning——宁可多发一条给小公司，也不因模型偶发漏字段丢掉所有大厂机会。
 
 **典型运行**：
 ```bash
