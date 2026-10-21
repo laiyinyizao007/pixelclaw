@@ -49,6 +49,8 @@ logger = logging.getLogger("smart_match_greet")
 # ─── 路径 ─────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parents[3]
 DB_PATH = REPO_ROOT / "scenarios" / "boss" / "output" / "requirements.db"
+# 设备配置（IP 会随路由器 DHCP 续期漂移，重连目标必须从这里取，见 _resolve_reconnect_ip）
+DEVICES_CONFIG = REPO_ROOT / "config" / "devices.json"
 # 简历路径优先级：$PIXELCLAW_RESUME_PATH 环境变量 > Pi 路径回退 (~$HOME/Projects/resume-renew/resume/current.md)
 # Windows 端用法：在 .env 或系统环境变量里设 PIXELCLAW_RESUME_PATH=C:/Dev/projects/resume-renew/resume/current.md
 import os as _os_for_default
@@ -2594,8 +2596,8 @@ def main() -> int:
         help="禁用 ADB 断连自动重联（默认开）",
     )
     parser.add_argument(
-        "--adb-reconnect-ip", default="10.32.7.105:5555",
-        help="ADB 自动重连目标 IP:端口（默认 10.32.7.105:5555）",
+        "--adb-reconnect-ip", default=_resolve_reconnect_ip(),
+        help="ADB 自动重连目标 IP:端口（默认取自 config/devices.json）",
     )
     parser.add_argument(
         "--adb-retry-max", type=int, default=3,
@@ -2727,24 +2729,78 @@ def _is_adb_disconnect_error(errors) -> bool:
     )
 
 
-def _adb_reconnect(ip: str, timeout: float = 15.0) -> bool:
-    """Best-effort: ``adb disconnect`` + ``adb connect <ip>`` + 验证。
+def _load_device_config() -> dict:
+    """读 config/devices.json；读不到返回空 dict。"""
+    try:
+        return json.loads(DEVICES_CONFIG.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
 
-    Returns:
-        True 当 ``adb devices`` 出现 ``\\tdevice`` 状态行；False 任何步骤失败。
+
+def _active_device(cfg: dict) -> dict:
+    """取配置里的目标设备（default_device → active_device → 第一台）。"""
+    devices = cfg.get("devices") or []
+    target_id = cfg.get("default_device") or cfg.get("active_device")
+    dev = next((d for d in devices if d.get("id") == target_id), None)
+    if dev is None and devices:
+        dev = devices[0]
+    return dev or {}
+
+
+def _resolve_reconnect_ip(fallback: str = "10.32.7.105:5555") -> str:
+    """从 config/devices.json 派生 ADB 重连目标 ``ip:port``。
+
+    Why 不能写死：手机 WiFi IP 会因路由器 DHCP 续期漂移
+    （2026-10-15 实测 ``10.32.7.125`` → ``10.32.7.135``）。写死的 IP 在漂移后
+    会把重连指向一台不存在的机器，3 次重试全部白跑。
+
+    端口取 ``standard_port``（adbd 在所有接口 LISTEN 的标准端口 5555），
+    不是配对后新开的随机 ``port``（会被 VPN 劫持成不可达）。
+    """
+    dev = _active_device(_load_device_config())
+    ip = dev.get("ip")
+    if not ip:
+        return fallback
+    port = dev.get("standard_port") or dev.get("port") or 5555
+    return f"{ip}:{port}"
+
+
+def _refresh_device_ip() -> str | None:
+    """扫网段找回漂移后的手机 IP（按 serial 校验），成功返回 ``ip:port``。
+
+    复用 ``utils/refresh_device_ip``（2026-10-15 实现）：ping 快筛 + adb connect
+    + ``ro.serialno`` 二次校验 + 回写 config。找不到返回 None。
     """
     try:
-        subprocess.run(["adb", "disconnect"], capture_output=True, timeout=timeout)
+        from utils.refresh_device_ip import refresh_device_ip as _refresh
     except Exception as e:
-        print(f"  adb disconnect 异常：{e}")
+        print(f"  ⚠️ 导入 refresh_device_ip 失败：{e}")
+        return None
 
-    time.sleep(1)
+    dev = _active_device(_load_device_config())
+    port = dev.get("standard_port") or dev.get("port") or 5555
     try:
-        ret = subprocess.run(
-            ["adb", "connect", ip], capture_output=True, text=True, timeout=timeout
+        ok, ip = _refresh(
+            config_path=str(DEVICES_CONFIG),
+            standard_port=int(port),
         )
     except Exception as e:
-        print(f"  adb connect {ip} 异常：{e}")
+        print(f"  ⚠️ IP 漂移恢复异常：{e}")
+        return None
+    if not ok or not ip:
+        print("  ⚠️ IP 漂移恢复失败：网段内没找到 serial 匹配的设备")
+        return None
+    return f"{ip}:{port}"
+
+
+def _adb_connect_and_verify(target: str, timeout: float) -> bool:
+    """``adb connect <target>`` + ``adb devices`` 验证。"""
+    try:
+        ret = subprocess.run(
+            ["adb", "connect", target], capture_output=True, text=True, timeout=timeout
+        )
+    except Exception as e:
+        print(f"  adb connect {target} 异常：{e}")
         return False
     out = (ret.stdout or "").strip()
     if "connected" not in out and "already" not in out:
@@ -2765,6 +2821,35 @@ def _adb_reconnect(ip: str, timeout: float = 15.0) -> bool:
     return True
 
 
+def _adb_reconnect(ip: str, timeout: float = 15.0, allow_ip_refresh: bool = True) -> bool:
+    """Best-effort: ``adb disconnect`` + ``adb connect <ip>`` + 验证。
+
+    连不上时按「IP 漂移」处理：扫网段按 serial 找回当前 IP 再重试一次
+    （2026-10-15 实测 DHCP 续期把手机从 .125 挪到了 .135，写死 IP 会一直连不上）。
+
+    Returns:
+        True 当 ``adb devices`` 出现 ``\\tdevice`` 状态行；False 任何步骤失败。
+    """
+    try:
+        subprocess.run(["adb", "disconnect"], capture_output=True, timeout=timeout)
+    except Exception as e:
+        print(f"  adb disconnect 异常：{e}")
+
+    time.sleep(1)
+
+    if _adb_connect_and_verify(ip, timeout):
+        return True
+
+    if not allow_ip_refresh:
+        return False
+
+    new_target = _refresh_device_ip()
+    if not new_target or new_target == ip:
+        return False
+    print(f"  ↻ IP 漂移恢复：{ip} → {new_target}，重试连接…")
+    return _adb_connect_and_verify(new_target, timeout)
+
+
 def _main_with_adb_recovery() -> int:
     """外层 wrapper：检测 ADB 断连 → 自动 reconnect + 重跑 main()。
 
@@ -2783,7 +2868,7 @@ def _main_with_adb_recovery() -> int:
     # 预解析（不与 main() 内部 argparse 冲突）—— 只关心 3 个 retry 相关参数
     _pre = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     _pre.add_argument("--no-adb-retry", action="store_true")
-    _pre.add_argument("--adb-reconnect-ip", default="10.32.7.105:5555")
+    _pre.add_argument("--adb-reconnect-ip", default=_resolve_reconnect_ip())
     _pre.add_argument("--adb-retry-max", type=int, default=3)
     pre_args, _unknown = _pre.parse_known_args()
 
