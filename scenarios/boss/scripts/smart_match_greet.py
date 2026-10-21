@@ -2206,8 +2206,10 @@ def _run_loop(
         # 评分之后做是因为 LLM 需要看 JD 描述才能准确判断（有些公司名撞名但实为 startup，
         # 有些大厂用新主体名招聘——光看公司名不够）。
         # 注意：仅当 only_big_tech=True 时才检查；False 时不读此字段（旧行为零开销）。
-        # 兜底：LLM 偶发漏输出 is_big_tech 字段 → 默认 False 会丢失所有发送机会；此
-        # 时退化到硬字符串检查（big_tech_whitelist 是用户配置的口径，作为安全网）。
+        # 兜底：LLM 偶发漏输出 is_big_tech 字段 → 默认 False 会丢失所有发送机会；
+        # 此时放行（宁可多发一条给小公司，也不因模型偶发漏字段丢掉所有大厂机会）。
+        # **不做硬字符串 fallback**：用户明确要求「是否大厂一律由 agent 判断」，
+        # yaml 白名单只作为 prompt 里的参考清单（见 _build_big_tech_context）。
         if only_big_tech:
             _raw_ibt = scored.get("is_big_tech")
             if _raw_ibt is None:
