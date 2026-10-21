@@ -372,24 +372,35 @@ WHERE title = ?
 
 **大厂定向 sweep（`sweep_big_tech.py`，2026-10-21 新增）**：
 
-`scenarios/boss/scripts/sweep_big_tech.py` — 逐个公司名搜索，累计发够 N 次招呼。
+`scenarios/boss/scripts/sweep_big_tech.py` — 逐个关键词搜索，累计发够 N 次招呼。
 
-**为什么按公司名搜而不是按岗位词搜**：
+**搜什么：岗位词（默认）**。
 
-| 搜索方式 | 大厂命中率 | 实测 |
+2026-10-21 早先的版本是**搜公司名**（`字节跳动`、`阿里巴巴`……），理由是岗位词搜索命中大厂的比例低。**用户明确纠正了这个方向**：「不应该去直接搜索这些公司，而是搜关键词，然后在结果里去判断这些公司是不是符合要求」。
+
+纠正的理由站得住：
+
+1. **搜公司名把「大厂判定」做成了同义反复**。搜 `字节跳动`，命中的当然是字节——白名单这时不是判定依据，只是搜索词，大厂判定这条链被架空了。
+2. **搜公司名把候选池锁死**。只拿得到该公司在招的职位，而用户在招的岗位类型未必匹配（字节在招的可能是设计岗、运营岗）。
+3. **搜岗位词拿的是全市场该岗位的职位**，LLM 判「这家公司算不算大厂」才有实际信息量。
+
+| 搜索方式 | 大厂命中率 | 说明 |
 |---|---|---|
-| 岗位词（`AI产品经理`） | ≈8% | 12 个职位只中 1 个 → 120 次要烧掉十几个小时 LLM 配额 |
-| 公司名（`字节跳动`） | ≈100% | 16 张卡里 13 张是 AI 产品经理 / AI 产品专家 / 设计专家 |
+| 岗位词（`AI产品经理`） | 67%（2026-10-21 实测 9 个岗位中 6 个） | 全市场该岗位的职位，LLM 逐个判定 |
+| 公司名（`字节跳动`） | ≈100%（但判定形同虚设） | 只拿该公司在招职位，池子被锁死 |
 
-Boss 返回的是该公司在招的职位，且排序把 AI/产品岗顶到前面——命中率从 8% 拉到接近 100%。
+**代价**：非大厂的岗位同样要走完「进详情 → LLM 评分」才被跳过（约 50–70s/岗位），命中率越低吞吐越低。job 模式是默认；`--mode company` 保留旧口径（不推荐，理由见上）。
 
-**约束：一个进程只搜一个关键词**。Boss 搜索框不支持多词组合（搜 `字节跳动 AI` 搜不出东西），且连续两次搜索时 `_open_search_from_job_list()` 有概率找不到搜索入口。所以每个关键词起一个独立子进程（`smart_match_greet.py --keyword <公司名> --only-big-tech ...`）。
+**约束：一个进程只搜一个关键词**。Boss 搜索框不支持多词组合（搜 `字节跳动 AI` 搜不出东西），且连续两次搜索时 `_open_search_from_job_list()` 有概率找不到搜索入口。所以每个关键词起一个独立子进程（`smart_match_greet.py --keyword <岗位词> --only-big-tech ...`）。
 
-**关键词来源**：`candidate_profile.yaml` 的 `big_tech_whitelist` 段（母公司 + 旗下品牌），顺序即 yaml 书写顺序（互联网头部 → AI 新势力 → 半导体/自动驾驶 → 外企 → 准大厂）。`load_keywords()` 做三件事：
+**关键词来源**：
 
-1. 跳过 yaml `big_tech_whitelist.skip_keywords` 里的噪音词条（`1688` / `UC` / `QQ` / `Riot` / `POCO` / `Redmi` / `黑鲨`）——**名单放 yaml 不放代码**，避免在代码里硬编码公司/品牌名
-2. 过滤纯 ASCII 词条（Boss 是中文站，搜 `Alibaba` 没意义）
-3. 母公司组内「短名是长名前缀」去重（`阿里` → `阿里巴巴`），**跨组不去重**（`百度` 是母公司、`百度网盘` 是旗下品牌，前缀关系但都要留）
+- `--mode job`（默认）：`candidate_profile.yaml` 的 `search_keywords.job_titles` 段（岗位词表），`load_job_keywords()` 读取。**词表放 yaml 不放代码**——要能随时按实测命中率调整，且不污染代码。词表按「AI 岗位在大厂里密度高」排序，让早期跑的小时产出最多。
+- `--mode company`（旧口径）：`candidate_profile.yaml` 的 `big_tech_whitelist` 段（母公司 + 旗下品牌），`load_keywords()` 做三件事：
+  1. 跳过 yaml `big_tech_whitelist.skip_keywords` 里的噪音词条（`1688` / `UC` / `QQ` / `Riot` / `POCO` / `Redmi` / `黑鲨`）——**名单放 yaml 不放代码**，避免在代码里硬编码公司/品牌名
+  2. 过滤纯 ASCII 词条（Boss 是中文站，搜 `Alibaba` 没意义）
+  3. 母公司组内「短名是长名前缀」去重（`阿里` → `阿里巴巴`），**跨组不去重**（`百度` 是母公司、`百度网盘` 是旗下品牌，前缀关系但都要留）
+- `--keywords "甲,乙"` 显式指定时永远优先（覆盖 yaml）。
 
 > ⚠️ 白名单只用来生成**搜索词** + 给 LLM 做参考（`_build_big_tech_context`），**是否算大厂仍由 LLM 在 `score_job` 里判定**（见上文「`--only-big-tech` 模式改由 LLM 评判」）。sweep 脚本本身不含任何公司名硬匹配。
 
@@ -401,17 +412,20 @@ Boss 返回的是该公司在招的职位，且排序把 AI/产品岗顶到前�
 # 只看关键词计划，不发任何招呼
 python scenarios/boss/scripts/sweep_big_tech.py --list-only
 
-# 累计发 30 次（每个公司最多 8 次）
+# 累计发 30 次（默认搜岗位词，每词最多 8 条）
 python scenarios/boss/scripts/sweep_big_tech.py --target 30
 
 # 指定设备 + 每次多发点
-python scenarios/boss/scripts/sweep_big_tech.py --target 120 --per-company 10 \
+python scenarios/boss/scripts/sweep_big_tech.py --target 120 --per-keyword 15 \
     --device 10.32.7.135:5555
+
+# 旧口径（搜公司名）
+python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 ```
 
 **设备参数**：`--device` 会同时下发 `--device` 和 `--adb-reconnect-ip`——断连自动重连必须指向同一台设备，否则重连到别的 IP 上。
 
-**回归测试**：`tests/test_sweep_big_tech.py` 11 个用例（关键词生成 6 + `_parse_sent` 2 + `run_one` 命令拼装 3）。
+**回归测试**：`tests/test_sweep_big_tech.py` 29 个用例（公司名关键词生成 8 + 岗位词生成 5 + mode 分发 4 + `_parse_sent` 2 + `run_one` 命令拼装 7 + `_is_network_device` 3）。
 
 **2026-10-21 实跑记录（126 条招呼）**：
 

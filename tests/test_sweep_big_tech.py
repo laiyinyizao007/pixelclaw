@@ -2,11 +2,15 @@
 sweep_big_tech.py 单元测试（2026-10-21）。
 
 覆盖：
-- load_keywords：从 candidate_profile.yaml 的 big_tech_whitelist 生成搜索关键词
+- load_keywords：从 candidate_profile.yaml 的 big_tech_whitelist 生成**公司名**搜索关键词
   - 母公司 + 旗下品牌都在列表里（用户 2026-10-20 确认「大厂含旗下品牌」）
   - 纯英文/拼音词条被过滤（Boss 是中文站，搜 "Alibaba" 没意义）
   - 母公司内部「短名是长名前缀」去重（阿里/阿里巴巴），但跨组不去重
     （「百度」是母公司、「百度网盘」是旗下品牌，前缀关系但都要留）
+- load_job_keywords：从 search_keywords.job_titles 生成**岗位词**搜索关键词
+  （2026-10-21 用户纠正：「不应该去直接搜索这些公司，而是搜关键词，
+  然后在结果里去判断这些公司是不是符合要求」）
+- resolve_keywords：mode 分发 + --keywords 显式覆盖优先
 - _parse_sent：从子进程输出里解析发送条数
 - run_one：命令行拼装（--only-big-tech / --max-greet / --device / --adb-reconnect-ip）
 """
@@ -20,7 +24,9 @@ sys.path.insert(0, str(ROOT))
 from scenarios.boss.scripts.sweep_big_tech import (  # noqa: E402
     _is_network_device,
     _parse_sent,
+    load_job_keywords,
     load_keywords,
+    resolve_keywords,
     run_one,
 )
 
@@ -84,6 +90,52 @@ class TestLoadKeywords:
 
     def test_all_non_empty(self):
         assert all(k.strip() for k in load_keywords())
+
+
+class TestLoadJobKeywords:
+    """岗位词搜索关键词（默认搜索源，2026-10-21 用户纠正后的方向）。"""
+
+    def test_reads_job_titles_from_yaml(self):
+        kws = load_job_keywords()
+        assert "AI产品经理" in kws, "AI 产品岗必须在列表里"
+        assert kws, "岗位词列表不能为空"
+
+    def test_contains_no_company_names(self):
+        """岗位词表里不该混进公司名——搜公司名会让大厂判定变成同义反复。"""
+        kws = load_job_keywords()
+        for company in ("字节跳动", "阿里巴巴", "腾讯", "美团"):
+            assert company not in kws, f"岗位词表不应包含公司名：{company}"
+
+    def test_no_duplicates(self):
+        kws = load_job_keywords()
+        assert len(kws) == len(set(kws))
+
+    def test_all_non_empty(self):
+        assert all(k.strip() for k in load_job_keywords())
+
+    def test_keywords_defined_in_yaml_not_code(self):
+        """词表必须在 yaml（要能随时按实测命中率调整），不在代码里。"""
+        src = (ROOT / "scenarios" / "boss" / "scripts" / "sweep_big_tech.py").read_text(
+            encoding="utf-8"
+        )
+        assert "AI产品经理" not in src, "岗位词表不应硬编码在脚本里"
+
+
+class TestResolveKeywords:
+    """mode 分发：job（默认）/ company，以及 --keywords 显式覆盖。"""
+
+    def test_default_mode_is_job(self):
+        assert resolve_keywords("job", None) == load_job_keywords()
+
+    def test_company_mode(self):
+        assert resolve_keywords("company", None) == load_keywords()
+
+    def test_custom_overrides_both_modes(self):
+        assert resolve_keywords("job", "甲,乙") == ["甲", "乙"]
+        assert resolve_keywords("company", "甲,乙") == ["甲", "乙"]
+
+    def test_custom_strips_blanks(self):
+        assert resolve_keywords("job", "甲, ,乙,") == ["甲", "乙"]
 
 
 class TestParseSent:

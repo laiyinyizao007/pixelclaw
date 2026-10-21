@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-sweep_big_tech.py — 大厂定向 sweep：逐个公司名搜索，累计发够 N 次招呼。
+sweep_big_tech.py — 大厂定向 sweep：逐个关键词搜索，累计发够 N 次招呼。
 
-为什么需要它
-------------
-`smart_match_greet.py --only-big-tech` 是「一个关键词跑一轮」的结构。
-用**岗位词**搜索（"AI产品经理"）时，命中大厂的比例极低（实测 12 个职位只中 1 个，
-约 8%），120 次要烧掉十几个小时的 LLM 配额。
+搜什么
+------
+**搜岗位关键词**，在结果里由 LLM 判断公司是否大厂（子脚本的 `--only-big-tech`
+负责：大厂判定始终是 LLM 的活，不是字符串匹配）。
 
-用**公司名**搜索（"字节跳动"）时，Boss 返回的是该公司在招的职位，且排序把
-AI/产品岗顶到前面——实测 16 张卡里 13 张是 AI 产品经理 / AI 产品专家 / 设计专家。
-于是「按公司名逐个扫」把命中率从 8% 拉到接近 100%。
+2026-10-21 用户纠正过一次方向：早先的版本是**搜公司名**（"字节跳动"），
+理由是命中率高。但那是把「大厂判定」做成了同义反复——搜字节跳动，命中当然
+是字节；而且只能拿到该公司在招的职位，池子被锁死。搜岗位词拿的是全市场该
+岗位的职位，LLM 判定「这家公司算不算大厂」才有实际意义。
+
+代价（明说）：命中率从接近 100% 掉到个位数百分比。非大厂的岗位同样要走完
+「进详情 → LLM 评分」才被跳过，每条约 50s，吞吐显著下降。job 模式是默认。
 
 一个进程只搜一个关键词：Boss 搜索框不支持多词组合（"字节跳动 AI" 搜不出东西），
 且连续两次搜索时 `_open_search_from_job_list()` 有概率找不到搜索入口。
@@ -21,12 +24,15 @@ AI/产品岗顶到前面——实测 16 张卡里 13 张是 AI 产品经理 / AI
     # 先看关键词计划（不发任何招呼）
     python scenarios/boss/scripts/sweep_big_tech.py --list-only
 
-    # 累计发 30 次（每个公司最多 8 次）
+    # 累计发 30 次（每个关键词最多 8 次）
     python scenarios/boss/scripts/sweep_big_tech.py --target 30
 
     # 指定设备 + 每次多发点
-    python scenarios/boss/scripts/sweep_big_tech.py --target 120 --per-company 10 \
+    python scenarios/boss/scripts/sweep_big_tech.py --target 120 --per-keyword 15 \
         --device 10.32.7.135:5555
+
+    # 老口径（搜公司名）——保留但不是默认
+    python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 
 去重由 `smart_match_greet.py` 的 greetings / job_visits 表负责，
 同一个岗位换个关键词再搜到也不会重复打招呼。
@@ -96,6 +102,40 @@ def load_keywords(profile_path: Path = PROFILE) -> list[str]:
 
 
 _RE_SENT = re.compile(r"打招呼成功：(\d+)\s*条")
+
+
+def load_job_keywords(profile_path: Path = PROFILE) -> list[str]:
+    """从 candidate_profile.yaml 的 ``search_keywords.job_titles`` 段读岗位搜索词。
+
+    这是**默认**的搜索源（2026-10-21 用户纠正：「不应该去直接搜索这些公司，
+    而是搜关键词，然后在结果里去判断这些公司是不是符合要求」）。
+
+    词表在 yaml 里而不是代码里：词表要能随时按实测命中率调整，且不污染代码。
+    """
+    import yaml
+
+    profile = yaml.safe_load(profile_path.read_text(encoding="utf-8")) or {}
+    section = profile.get("search_keywords") or {}
+    titles = section.get("job_titles") or []
+
+    keywords: list[str] = []
+    seen: set[str] = set()
+    for title in titles:
+        title = (title or "").strip()
+        if not title or title in seen:
+            continue
+        seen.add(title)
+        keywords.append(title)
+    return keywords
+
+
+def resolve_keywords(mode: str, custom: str | None, profile_path: Path = PROFILE) -> list[str]:
+    """按模式选搜索源。``--keywords`` 显式指定时永远优先。"""
+    if custom:
+        return [k.strip() for k in custom.split(",") if k.strip()]
+    if mode == "company":
+        return load_keywords(profile_path)
+    return load_job_keywords(profile_path)
 
 
 def _is_network_device(device: str) -> bool:
@@ -169,7 +209,14 @@ def _parse_sent(output: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="大厂定向 sweep 打招呼")
     parser.add_argument("--target", type=int, default=30, help="累计发送目标条数")
-    parser.add_argument("--per-company", type=int, default=8, help="单个公司最多发多少条")
+    parser.add_argument(
+        "--mode", choices=("job", "company"), default="job",
+        help="搜索源：job=搜岗位词（默认，LLM 在结果里判大厂）/ company=搜公司名（旧口径）",
+    )
+    parser.add_argument(
+        "--per-keyword", "--per-company", dest="per_keyword", type=int, default=8,
+        help="单个关键词最多发多少条",
+    )
     parser.add_argument("--device", default=None, help="ADB 设备 serial（如 10.32.7.135:5555）")
     parser.add_argument("--threshold", type=int, default=7, help="最低匹配分数（与子脚本同类型）")
     parser.add_argument("--min-salary", type=int, default=18, help="月薪下限（K）")
@@ -179,13 +226,10 @@ def main() -> int:
     parser.add_argument("--list-only", action="store_true", help="只打印关键词计划，不发送")
     args = parser.parse_args()
 
-    if args.keywords:
-        keywords = [k.strip() for k in args.keywords.split(",") if k.strip()]
-    else:
-        keywords = load_keywords()
+    keywords = resolve_keywords(args.mode, args.keywords)
 
     if args.list_only:
-        print(f"共 {len(keywords)} 个关键词（顺序即执行顺序）：")
+        print(f"共 {len(keywords)} 个关键词（mode={args.mode}，顺序即执行顺序）：")
         for i, kw in enumerate(keywords, 1):
             print(f"  {i:3d}. {kw}")
         return 0
@@ -198,11 +242,12 @@ def main() -> int:
     sent = 0
     summary: list[tuple[str, int, int]] = []
     with master.open("w", encoding="utf-8") as mf:
-        mf.write(f"# sweep target={args.target} per_company={args.per_company} start={stamp}\n")
+        mf.write(f"# sweep mode={args.mode} target={args.target} "
+                 f"per_keyword={args.per_keyword} start={stamp}\n")
         for i, keyword in enumerate(keywords, 1):
             if sent >= args.target:
                 break
-            quota = min(args.per_company, args.target - sent)
+            quota = min(args.per_keyword, args.target - sent)
             mf.write(f"\n\n########## [{i}/{len(keywords)}] {keyword} (max-greet={quota}) ##########\n")
             mf.flush()
             started = time.time()
