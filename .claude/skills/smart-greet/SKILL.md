@@ -40,7 +40,7 @@ description: |
 | **Dialog 系统** | 有 `DialogType` 枚举（13 种状态） | 无 | 无 |
 | **DB 表前缀** | `job_details` / `greetings` | `zhilian_*` | `liepin_*` |
 | **薪资格式** | "K·13薪" | "万" | "K/万" 混用 |
-| **每日上限** | 无硬限（2026-10-12 实测，profile.yaml `daily_hard_limit=0`） | 150 | 100 |
+| **每日上限** | **150 次沟通**（2026-10-21 实测，profile.yaml `daily_hard_limit=150`） | 150 | 100 |
 | **最完整实现** | ✅ 参考实现 | 简化版 | 简化版 |
 
 > **选择建议**：boss 是参考实现，遇到问题先对照 boss；切换其他平台前确认对应差异点。
@@ -246,6 +246,13 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - **症状**：App 显示「每日沟通次数已用完」，脚本自动退出
 - **修复**：等 24h，**次日 0 点**自动重置
 
+### 2b. `聊天页 editText 4s 超时` 连续出现 → **触达每日 150 次上限**（2026-10-21 加）
+- **症状**：达标大厂岗位一批批卡在「跳过（聊天页超时）」，看起来像 UI bug
+- **真实原因**：Boss 每日 **150 次沟通**上限。Boss **不弹窗**，只弹 **toast**「您今天已与150位BOSS沟通，休息一下，明天再来吧～」；聊天页其实**打开成功**（转圈 loading）→ 约 3s 后 toast → 聊天页自动关闭退回职位详情页
+- **toast 文案拿不到**：`uiautomator dump` 不含 toast 窗口 / `dumpsys notification` 只有队列无文案 / `logcat` 只有 `E/Toast: setGravity()` → 只能靠行为特征判定
+- **修复（已落地）**：`smart_match_greet.ChatLoadGuard` —— 连续 3 次聊天页加载失败即终止本轮；`profile.yaml: daily_hard_limit=150` 到数主动退出
+- **注意计数口径**：Boss 数**沟通次数**（点开聊天即计），脚本数**实际发出** → 脚本会略早触顶退出
+
 ### 3. `无法返回职位列表` → 手动恢复
 - **症状**：`_return_to_job_list()` 失败 3 次
 - **原因**：App 不在职位列表页（可能在聊天页/详情页/其他）
@@ -418,7 +425,7 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 |------------|------|----------|
 | MiniMax (hermes, 主) | 2500 请求 / 5 小时 | 滚动窗口 |
 | Klugai (fallback) | 未知上限 + 每日重置 | 每日 0 点（北京时间） |
-| Boss 每日沟通 | 无公布硬限（2026-10-12 实测；profile.yaml `daily_hard_limit=0` 关闭脚本保护） | 不适用（跑多快自行判断） |
+| Boss 每日沟通 | **150 次**（2026-10-21 实测；profile.yaml `daily_hard_limit=150` 开启脚本保护） | 次日 0 点 |
 | 智联每日沟通 | 150 次 | 次日 0 点 |
 | 猎聘每日沟通 | 100 次 | 次日 0 点 |
 

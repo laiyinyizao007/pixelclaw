@@ -45,56 +45,65 @@ class TestBuildBigTechContext:
         """空 parents + 空 subsidiaries 仍返判定标准段（LLM 可见大厂定义）。
         只有 None 或 {} 才完全返空。"""
         text = _build_big_tech_context({"parents": [], "subsidiaries": {}})
-        assert "判定标准" in text
-        assert "母公司样本" not in text  # 列表段不出现
+        assert "不限行业" in text
+        assert "母公司清单" not in text  # 列表段不出现
         assert "旗下品牌" not in text
 
     def test_only_parents(self):
         text = _build_big_tech_context({"parents": ["字节跳动", "腾讯"], "subsidiaries": {}})
-        assert "母公司样本" in text
+        assert "母公司清单" in text
         assert "字节跳动" in text
         assert "腾讯" in text
         assert "旗下品牌" not in text
 
     def test_only_subsidiaries(self):
         text = _build_big_tech_context({"parents": [], "subsidiaries": {"字节": ["抖音", "飞书"]}})
-        assert "母公司样本" not in text
+        assert "母公司清单" not in text
         assert "旗下品牌" in text
         assert "字节" in text
         assert "抖音" in text
 
-    def test_truncates_parents_at_30(self):
-        """超过 30 家 parents 时截断，避免 prompt 过长。"""
+    def test_parents_are_not_truncated(self):
+        """母公司清单**完整展示**（2026-10-21 修正）。
+
+        早期版本截断到前 30 家，LLM 把「清单里没见到」当成「不是大厂」——
+        实测「顺丰科技」被锚定清单判成非大厂，而顺丰本就在清单里（被截断掉了）。
+        """
         long_parents = [f"公司{i}" for i in range(50)]
         text = _build_big_tech_context({"parents": long_parents, "subsidiaries": {}})
-        # 出现 "等" 表示截断
-        assert "等" in text
-        # "公司0-29" 出现，"公司49" 不出现（前 30 出现）
-        assert "公司29" in text
+        assert "公司0" in text
+        assert "公司49" in text, "清单必须完整列出，不能截断"
 
-    def test_truncates_subsidiaries_brands_at_5(self):
-        """每个母公司最多展示 5 个品牌。"""
+    def test_subsidiary_brands_are_not_truncated(self):
+        """每个母公司的旗下品牌**完整展示**（同上，避免 LLM 认不出集团关系）。"""
         long_brands = [f"品牌{i}" for i in range(10)]
         text = _build_big_tech_context({"parents": [], "subsidiaries": {"字节": long_brands}})
-        # 品牌 0-4 出现，品牌 5+ 不出现
         assert "品牌0" in text
-        assert "品牌4" in text
-        assert "品牌5" not in text
+        assert "品牌9" in text, "品牌清单不能截断"
 
-    def test_truncates_subsidiaries_parents_at_8(self):
-        """subsidiaries 母公司超过 8 个时截断。"""
+    def test_subsidiary_parents_are_not_truncated(self):
+        """subsidiaries 的母公司**完整展示**。"""
         sub = {f"母公司{i}": [f"品牌{i}"] for i in range(15)}
         text = _build_big_tech_context({"parents": [], "subsidiaries": sub})
-        # 母公司 0-7 出现，8+ 不出现
         assert "母公司7" in text
-        assert "母公司8" not in text
+        assert "母公司14" in text, "母公司清单不能截断"
+
+    def test_says_list_is_only_a_sample(self):
+        """必须明说「清单只是样本」——否则 LLM 会把清单当必要条件。"""
+        text = _build_big_tech_context({"parents": ["字节跳动"], "subsidiaries": {}})
+        assert "不是必要条件" in text
+        assert "不限行业" in text
+
+    def test_says_judge_subsidiary_by_group(self):
+        """必须提示「子公司按集团口径算」——顺丰科技/三一硅能这类才会被判对。"""
+        text = _build_big_tech_context({"parents": ["字节跳动"], "subsidiaries": {}})
+        assert "母公司或集团口径" in text or "按母公司" in text
 
     def test_includes_criteria_summary(self):
         """判定标准段始终出现（LLM 可见大厂定义）。"""
         text = _build_big_tech_context({"parents": ["字节跳动"], "subsidiaries": {}})
-        assert "判定标准" in text
-        assert "BAT" in text or "互联网头部" in text
-        assert "AI 新势力" in text
+        assert "不限行业" in text
+        assert "互联网头部" in text
 
 
 # ───────────────────────────── prompt 模板 format 不报错 ─────────────────────────────

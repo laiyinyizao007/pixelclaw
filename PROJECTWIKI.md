@@ -425,7 +425,7 @@ python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 
 **设备参数**：`--device` 会同时下发 `--device` 和 `--adb-reconnect-ip`——断连自动重连必须指向同一台设备，否则重连到别的 IP 上。
 
-**回归测试**：`tests/test_sweep_big_tech.py` 29 个用例（公司名关键词生成 8 + 岗位词生成 5 + mode 分发 4 + `_parse_sent` 2 + `run_one` 命令拼装 7 + `_is_network_device` 3）。
+**回归测试**：`tests/test_sweep_big_tech.py` 32 个用例（公司名关键词生成 8 + 岗位词生成 5 + mode 分发 4 + `_parse_sent` 5 + `run_one` 命令拼装 7 + `_is_network_device` 3）。
 
 **2026-10-21 实跑记录（126 条招呼）**：
 
@@ -437,11 +437,39 @@ python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 | 文案红线 | 禁用开场 0、禁用收尾 0、32/32 以「方便发您一份简历看看吗」收尾（抽样复核 32 条） |
 | 文案长度 | 46–134 字，mean 69.3 |
 | 吞吐 | ≈110–130 s/条；17 个关键词跑完 113 条耗时约 5.5 小时 |
+| 当日累计 | 148 条（`greetings` 表 `sent_at >= '2026-10-21'` 实测），第 ~150 次触 Boss 上限 → 当日停止 |
 
 **踩到的两个坑**：
 
 1. **子进程超时丢输出**：`subprocess.TimeoutExpired.stdout` 在本机 Python 3.14 + 管道捕获下是 `None`——小米那一轮实际发了 4 条，但 sweep 报告「0 条 / 3600s 超时」。仓库版 `run_one()` 已改用 `-u` 起子进程并兼容 bytes/str/None 三种形态。
 2. **智谱 0 条 / 61s**：不是 ADB 问题——debug XML 显示当时前台是**微信**（`com.tencent.mm`），用户操作把 App 切走了。搜索失败时先看 `debug_search_fail.xml` 里的 `package=` 再定性。
+
+**每日沟通上限 150/天（2026-10-21 实测）**：
+
+当天跑到第 ~150 次「立即沟通」时，Boss **不弹窗**，只弹 **toast**：
+
+> 您今天已与150位BOSS沟通，休息一下，明天再来吧～
+
+行为特征（`logcat` 实测）：
+
+```
+20:00:50.6  START  com.hpbr.bosszhipin/.chat.single.activity.ChatRoomActivity   ← 聊天页确实打开了
+20:00:50.6  W/RecyclerView: No adapter attached; skipping layout              ← 转圈 loading
+20:00:53.67 E/Toast: setGravity() shouldn't be called on text toasts            ← toast 出现
+20:00:53.68 ChatRoomActivity CLOSE → 退回 BossJobPagerActivity（职位详情页）
+```
+
+**toast 文案拿不到**：`uiautomator dump` 不含 toast 窗口；`dumpsys notification` 只有 toast 队列没有文案；`logcat` 只有 `E/Toast: setGravity()`。三条路都堵死 → **只能靠行为特征判定**。
+
+| 层级 | 手段 | 说明 |
+|---|---|---|
+| 配置层 | `candidate_profile.yaml: daily_hard_limit = 150` | 主动检查，到数退出。此前是 `0`（依据 2026-10-12「无公布上限」的观察），已被本次实测推翻 |
+| 行为层 | `smart_match_greet.ChatLoadGuard` | 连续 3 次「聊天页 editText 加载失败」→ 判定触顶 → 终止本轮。单次失败只是网络抖动，不终止 |
+| 计数口径 | Boss 数**沟通次数**（点开聊天即计），脚本数**实际发出** | 脚本会略早于 Boss 触顶退出，方向安全 |
+
+**修复前后的差异**：修复前当天 19 个达标大厂岗位里有 **11 个**卡在「聊天页 editText 4s 超时」被丢弃（日志里表现为 `跳过（聊天页超时）`），看起来像 UI bug，其实是触顶。修复后同一现象会在第 3 次连续失败时**整轮终止**并给出明确原因，不再空转。
+
+**sweep 计数 bug（同一根因链上的第二个 bug）**：子进程被超时 kill 时，结尾的汇总行「打招呼成功：N 条」永远打不出来，`_parse_sent()` 只认这一行 → 实际发了 7 条被算成 0 → sweep 累计偏低 → **超发**。修法：`_parse_sent()` 改为取「汇总行」与「逐条 `✓ 打招呼成功 — ` 行计数」的**较大值**。注意区分两种日志格式——`✓ 达标！打招呼：` 是**发送前**打的，不能算已发出。
 
 **PIN 自动解锁（2026-10-10 新增）**：
 

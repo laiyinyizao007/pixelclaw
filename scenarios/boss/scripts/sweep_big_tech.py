@@ -102,6 +102,10 @@ def load_keywords(profile_path: Path = PROFILE) -> list[str]:
 
 
 _RE_SENT = re.compile(r"打招呼成功：(\d+)\s*条")
+# 每条真正发出的招呼都会打一行「  ✓ 打招呼成功 — <招呼语>」。
+# 子进程被超时 kill 时，结尾的汇总行「打招呼成功：N 条」永远打不出来，
+# 只靠汇总行会把已发的招呼算成 0 → sweep 累计计数偏低 → 超发。
+_RE_SENT_EACH = re.compile(r"^\s*✓\s*打招呼成功\s+—", re.MULTILINE)
 
 
 def load_job_keywords(profile_path: Path = PROFILE) -> list[str]:
@@ -202,8 +206,17 @@ def run_one(
 
 
 def _parse_sent(output: str) -> int:
+    """从子进程输出里解析「实际发出的招呼条数」。
+
+    两个来源取较大值：
+    - 结尾汇总行「打招呼成功：N 条」——正常跑完时最准；
+    - 每条招呼的「✓ 打招呼成功 — 」行——子进程被超时 kill 时汇总行没打出来，
+      只能靠逐条计数（2026-10-21 实测：keyword 2 实际发了 7 条，汇总行缺失被算成 0）。
+    """
     match = _RE_SENT.search(output)
-    return int(match.group(1)) if match else 0
+    by_summary = int(match.group(1)) if match else 0
+    by_each = len(_RE_SENT_EACH.findall(output))
+    return max(by_summary, by_each)
 
 
 def main() -> int:

@@ -67,6 +67,35 @@ _FATAL_DIALOGS = {DialogType.DAILY_LIMIT, DialogType.LOGIN_REQUIRED}
 _SKIP_DIALOGS = {DialogType.JOB_OFFLINE}
 _CONTINUE_DIALOGS = {DialogType.EXISTING_CHAT, DialogType.DISMISSED, DialogType.WARM_REMINDER}
 
+
+# ─── 每日沟通上限判定（2026-10-21）──────────────────────────────────────────
+# Boss 触顶时**没有弹窗**，只有一个 toast：「您今天已与150位BOSS沟通，休息一下，
+# 明天再来吧～」。toast 拿不到（uiautomator dump 不含 toast 窗口，dumpsys 只有
+# toast 队列没有文案），只能靠行为特征判定：
+#   点「立即沟通」→ 聊天页确实打开（转圈 loading）→ 约 3s 后 toast → 聊天页自动关闭。
+# 单次失败可能是网络抖动；**连续** N 次跨不同职位失败就是平台侧硬限制。
+_CHAT_LOAD_FAIL_MAX = 3
+
+
+class ChatLoadGuard:
+    """连续「聊天页加载失败」计数，判定是否触达 Boss 每日沟通上限。
+
+    用法：每次聊天页打开成功调 :meth:`record_success` 清零；加载失败调
+    :meth:`record_failure`，返回 ``True`` 表示已达上限，调用方应终止本轮。
+    """
+
+    def __init__(self, max_fail: int = _CHAT_LOAD_FAIL_MAX):
+        self.max_fail = max_fail
+        self.streak = 0
+
+    def record_success(self) -> None:
+        self.streak = 0
+
+    def record_failure(self) -> bool:
+        """记一次失败；返回 True = 连续失败已达上限，应终止本轮。"""
+        self.streak += 1
+        return self.streak >= self.max_fail
+
 # ─── Haiku Prompt ─────────────────────────────────────────────────────────────
 
 # ─── Prompt 加载 ─────────────────────────────────────────────────────────────
@@ -621,8 +650,11 @@ def score_job(
         big_tech_context=big_tech_context,
         big_tech_judge_hint=(
             "本字段用于 --only-big-tech 模式过滤：True 表示该公司属于大厂，"
-            "False 表示不属于。当公司名 + 公司信息 + 描述指向不同时以描述为准 "
-            "（有些大厂用新主体名招聘；有些公司名撞名但实为 startup）。"
+            "False 表示不属于。**判定依据是你的知识 + 公司名 + 公司信息 + 描述，"
+            "不是「有没有命中上面的清单」**——清单是样本，未命中清单的大公司"
+            "（如知名终端厂商、大型制造/物流/零售集团、上市互联网公司）同样要判 True。"
+            "招聘主体是子公司/新品牌时按集团口径算。当公司名 + 公司信息 + 描述"
+            "指向不同时以描述为准（有些大厂用新主体名招聘；有些公司名撞名但实为 startup）。"
         ) if big_tech_context else "本字段为额外判定，可直接根据公司名 + 信息 + 描述综合判断。",
     )
     response = _call_with_fallback(
@@ -960,31 +992,39 @@ def _build_big_tech_context(whitelist: dict | None) -> str:
         Hard-coding 40+ companies misses new entrants (e.g., a startup that just IPO'd
         in 2027) and breaks on company-name collisions. LLM can use the list as a
         hint but still recognize 未列公司.
+
+    2026-10-21 实跑修正：清单**必须完整展示**（早期版本截断到前 30 家 +
+    8 个母公司的品牌），LLM 会把「清单里没有」当成「不是大厂」——实测
+    「顺丰科技」「荣耀」「三一硅能」全被锚定清单判成非大厂，而顺丰本就在
+    清单里（只是被截断掉了）。完整列出 + 明确「清单只是样本」，命中率回升。
     """
     if not whitelist:
         return ""
-    parts = ["## 大厂参考清单（用户口径，仅供参考；你仍可独立判定名单外的公司）"]
-    parts.append(
-        "判定标准：互联网头部（BAT/TMD/华为/京东/拼多多/小米/网易/快手）+ AI 新势力 "
-        "（月之暗面/智谱/MiniMax/阶跃星辰/深度求索/百川/零一万物）+ 半导体/芯片 "
-        "（寒武纪/地平线/摩尔线程/燧原）+ 自动驾驶（小马智行/Momenta/文远知行）+ "
-        "外企中国（Google/Microsoft/Meta/OpenAI/Anthropic）+ 准大厂 "
-        "（SHEIN/Shopee/米哈游/莉莉丝/鹰角/理想/蔚来/小鹏/B站/知乎/得物）。"
-    )
+    parts = [
+        "## 大厂参考清单（**只是样本，不是必要条件**——清单里没有的不代表不是大厂）",
+        "**用户口径：只要是大公司，不限行业。**「大厂」包括但不限于：互联网头部、"
+        "AI 新势力、半导体/芯片、自动驾驶、外企中国、准大厂，以及**知名终端厂商、"
+        "大型制造/能源/物流/零售集团、上市互联网公司**等任何规模足够大的企业。",
+        "**判定要点**：①请主动用你自己的知识判断，不要只做清单字符串匹配；"
+        "②招聘主体是子公司/分公司/新品牌时，**按母公司或集团口径算**"
+        "（如「顺丰科技」→顺丰集团、「三一硅能」→三一集团）；"
+        "③清单全名未出现但属同一集团品牌，也算命中。",
+    ]
     parents = whitelist.get("parents") or []
     if parents:
-        # 截断到前 30 防 prompt 过长；LLM 见到关键样本即可推断其他
-        sample = parents[:30]
-        parts.append("**母公司样本**（共 {} 家）：{}".format(
-            len(parents), "、".join(sample) + (" …等" if len(parents) > 30 else "")
+        # 完整列出：截断会让 LLM 锚定「没见到就是没有」
+        parts.append("**母公司清单**（共 {} 家，完整列出）：{}".format(
+            len(parents), "、".join(parents)
         ))
     subsidiaries = whitelist.get("subsidiaries") or {}
     if subsidiaries:
-        # 每个母公司只展示前 5 个品牌
+        # 每个母公司完整展示旗下品牌
         lines = []
-        for parent, brands in list(subsidiaries.items())[:8]:
-            lines.append(f"- {parent}: {'/'.join(brands[:5])}")
-        parts.append("**旗下品牌样本**（每个母公司取前 5 个）：\n" + "\n".join(lines))
+        for parent, brands in subsidiaries.items():
+            if not brands:
+                continue
+            lines.append(f"- {parent}: {'/'.join(brands)}")
+        parts.append("**旗下品牌清单**（母公司 → 品牌）：\n" + "\n".join(lines))
     return "\n\n".join(parts)
 
 
@@ -1824,6 +1864,12 @@ def _run_loop(
     # ── 2026-10-13 修复：导航失败 max retry 计数（item 3 配套，避免 discard 后无限重试） ──
     _NAV_FAIL_MAX = 2
     _nav_fail_count: dict[str, int] = {}
+    # ── 2026-10-21 修复：连续聊天页加载失败 → 判定触达 Boss 每日沟通上限 ──
+    # 触顶时 Boss 的表现（实测）：点「立即沟通」→ 聊天页**确实打开**（ChatRoomActivity
+    # 已 START，显示 loading 转圈）→ 约 3 秒后 toast「您今天已与150位BOSS沟通，休息一下，
+    # 明天再来吧～」→ 聊天页自动关闭退回职位详情页。toast 文案拿不到（uiautomator dump
+    # 不含 toast 窗口），只能靠行为特征判定。
+    _chat_guard = ChatLoadGuard()
     greeted_count = 0
     no_target_scrolls = 0
     processed = 0  # 用于日志显示的「第 N 条」计数器
@@ -2389,7 +2435,22 @@ def _run_loop(
                 _append_ui_error(result, f"{title}：聊天页加载超时")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="聊天页超时", job_dict=job_dict, scored_result=scored)
+                # ── 2026-10-21：连续超时 = 触达每日沟通上限，终止本轮 ──
+                # 单次超时可能是网络抖动；连续 N 次跨不同职位超时，说明是平台侧的
+                # 硬限制（toast 提示「您今天已与150位BOSS沟通」），继续跑只是在空转。
+                if _chat_guard.record_failure():
+                    logger.error(
+                        "  🛑 连续 %d 次聊天页加载失败 —— 疑似触达 Boss 每日沟通上限"
+                        "（toast：「您今天已与150位BOSS沟通，休息一下，明天再来吧～」），"
+                        "终止本轮。明日上限重置后可再跑。",
+                        _chat_guard.streak,
+                    )
+                    result["errors"].append(
+                        f"连续 {_chat_guard.max_fail} 次聊天页加载失败，疑似触达每日沟通上限，终止"
+                    )
+                    break
                 continue
+            _chat_guard.record_success()  # 聊天页正常打开 → 计数清零
 
             # ── 第 2 层校验：聊天页的 HR / 职位 / 公司名是否真的是目标 ──
             # 防止：详情页显示 HR A 但聊天页跳到 HR B（同公司多 HR 代理），

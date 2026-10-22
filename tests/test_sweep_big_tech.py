@@ -146,6 +146,31 @@ class TestParseSent:
         assert _parse_sent("搜索失败：xxx") == 0
         assert _parse_sent("") == 0
 
+    def test_counts_per_greeting_lines_when_summary_missing(self):
+        """子进程被超时 kill → 汇总行没打出来，逐条计数兜底。
+
+        2026-10-21 实测：keyword 2 实际发了 7 条，汇总行缺失被算成 0，
+        sweep 累计偏低 → 会超发。
+        """
+        out = "\n".join(
+            f"  ✓ 打招呼成功 — 您好，我是候选人{i}" for i in range(7)
+        )
+        assert _parse_sent(out) == 7
+
+    def test_takes_max_of_summary_and_per_greeting(self):
+        """汇总行与逐条计数不一致时取较大值（防漏计）。"""
+        out = "\n".join(
+            f"  ✓ 打招呼成功 — 招呼{i}" for i in range(3)
+        ) + "\n✓ 打招呼成功：9 条"
+        assert _parse_sent(out) == 9
+
+    def test_qualified_line_is_not_counted_as_sent(self):
+        """「✓ 达标！打招呼：」是发送**前**打的，不能算已发出。"""
+        out = "\n".join(
+            "  ✓ 达标！打招呼：您好，我是候选人" for _ in range(19)
+        )
+        assert _parse_sent(out) == 0
+
 
 class TestRunOne:
     def test_cmd_contains_required_flags(self, monkeypatch):
