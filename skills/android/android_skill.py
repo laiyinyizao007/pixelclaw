@@ -54,11 +54,37 @@ class AndroidSkill:
 
     # ── 内部 ADB 包装 ─────────────────────────────────────────────────────────
 
-    def _adb(self, cmd: str) -> Tuple[bool, str]:
-        """调用 ``self.adb.shell(cmd, device_id)``，返回 ``(success, stdout)``。"""
-        return self.adb.shell(cmd, self.device_id)
+    def _adb(self, cmd: str, timeout: Optional[float] = None) -> Tuple[bool, str]:
+        """调用 ``self.adb.shell(cmd, device_id)``，返回 ``(success, stdout)``。
+
+        ``timeout``（秒）：传给底层 ``shell()``。若注入的实现（如
+        ``monitors.ADBManager``）不支持该参数，退回无超时调用并告警。
+        """
+        if timeout is None:
+            return self.adb.shell(cmd, self.device_id)
+        try:
+            return self.adb.shell(cmd, self.device_id, timeout=timeout)
+        except TypeError:
+            self._logger.warning(
+                "ADB 实现 %s 不支持 timeout 参数，命令可能无限阻塞：%s",
+                type(self.adb).__name__, cmd,
+            )
+            return self.adb.shell(cmd, self.device_id)
 
     # ── UI 层级 ───────────────────────────────────────────────────────────────
+
+    # uiautomator dump 在 Boss 聊天页实测会变慢（设备端进程停在 R 状态等 idle，
+    # 正常 2-3s，最坏超过 6 分钟不退出），必须设本地超时兜底；
+    # 超时后还要 kill 掉设备端残留进程，否则后续 dump 全部堵死。
+    # 25s 是「正常聊天页 dump」与「已经挂死」之间的折中：超了就是异常，不无限等。
+    _UI_DUMP_TIMEOUT = 25.0
+
+    def _kill_stuck_uiautomator(self) -> None:
+        """杀掉设备端卡死的 uiautomator 进程（本地超时不会自动清理它）。"""
+        try:
+            self.adb.shell("shell killall -9 uiautomator", self.device_id)
+        except Exception as exc:  # noqa: BLE001 - 清理失败不能掩盖主流程
+            self._logger.debug("清理设备端 uiautomator 失败：%s", exc)
 
     def get_ui_hierarchy(self, force_refresh: bool = False) -> str:
         """
@@ -71,7 +97,17 @@ class AndroidSkill:
         """
         if not force_refresh and self.last_ui_dump:
             return self.last_ui_dump
-        self._adb("shell uiautomator dump /sdcard/window_dump.xml")
+        ok, _out = self._adb(
+            "shell uiautomator dump /sdcard/window_dump.xml",
+            timeout=self._UI_DUMP_TIMEOUT,
+        )
+        if not ok:
+            # dump 失败/超时：设备端可能残留卡死的 uiautomator，必须清掉；
+            # 同时**不要**去 cat window_dump.xml —— 那是上一轮的陈旧 XML，
+            # 读回来会让 wait_for_element 误判元素存在。
+            self._kill_stuck_uiautomator()
+            self.last_ui_dump = ""
+            return ""
         ok, content = self._adb("shell cat /sdcard/window_dump.xml")
         self.last_ui_dump = content if ok else ""
         return self.last_ui_dump

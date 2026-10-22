@@ -58,6 +58,15 @@
 > **2026-10-22 补充**：原先把「触顶」和「慢渲染」都当成「加载超时」，导致触顶要空转 3 次才收工、
 > 慢渲染则直接丢候选。判定改为看**前台 Activity**（见上表「代码影响」行）。
 
+#### 补充：uiautomator dump 在聊天页会挂死（2026-10-22 实测）
+
+| 项目 | 内容 |
+|------|------|
+| **现象** | Boss 聊天页上 `adb shell uiautomator dump` 可能长时间不返回。设备端 `uiautomator` 进程停在 `R`（运行中）状态一直等 idle（聊天页动画/webview 永不到 idle），本地 adb 客户端跟着挂住 |
+| **影响** | `wait_for_element()` 的超时**救不了**——它卡在单次 dump 调用内部，整个脚本无限期阻塞 |
+| **代码影响** | `ADBRunner.shell()` 加 `timeout` 形参（超时返 `(False, "TIMEOUT")`）；`AndroidSkill._adb()` 透传 timeout；`get_ui_hierarchy()` 的 dump 带 **25s 超时**，超时/失败后 `killall -9 uiautomator` 清设备端残留，且**不再 cat** 陈旧的 `window_dump.xml`（会让 `wait_for_element` 误判元素存在） |
+| **未覆盖** | `skills/linkedin/linkedin_automation_skill.py:219` 还有一处裸 `uiautomator dump`（无超时），未纳入本次修复 |
+
 ---
 
 ### 登录态要求

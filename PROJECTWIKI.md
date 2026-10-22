@@ -481,6 +481,25 @@ python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 
 **sweep 计数 bug（同一根因链上的第二个 bug）**：子进程被超时 kill 时，结尾的汇总行「打招呼成功：N 条」永远打不出来，`_parse_sent()` 只认这一行 → 实际发了 7 条被算成 0 → sweep 累计偏低 → **超发**。修法：`_parse_sent()` 改为取「汇总行」与「逐条 `✓ 打招呼成功 — ` 行计数」的**较大值**。注意区分两种日志格式——`✓ 达标！打招呼：` 是**发送前**打的，不能算已发出。
 
+### uiautomator dump 挂死防护（2026-10-22）
+
+**现象**：Boss 聊天页上 `adb shell uiautomator dump` 可能长时间不返回。2026-10-22 实测设备端 `uiautomator` 进程停在 `R`（运行中）状态等 idle（聊天页动画/webview 永不到 idle），本地 `adb` 客户端一直等 → **整个脚本无限期阻塞**。关键点：`wait_for_element()` 自己的超时救不了——它卡在单次 dump 调用内部。
+
+**根因链**：
+
+| 层 | 问题 | 修法 |
+|---|---|---|
+| `ADBRunner.shell()` | `subprocess.run()` **无 timeout** | 新增 `timeout` 参数，超时返回 `(False, "TIMEOUT")`（不抛异常） |
+| `AndroidSkill._adb()` | 不透传 timeout | 新增 `timeout` 形参；注入的实现不支持时（如 `monitors.ADBManager`）退回无超时调用并 warning |
+| `AndroidSkill.get_ui_hierarchy()` | dump 无超时；dump 失败后仍 `cat` 陈旧 XML | dump 带 25s 超时；失败/超时 → `killall -9 uiautomator` 清设备端残留，**且不 cat**（读到旧 XML 会让 `wait_for_element` 误判元素存在） |
+| `ADBRunner.type_text()` / `pull()` | 直连 `subprocess.run()` 无超时 | 补 15s / 30s 超时，捕获 `TimeoutExpired` 后返回 `False` |
+
+**为什么超时取 25s**：聊天页 dump 正常 2-3s；超过 25s 基本可判定为挂死。不设上限则一次异常拖垮整轮（实测一次就能停十几分钟）。
+
+**注意**：`skills/linkedin/linkedin_automation_skill.py:219` 还有一处裸 `uiautomator dump`（无超时），未纳入本次修复。
+
+回归测试见 `tests/test_ui_dump_timeout.py`（11 例），锁住「dump 必须带超时 / 超时必 killall / 失败不 cat 陈旧 XML / 不支持 timeout 的后端要能退回」四条。
+
 **PIN 自动解锁（2026-10-10 新增）**：
 
 

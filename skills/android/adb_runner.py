@@ -25,7 +25,12 @@ class ADBRunner:
 
     # ── 底层接口 ────────────────────────────────────────────────────────────────
 
-    def shell(self, cmd: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+    def shell(
+        self,
+        cmd: str,
+        device_id: Optional[str] = None,
+        timeout: Optional[float] = None,
+    ) -> Tuple[bool, str]:
         """
         运行 ``adb [-s device_id] {cmd}``，返回 (success, stdout)。
 
@@ -34,19 +39,28 @@ class ADBRunner:
 
         使用 shell=False + 参数列表，避免 MSYS/Git Bash 对 /sdcard 等路径
         做 Windows 路径转换导致设备端路径错误。
+
+        ``timeout``（秒）：给子进程设上限。**必须设**——设备端命令挂死时
+        （实测 `uiautomator dump` 在 Boss 聊天页会挂死）本地 adb 会一直等，
+        整个脚本无限期阻塞，连调用方的超时判断都救不了。
+        超时返回 ``(False, "TIMEOUT")``。
         """
         args = ["adb"]
         if device_id:
             args += ["-s", device_id]
         args += shlex.split(cmd, posix=True)
-        r = subprocess.run(
-            args,
-            shell=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        try:
+            r = subprocess.run(
+                args,
+                shell=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+            )
+        except subprocess.TimeoutExpired:
+            return False, "TIMEOUT"
         return r.returncode == 0, (r.stdout or "").strip()
 
     # ── 高层便捷方法（与 ADBManager 接口一致）──────────────────────────────────
@@ -110,14 +124,18 @@ class ADBRunner:
             f" -a ADB_INPUT_TEXT --es msg {safe_text}"
         )
         args += ["shell", shell_cmd]
-        r = subprocess.run(
-            args,
-            shell=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        try:
+            r = subprocess.run(
+                args,
+                shell=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15,
+            )
+        except subprocess.TimeoutExpired:
+            return False
         ok = r.returncode == 0
         # Wait for ADBKeyboard's onReceive() to finish commitText() before switching
         # back to the original IME. am broadcast returns before onReceive completes for
@@ -181,12 +199,16 @@ class ADBRunner:
         if device_id:
             args += ["-s", device_id]
         args += ["pull", remote, local]
-        r = subprocess.run(
-            args,
-            shell=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        try:
+            r = subprocess.run(
+                args,
+                shell=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            return False
         return r.returncode == 0
