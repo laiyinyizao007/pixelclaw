@@ -191,6 +191,7 @@ _PROFILE_PATH = _PROMPT_DIR.parent / "candidate_profile.yaml"
 _PROMPT_FILES = {
     "match_score":  _PROMPT_DIR / "match_score.md",
     "strict_rules": _PROMPT_DIR / "strict_rules.md",
+    "infer_company": _PROMPT_DIR / "infer_company.md",
 }
 _prompt_cache: dict[str, str] = {}
 
@@ -701,6 +702,100 @@ def extract_resume_summary(
         return resume[:2000]
 
 
+def infer_recruiter_company(
+    primary: anthropic.Anthropic,
+    job: dict,
+    fallback: anthropic.Anthropic | None = None,
+) -> tuple[str, str, str]:
+    """从职位描述反推招聘主体，返回 ``(company, confidence, evidence)``。
+
+    背景（2026-10-22）：Boss 上有一批岗位（第三方主体 / 客户项目 / 灵活用工
+    代发）的 ``company`` 与 ``company_info`` 字段**都是空的**，导致大厂判定时
+    LLM 手里没有任何主体依据，只能保守判否——实测占「LLM 判非大厂」的 44%。
+    这里先单独问一次 LLM「这岗位是谁在招」，拿反推出的名字走现有判定。
+
+    约束：**不硬编码公司名**——判断完全交给 LLM（prompt 见
+    ``config/prompts/infer_company.md``），任何失败都退化成空字符串，
+    由调用方转入「业务域代理判定」兜底。
+    """
+    description = job.get("description") or ""
+    try:
+        prompt = _load_prompt("infer_company").format(
+            title=job.get("title", ""),
+            salary=job.get("salary_raw") or "未知",
+            experience=job.get("experience") or "未知",
+            description=description if description else "（无）",
+        )
+        response = _call_with_fallback(
+            primary, fallback,
+            fallback_model="claude-haiku-4-5-20251001",
+            model="MiniMax-M3",
+            max_tokens=512,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = _strip_json_fences(response.content[0].text.strip())
+        data = json.loads(text, strict=False)
+    except Exception as exc:  # noqa: BLE001 - 推断失败不能拖垮主流程
+        logger.warning("  ⚠️ 招聘主体反推失败，退回业务域代理判定：%s", exc)
+        return "", "", ""
+
+    company = str(data.get("company") or "").strip()
+    confidence = str(data.get("confidence") or "").strip()
+    evidence = str(data.get("evidence") or "").strip()
+    return company, confidence, evidence
+
+
+# ── 大厂判定话术 ───────────────────────────────────────────────────────────────
+# 三档：公司名已知（默认）/ 公司名由反推得到 / 主体完全无从得知（业务域代理判定）。
+# **都不含具体公司名**——判断由 LLM 做，yaml 白名单只作为 prompt 里的参考样本。
+
+_BIG_TECH_HINT_DEFAULT = (
+    "本字段用于 --only-big-tech 模式过滤：True 表示该公司属于大厂，"
+    "False 表示不属于。**判定依据是你的知识 + 公司名 + 公司信息 + 描述，"
+    "不是「有没有命中上面的清单」**——清单是样本，未命中清单的大公司"
+    "（如知名终端厂商、大型制造/物流/零售集团、上市互联网公司）同样要判 True。"
+    "招聘主体是子公司/新品牌时按集团口径算。当公司名 + 公司信息 + 描述"
+    "指向不同时以描述为准（有些大厂用新主体名招聘；有些公司名撞名但实为 startup）。"
+)
+
+_BIG_TECH_HINT_INFERRED = (
+    "本字段用于 --only-big-tech 模式过滤：True 表示该公司属于大厂，"
+    "False 表示不属于。**注意：公司名是从职位描述推断得到的**"
+    "（招聘主体字段为空），可信度仅供参考；若与描述冲突以描述为准。"
+    "**判定依据是你的知识 + 公司名 + 公司信息 + 描述，"
+    "不是「有没有命中上面的清单」**——清单是样本，未命中清单的大公司同样要判 True。"
+    "招聘主体是子公司/新品牌时按集团口径算。"
+)
+
+_BIG_TECH_HINT_PROXY = (
+    "本字段用于 --only-big-tech 模式过滤：True 表示该岗位属于大厂业务，"
+    "False 表示不属于。**公司字段为空且招聘主体无从推断——"
+    "此时不要因为信息缺失就判否。**"
+    "改为判断「这个岗位的业务场景 / 职能 / 薪资水平是否属于头部企业的典型业务域」："
+    "平台型电商的商家侧经营与投放、内容平台的商业化审核与申诉、"
+    "企业协同办公与知识库、云厂商的 AI 能力产品化、C 端 AI 原生应用、"
+    "垂直行业的大模型产品化等属于头部企业的典型业务域；"
+    "若描述明确落在其中且薪资处于头部水平（通常 30K 以上），判 True。"
+    "若业务场景属于普通企业内部工具、外包实施、传统行业信息化、"
+    "创业团队的轻量自研工具，判 False。"
+    "**清单仍然只是参考样本，不是必要条件**——未命中清单的大公司同样要判 True。"
+)
+
+
+def _big_tech_hint_for(company_inferred: bool = False, proxy_mode: bool = False) -> str:
+    """挑一句大厂判定话术。
+
+    Args:
+        company_inferred: 公司名是由 :func:`infer_recruiter_company` 反推得来的。
+        proxy_mode: 公司名与主体信息都无从得知，改用业务域代理判定。
+    """
+    if proxy_mode:
+        return _BIG_TECH_HINT_PROXY
+    if company_inferred:
+        return _BIG_TECH_HINT_INFERRED
+    return _BIG_TECH_HINT_DEFAULT
+
+
 def score_job(
     primary: anthropic.Anthropic,
     resume: str,
@@ -709,6 +804,8 @@ def score_job(
     fallback: anthropic.Anthropic | None = None,
     scoring_dimensions: dict | None = None,
     big_tech_whitelist: dict | None = None,
+    company_inferred: bool = False,
+    proxy_mode: bool = False,
 ) -> dict:
     """Call Claude Haiku to score one job and generate a personalized greeting.
 
@@ -716,6 +813,8 @@ def score_job(
         big_tech_whitelist: candidate_profile.yaml 的 big_tech_whitelist 段（parents +
             subsidiaries）。注入到 prompt 作为 LLM 判定 is_big_tech 的参考清单（不是
             硬过滤——LLM 仍可识别名单外的大厂）。None 或空时不注入，LLM 自主判断。
+        company_inferred: job["company"] 是由 infer_recruiter_company() 反推得来的。
+        proxy_mode: 招聘主体完全无从得知，改用业务域代理判定（见 _big_tech_hint_for）。
     """
     description = job.get("description") or ""
     big_tech_context = _build_big_tech_context(big_tech_whitelist)
@@ -733,13 +832,10 @@ def score_job(
         scoring_rubric=_build_scoring_rubric(scoring_dimensions or {}),
         big_tech_context=big_tech_context,
         big_tech_judge_hint=(
-            "本字段用于 --only-big-tech 模式过滤：True 表示该公司属于大厂，"
-            "False 表示不属于。**判定依据是你的知识 + 公司名 + 公司信息 + 描述，"
-            "不是「有没有命中上面的清单」**——清单是样本，未命中清单的大公司"
-            "（如知名终端厂商、大型制造/物流/零售集团、上市互联网公司）同样要判 True。"
-            "招聘主体是子公司/新品牌时按集团口径算。当公司名 + 公司信息 + 描述"
-            "指向不同时以描述为准（有些大厂用新主体名招聘；有些公司名撞名但实为 startup）。"
-        ) if big_tech_context else "本字段为额外判定，可直接根据公司名 + 信息 + 描述综合判断。",
+            _big_tech_hint_for(company_inferred=company_inferred, proxy_mode=proxy_mode)
+            if big_tech_context
+            else "本字段为额外判定，可直接根据公司名 + 信息 + 描述综合判断。"
+        ),
     )
     response = _call_with_fallback(
         primary, fallback,
@@ -2272,6 +2368,31 @@ def _run_loop(
             company = _real_company
         if job_dict.get("hr_name"):
             hr_name = job_dict["hr_name"]
+
+        # ── 招聘主体缺失时的两级兜底（2026-10-22）──────────────────────────────
+        # Boss 上第三方主体 / 客户项目 / 灵活用工代发的岗位，company 与
+        # company_info **双双为空** → 大厂判定时 LLM 没有任何主体依据，保守判否，
+        # 实测占「LLM 判非大厂」的 44%（10-21: 25/57，10-22: 17/39）。
+        # 用户定的方案「先 2 再 1」：
+        #   ① 先单独调一次 LLM 从职位描述**推断招聘主体**，用推断出的名字走现有判定
+        #   ② 推断不出主体时，退回**业务域代理判定**（不再因信息缺失就判否）
+        # 反推出的名字还会写回 job_dict / company，让下游去重与报表也变准。
+        _company_inferred = False
+        _proxy_mode = False
+        if only_big_tech and not company.strip() and not (job_dict.get("company_info") or "").strip():
+            _inf_name, _inf_conf, _inf_ev = _with_screen_heartbeat(
+                skill, lambda: infer_recruiter_company(client, job_dict, fallback=fallback)
+            )
+            if _inf_name:
+                _company_inferred = True
+                company = _inf_name
+                job_dict["company"] = _inf_name
+                logger.info("  🔎 招聘主体推断：%s（置信度 %s，依据：%s）",
+                            _inf_name, _inf_conf or "未知", _inf_ev or "无")
+            else:
+                _proxy_mode = True
+                logger.info("  🔎 招聘主体无法推断 → 改用业务域代理判定（不因信息缺失判否）")
+
         # 始终用 detail 数据更新 visited_keys（幂等；set.add 重名无副作用）
         # 2026-10-13 修复（item 1）：detail 阶段 hr_name 已完整，key 同步加 hr_name
         visited_keys.add(f"{normalize_card_title(title)}\t{company}\t{hr_name}")
@@ -2307,7 +2428,7 @@ def _run_loop(
         # Haiku 评分 + 生成打招呼（heartbeat 防止 ~30s API 调用期间锁屏）
         try:
             scored = _with_screen_heartbeat(
-                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist)
+                skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist, company_inferred=_company_inferred, proxy_mode=_proxy_mode)
             )
         except Exception as exc:
             reset_at = _extract_reset_at(exc)
@@ -2320,7 +2441,7 @@ def _run_loop(
                 time.sleep(wait_secs)
                 try:
                     scored = _with_screen_heartbeat(
-                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist)
+                        skill, lambda: score_job(client, resume, job_dict, strict=strict, fallback=fallback, scoring_dimensions=scoring_dimensions, big_tech_whitelist=big_tech_whitelist, company_inferred=_company_inferred, proxy_mode=_proxy_mode)
                     )
                 except Exception as exc2:
                     logger.error("  配额恢复后仍失败：%s — %s", title, exc2)

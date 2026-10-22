@@ -604,6 +604,31 @@ if not skill.adb.is_device_connected(skill.device_id):
 
 **触发流程**：`_run_loop` 在 score_job 评分后插入 `if only_big_tech and not scored.is_big_tech: skip`——只看 LLM 输出，不在评分前预判（避免误伤）。**代码里没有任何公司名字符串匹配逻辑**（`whitelist['parents']` / `whitelist['subsidiaries']` 在整个模块只被 `_build_big_tech_context()` 读一次用于拼 prompt）。LLM 漏输出 `is_big_tech` 字段时**放行** + `⚠️ LLM 未输出 is_big_tech` warning——宁可多发一条给小公司，也不因模型偶发漏字段丢掉所有大厂机会。
 
+**招聘主体缺失时的两级兜底（2026-10-22 新增）**：
+
+Boss 上有一批岗位由**第三方主体 / 客户项目 / 灵活用工服务商代发**，`company` 与 `company_info` **双双为空**。大厂判定时 LLM 手里只剩分数和 JD 正文，没有任何主体依据，只能保守判否——实测这类漏判占「LLM 判非大厂」的 **44%**（10-21：25/57，10-22：18/39）。
+
+用户定的方案是**先 2 再 1**（`_run_loop` 内，评分前介入）：
+
+| 级 | 做法 | 代码 | 实测命中率 |
+|---|---|---|---|
+| ① 推断主体 | 单独调一次 LLM，从 JD **反推招聘主体**，用推断出的名字走现有 `is_big_tech` 判定 | `infer_recruiter_company()` + `config/prompts/infer_company.md` | 43 条漏判中 **11 条**推断出主体（字节跳动 ×5、美团 ×2、京东、深度求索、阿里巴巴、小米），**零误判** |
+| ② 业务域代理判定 | 推断不出主体时，改判断「业务场景 / 职能 / 薪资是否属于头部企业的典型业务域」，**不再因信息缺失就判否** | `_BIG_TECH_HINT_PROXY`（`_big_tech_hint_for(proxy_mode=True)`） | 剩余 32 条中 **21 条**判 True；其中 **17 条** score ≥ 7 会真发招呼 |
+
+**合计挽回 28/43 = 65%**（改造前这 43 条一条都发不出去）。
+
+**三档判定话术**（`_big_tech_hint_for()` 统一挑选，**均不含任何具体公司名**）：
+
+| 档 | 触发条件 | 关键约束 |
+|---|---|---|
+| `_BIG_TECH_HINT_DEFAULT` | 公司名已知 | 「判定依据是你的知识 + 公司名 + 公司信息 + 描述，**不是「有没有命中上面的清单」**」——清单只是样本 |
+| `_BIG_TECH_HINT_INFERRED` | 公司名由 ① 推断得到 | 额外标注「公司名是从职位描述推断得到的」，冲突时以描述为准 |
+| `_BIG_TECH_HINT_PROXY` | 主体完全无从得知 | 「**不要因为信息缺失就判否**」+ 列举头部企业典型业务域（商家侧经营/商业化审核/协同办公/云上 AI 产品化…）+ 薪资门槛（通常 30K 以上） |
+
+**不硬编码公司名的落地方式**：判断逻辑里没有任何公司名字符串；yaml `big_tech_whitelist` 仍然只作为 prompt 参考样本注入。`tests/test_big_tech_company_inference.py::TestNoHardcodedCompanyNames` 扫描 infer_company.md 与三档话术，断言 **170 个白名单公司名一个都不出现**——这条约束被测试钉死。
+
+**推断结果写回**：① 推断出的名字会同时赋给局部变量 `company` 与 `job_dict["company"]`，让 `visited_keys` 去重、`_record_visit` 落库、报表统计都按推断主体归集，不再是一堆空 company 的孤儿记录。
+
 **典型运行**：
 ```bash
 # 仅评分验证
