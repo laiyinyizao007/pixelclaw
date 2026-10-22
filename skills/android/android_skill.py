@@ -82,7 +82,7 @@ class AndroidSkill:
     def _kill_stuck_uiautomator(self) -> None:
         """杀掉设备端卡死的 uiautomator 进程（本地超时不会自动清理它）。"""
         try:
-            self.adb.shell("shell killall -9 uiautomator", self.device_id)
+            self._adb("shell killall -9 uiautomator", timeout=10.0)
         except Exception as exc:  # noqa: BLE001 - 清理失败不能掩盖主流程
             self._logger.debug("清理设备端 uiautomator 失败：%s", exc)
 
@@ -108,7 +108,7 @@ class AndroidSkill:
             self._kill_stuck_uiautomator()
             self.last_ui_dump = ""
             return ""
-        ok, content = self._adb("shell cat /sdcard/window_dump.xml")
+        ok, content = self._adb("shell cat /sdcard/window_dump.xml", timeout=10.0)
         self.last_ui_dump = content if ok else ""
         return self.last_ui_dump
 
