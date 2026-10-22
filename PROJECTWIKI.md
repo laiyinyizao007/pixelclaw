@@ -799,6 +799,20 @@ Pixel 8a 在 Android 11+ 无线调试场景下涉及三类网络地址，**三�
 >
 > **自动化方案（2026-10-15 当路由器不可控时）**：当无法进入路由器后台（如租房/共享网络）时，`utils/refresh_device_ip.py` 模块 + `DeviceConnector.connect()` 内置 auto-retry 可以自动恢复。`config/devices.json` 加 `serial` + `network` 字段后，`adb connect` 失败时自动扫 `network` 子网，按 `getprop ro.serialno` 验证找到手机，更新 config 并重连一次。**触发链**：`core/device_connector.py:connect()` 调 `self.adb.connect()` 失败 → `_try_refresh_and_reconnect()` 调 `utils.refresh_device_ip.refresh_device_ip()` → 验证新 IP + `adb.connect()` 重连。手动触发：`python -m utils.refresh_device_ip`（独立 CLI）。**Why serial-verify**（不按 model/hostname）：serial 是设备唯一标识且 `ro.serialno` 直接读出；同 model 会有；hash DHCP hostname 是厂商锁定的不可靠。两层筛：① ping-fail 快速剔除绝大多数 IP ② adb connect + getprop ro.serialno 确认身份。**Why 不无限重试**：auto-refresh 只触发一次；连续失败需要人工介入（手机关机 / 换网 / 路由器关了手机 WiFi）。
 
+> **mDNS 发现 = 最快的定位手段（2026-10-22 新增）**：手机开着「无线调试」时会广播 `_adb-tls-connect._tcp.local`，**报文里直接带 IP + 随机连接端口 + 机型/序列号**（TXT：`api=36.0, name=Pixel 8a, v=1`）。新增 `utils/discover_adb_mdns.py`：
+>
+> ```bash
+> python -m utils.discover_adb_mdns              # 查 connect 服务 → 10.32.7.142:44547
+> python -m utils.discover_adb_mdns --pairing    # 查 pairing 服务（需手机开配对弹窗）
+> python -m utils.discover_adb_mdns --watch 30   # 持续监听（配对服务只在弹窗打开期间广播）
+> ```
+>
+> **Why 不用 `adb mdns services`**：在 Pi 5 上它返回空（adb 内置 mDNS 客户端不可靠）；`avahi-browse` 也没装（装了 avahi-daemon 但没装 avahi-utils）。所以自己发 mDNS 查询（UDP `224.0.0.251:5353`）解析 SRV/A/TXT。**Why 比扫端口强**：2026-10-22 实战——手机从 `10.32.7.135` 漂到 `10.32.7.142`，对着旧 IP 扫了 40 分钟全端口段（32768–60999）全白费，mDNS 一条查询就定位了；且无线调试端口是**随机高位端口**，本来就扫不出来（`adb tcpip 5555` 的固定端口 5555 还落在扫描区间之外）。
+>
+> **解析踩过的三个坑**（都有回归断言，`tests/test_discover_adb_mdns.py` 8 例）：① Android 把 SRV / TXT / A 放在 **Additional 段**，Answer 段只有 PTR；② SRV 的 rdata 里那个压缩指针指向**整包**偏移，在 rdata 切片里解析会越界，越界异常会把整包丢掉（表现为「发现不到任何端点」）；③ 压缩指针不跟随时 owner name 解析成空串，拼不上 SRV 的 target。
+>
+> **配套坑**：`adb pair` 在 adb 34.0.5 上**必须从 stdin 读配对码**（`adb pair host:port CODE` 会挂住等输入，`adb pair --help` 也会报 "No pairing code provided"）→ 正确写法 `printf '147638\n' | adb pair <ip>:<port>`；`adb devices` 里残留的 `offline` 条目会干扰后续 connect（报 "failed to connect"），先 `adb disconnect <stale>` 清干净。
+
 #### 8.4.1a 主机档位：Pi 5 vs Windows（历史）
 
 `config/devices.json` 当前是 **Raspberry Pi 5** 主机档（2026-10 起的实际运行环境）；**Windows** 主机档已不再维护，仅在 `config/devices.windows.example.json` 保留为参考。两套值差异如下：
