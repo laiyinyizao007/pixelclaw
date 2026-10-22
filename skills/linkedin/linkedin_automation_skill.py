@@ -216,8 +216,18 @@ class LinkedInAutomationSkill(AndroidSkill):
             except Exception as e:
                 self._logger.warning("[get_ui_hierarchy] u2 dump 失败, fallback: %s", e)
         # Fallback: adb dumpsys (unreliable on Compose sheet transitions)
-        self._adb("shell uiautomator dump /sdcard/window_dump.xml")
-        ok, content = self._adb("shell cat /sdcard/window_dump.xml")
+        # 2026-10-22：dump 必须带超时——设备端 uiautomator 停在 R 状态不退出时
+        # 本地 adb 会一直等，整轮无限阻塞（见 android_skill.get_ui_hierarchy）。
+        # 失败后**不能** cat：读到的是上一轮的陈旧 XML，会让元素查找误判存在。
+        ok, _out = self._adb(
+            "shell uiautomator dump /sdcard/window_dump.xml",
+            timeout=self._UI_DUMP_TIMEOUT,
+        )
+        if not ok:
+            self._kill_stuck_uiautomator()
+            self.last_ui_dump = ""
+            return ""
+        ok, content = self._adb("shell cat /sdcard/window_dump.xml", timeout=10.0)
         self.last_ui_dump = content if ok else ""
         return self.last_ui_dump
 

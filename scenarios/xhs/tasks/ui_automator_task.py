@@ -9,9 +9,14 @@ import os
 
 SCREENSHOT_DIR = "/home/averypi/Projects/pixelclaw/xhs_screenshots"
 
+# 设备端 uiautomator 可能停在 R 状态不退出（聊天页/webview 永不到 idle），
+# 本地 adb 会一直等 —— 必须设超时，否则整个脚本永久阻塞。
+CMD_TIMEOUT = 20
+
 def shell(cmd, check=True):
     """执行 shell 命令"""
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True,
+                            timeout=CMD_TIMEOUT)
     return result.stdout.strip()
 
 def get_ui_hierarchy():

@@ -12,7 +12,7 @@ import asyncio
 import json
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional, Callable, Tuple
 
 from rich.console import Console
 from rich.progress import Progress, TaskID
@@ -112,6 +112,19 @@ to automate tasks on Android devices.
         """Set a callback for progress updates."""
         self._callback = callback
 
+    def _shell_with_timeout(self, command: str, timeout: float) -> Tuple[bool, str]:
+        """执行 shell 命令并强制超时。
+
+        设备端 ``uiautomator dump`` 在某些页面上会停在 ``R`` 状态不退出，
+        本地 adb 会一直等 —— 整个 agent 循环就此无限阻塞。注入的实现若不支持
+        ``timeout`` 参数则退回无超时调用（与 skills.android.android_skill 的
+        ``_adb()`` 同一套兼容处理）。
+        """
+        try:
+            return self.adb.shell(command, timeout=timeout)
+        except TypeError:
+            return self.adb.shell(command)
+
     def _notify_progress(self, step: int, total: int, message: str):
         """Notify progress callback."""
         if self._callback:
@@ -196,8 +209,12 @@ to automate tasks on Android devices.
                     # --- SoM annotation ---
                     analyze_screenshot = screenshot
                     if self.som_enabled:
-                        _, xml_out = self.adb.shell(
-                            "uiautomator dump /sdcard/window_dump.xml && cat /sdcard/window_dump.xml"
+                        # dump 必须带超时：设备端 uiautomator 停在 R 状态不退出时
+                        # 本地 adb 会一直等，整个 agent 循环无限阻塞。
+                        _, xml_out = self._shell_with_timeout(
+                            "uiautomator dump /sdcard/window_dump.xml "
+                            "&& cat /sdcard/window_dump.xml",
+                            timeout=15,
                         )
                         if xml_out:
                             analyze_screenshot, som_mapping = self.som_annotator.annotate(

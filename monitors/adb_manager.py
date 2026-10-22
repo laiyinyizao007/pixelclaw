@@ -309,9 +309,15 @@ class ADBManager:
 
         return None
 
-    def shell(self, command: str, device_id: Optional[str] = None) -> Tuple[bool, str]:
+    def shell(self, command: str, device_id: Optional[str] = None,
+              timeout: Optional[int] = None) -> Tuple[bool, str]:
         """
         Execute a shell command on the device.
+
+        Args:
+            timeout: 覆盖默认超时（秒）。``uiautomator dump`` 这类可能挂死的命令
+                需要调用方显式收窄——``_run_command`` 已有默认上限（config timeout，
+                默认 30s），但对 dump 来说偏宽。
 
         Returns:
             Tuple of (success, output)
@@ -320,7 +326,7 @@ class ADBManager:
         if device_id:
             args = ["-s", device_id] + args
 
-        success, stdout, stderr = self._run_command(args, check=False)
+        success, stdout, stderr = self._run_command(args, check=False, timeout=timeout)
 
         if success:
             return True, stdout

@@ -500,6 +500,21 @@ python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 
 回归测试见 `tests/test_ui_dump_timeout.py`（11 例），锁住「dump 必须带超时 / 超时必 killall / 失败不 cat 陈旧 XML / 不支持 timeout 的后端要能退回」四条。
 
+**全仓其余调用点补齐（2026-10-22 续）**：
+
+基座修好后，全仓还有 5 处 dump/设备命令没被这层保护覆盖——同一个坑会从别的入口再踩一次。全部按同一套约束（带超时 / 失败不 cat 陈旧 XML / 能清就清设备端残留）补齐：
+
+| 调用点 | 原问题 | 修法 |
+|---|---|---|
+| `skills/linkedin/linkedin_automation_skill.py` | **覆写了基座的 `get_ui_hierarchy()`**，绕过了基座全部保护：dump 无超时、失败后仍 cat 陈旧 XML | 覆写版本改用基座的 `_UI_DUMP_TIMEOUT`（25s）+ `_kill_stuck_uiautomator()`，失败返空串且不 cat |
+| `monitors/adb_manager.py` | `shell()` 不暴露 timeout，调用方只能吃 30s 默认值 | `shell()` 新增 `timeout` 形参，透传给内部已有的 `_run_command(timeout=...)` |
+| `core/vision_agent.py` | SoM 标注前的 `uiautomator dump && cat` 无超时 | 新增 `_shell_with_timeout()` 辅助方法（注入的 adb 不支持 timeout 时退回无超时调用），dump 调用改走它，超时 15s。命令用 `&&` 串联，dump 超时则 cat 不会执行，天然避开陈旧 XML |
+| `scenarios/wecom/scripts/probe_elements.py` | dump 无超时；失败后仍 cat | dump 带 15s 超时，失败 → `killall -9 uiautomator` + 退出，不 cat |
+| `scenarios/xhs/tasks/ui_automator_task.py`、`scenarios/xhs/scripts/xhs_auto_fav.py` | 裸 `subprocess.run(shell=True)`，无 timeout | 统一给 `subprocess.run` 加 `timeout`（命令 20s / pull 30s） |
+| `skills/boss/boss_automation_skill.py` | 发消息的 ADBKeyboard 广播也是裸 `subprocess.run` | 加 15s 超时 + 捕获 `TimeoutExpired` 后 warning 继续走后续校验 |
+
+回归测试见 `tests/test_ui_dump_timeout_other_sites.py`（12 例）。`core/vision_agent.py` 的导入链要 PIL + cv2，测试环境装不上，因此该文件的断言走 AST 源码分析（取 `FunctionDef` 单独编译来跑行为），不 import 整个模块。
+
 **PIN 自动解锁（2026-10-10 新增）**：
 
 

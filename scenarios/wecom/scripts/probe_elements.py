@@ -35,8 +35,16 @@ from skills.android.adb_runner import ADBRunner
 
 
 def _dump_xml(adb: ADBRunner, device_id: str | None) -> str:
-    adb.shell("shell uiautomator dump /sdcard/window_dump.xml", device_id)
-    ok, content = adb.shell("shell cat /sdcard/window_dump.xml", device_id)
+    # dump 必须带超时：设备端 uiautomator 停在 R 状态不退出时本地 adb 会一直等。
+    # 失败后**不能** cat —— 读到的是上一轮的陈旧 XML，会让元素查找误判存在。
+    ok, _out = adb.shell(
+        "shell uiautomator dump /sdcard/window_dump.xml", device_id, timeout=15
+    )
+    if not ok:
+        adb.shell("shell killall -9 uiautomator", device_id, timeout=10)
+        print("ERROR: UI dump 失败/超时，请确认设备已连接且 USB 调试已开启", file=sys.stderr)
+        sys.exit(1)
+    ok, content = adb.shell("shell cat /sdcard/window_dump.xml", device_id, timeout=10)
     if not ok or not content.strip():
         print("ERROR: UI dump 失败，请确认设备已连接且 USB 调试已开启", file=sys.stderr)
         sys.exit(1)

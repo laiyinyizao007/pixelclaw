@@ -842,14 +842,20 @@ class BOSSAutomationSkill(AndroidSkill):
         if self.device_id:
             _bcast_args += ["-s", self.device_id]
         _bcast_args += ["shell", _bcast_cmd]
-        subprocess.run(
-            _bcast_args,
-            shell=False,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        # 2026-10-22：必须设 timeout——设备端命令挂死时本地 adb 会一直等，
+        # 整轮 sweep 就此阻塞（与 uiautomator dump 同类问题）。
+        try:
+            subprocess.run(
+                _bcast_args,
+                shell=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=15,
+            )
+        except subprocess.TimeoutExpired:
+            self._logger.warning("ADBKeyboard 广播超时（15s），继续走后续校验")
         # Wait for ADBKeyboard's onReceive/commitText to complete before we
         # dump the XML or tap the send button.
         time.sleep(1.5)

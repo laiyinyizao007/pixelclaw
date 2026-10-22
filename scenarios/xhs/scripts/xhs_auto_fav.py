@@ -20,7 +20,10 @@ sys.path.insert(0, str(Path(__file__).parents[3]))
 
 def run(cmd):
     """执行shell命令"""
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    # 设备端 uiautomator 可能停在 R 状态不退出（聊天页/webview 永不到 idle），
+    # 本地 adb 会一直等 —— 必须设超时，否则整个脚本永久阻塞。
+    result = subprocess.run(cmd, shell=True, capture_output=True, text=True,
+                            timeout=20)
     return result.stdout.strip(), result.stderr.strip(), result.returncode
 
 
@@ -53,15 +56,15 @@ def get_ui_hierarchy():
 
 def tap(x, y):
     """精确点击指定坐标"""
-    subprocess.run(f"adb shell input tap {x} {y}", shell=True)
+    subprocess.run(f"adb shell input tap {x} {y}", shell=True, timeout=20)
     time.sleep(0.5)
 
 
 def screenshot(filename):
     """截图保存"""
-    subprocess.run(f"adb shell screencap -p /sdcard/{filename}", shell=True)
+    subprocess.run(f"adb shell screencap -p /sdcard/{filename}", shell=True, timeout=20)
     output_path = f"/home/averypi/Projects/pixelclaw/{filename}"
-    subprocess.run(f"adb pull /sdcard/{filename} {output_path}", shell=True)
+    subprocess.run(f"adb pull /sdcard/{filename} {output_path}", shell=True, timeout=30)
     return output_path
 
 
