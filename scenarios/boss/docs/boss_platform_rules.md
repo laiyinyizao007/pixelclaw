@@ -48,11 +48,15 @@
 | **来源** | `[实测]`（2026-10-21，账号当天累计 148 条已发出 + 若干次点开未发成功的尝试） |
 | **UI 表现** | **没有弹窗**，只有 toast：「您今天已与150位BOSS沟通，休息一下，明天再来吧～」。聊天页**会正常打开**（转圈 loading），约 3 秒后 toast 出现、聊天页自动关闭退回职位详情页 |
 | **toast 文案拿不到** | `uiautomator dump` 不含 toast 窗口；`dumpsys notification` 只有 toast 队列无文案；`logcat` 只有 `E/Toast: setGravity()`。**不能靠读文案判定** |
-| **代码影响** | 只能靠**行为特征**判定：`smart_match_greet.ChatLoadGuard` —— 连续 3 次「聊天页 editText 加载失败」即判定触顶并终止本轮（单次失败只是网络抖动） |
+| **代码影响** | 靠**前台 Activity** 判定：`smart_match_greet._open_chat_page()` —— 首轮等 3s 未见 `editText` 时查 `dumpsys window` 的 `mCurrentFocus`；**已回 `JobDetailActivity`**（聊天页被自动关闭）→ 判定触顶，**第 1 次即终止整轮**并截图取证；**仍是 `ChatRoomActivity`** → 慢渲染，延长 5s（累计 8s）重试，救回候选。`ChatLoadGuard`（连续 3 次失败）保留为前台 Activity 取不到时的兜底 |
+| **取证** | toast 只存活约 3s，故在首轮等待失败的**当场**截图（`logs/boss/screenshots/chat_probe_*.png`），晚一步就拍不到了 |
 | **计数口径** | Boss 数的是**沟通次数**（点开聊天即计数，含没发成功的）；脚本按**实际发出**计数，所以脚本会略早于 Boss 触顶退出——方向是安全的 |
 
 > 早期记录（2026-10-12）"Boss 无公布每日上限"已被本次实测推翻，
 > `candidate_profile.yaml: daily_hard_limit` 已从 `0` 改为 `150`。
+>
+> **2026-10-22 补充**：原先把「触顶」和「慢渲染」都当成「加载超时」，导致触顶要空转 3 次才收工、
+> 慢渲染则直接丢候选。判定改为看**前台 Activity**（见上表「代码影响」行）。
 
 ---
 

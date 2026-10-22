@@ -23,6 +23,7 @@ smart_match_greet.py — 实时评分 + 个性化打招呼（单阶段 App 内�
 import argparse
 import json
 import logging
+import re
 import sqlite3
 import subprocess
 import sys
@@ -95,6 +96,89 @@ class ChatLoadGuard:
         """记一次失败；返回 True = 连续失败已达上限，应终止本轮。"""
         self.streak += 1
         return self.streak >= self.max_fail
+
+
+# ─── 聊天页加载判定（2026-10-22 重做）────────────────────────────────────────
+# 2026-10-21 实测：所谓「editText 4s 超时」其实是 Boss 每日 150 次上限的表现
+# —— 聊天页确实打开（ChatRoomActivity 已 START，转圈 loading）→ 约 3s 后弹 toast
+# 「您今天已与150位BOSS沟通，休息一下，明天再来吧～」→ **聊天页被系统自动关闭**，
+# 退回职位详情页。toast 窗口不在 uiautomator dump 里，所以 dump 永远抓不到
+# editText，看起来就像「超时」。
+#
+# 旧逻辑把两种成因混为一谈：
+#   A) 触顶  —— 聊天页被自动关闭，前台 Activity 已不是 ChatRoomActivity
+#   B) 慢渲染 —— 还停在 ChatRoomActivity，只是 editText 还没渲染出来
+# A 被当成普通超时 → 白丢 2 个候选才判定收工；B 被直接丢弃 → 白丢一个能发的岗位。
+#
+# 新逻辑用**前台 Activity**分辨 A/B：A 立刻判定触顶（并截图取证），B 延长等待后重试。
+_CHAT_EDITTEXT_ID = "com.hpbr.bosszhipin:id/editText_with_scrollbar"
+# 首轮探测 3s：toast 与「自动关闭」都发生在 tap 之后 ~3s，这个时间点最能分辨成因
+_CHAT_PROBE_TIMEOUT = 3.0
+# 二次等待上限（累计 8s）：留给网络抖动导致的慢渲染
+_CHAT_EXTEND_TIMEOUT = 5.0
+
+CHAT_OK = "ok"          # 聊天页正常打开
+CHAT_SLOW = "slow"      # 慢渲染，延长等待后成功
+CHAT_CAPPED = "capped"  # 聊天页被自动关闭 = 触达每日沟通上限
+CHAT_FAILED = "failed"  # 真·打不开（既不在聊天页，也拿不到 editText）
+
+
+def _foreground_activity(skill) -> str:
+    """取当前前台 Activity 类名（如 ``ChatRoomActivity`` / ``JobDetailActivity``）。
+
+    dumpsys window 的 mCurrentFocus 形如
+    ``mCurrentFocus=Window{... com.hpbr.bosszhipin/com.hpbr.bosszhipin...ChatRoomActivity}``，
+    取斜杠后的类名部分。取不到返回空串（调用方据此走保守分支，不做臆断）。
+    """
+    ok, out = skill._adb("shell dumpsys window | grep -E 'mCurrentFocus|mFocusedApp' | head -2")
+    if not ok:
+        return ""
+    m = re.search(r"[A-Za-z0-9_.$]+/[A-Za-z0-9_.$]+", out)
+    if not m:
+        return ""
+    return m.group(0).rsplit("/", 1)[-1]
+
+
+def _is_chat_activity(activity: str) -> bool:
+    """前台是否仍在聊天页（ChatRoomActivity）。"""
+    return "chatroomactivity" in activity.lower().replace("_", "")
+
+
+def _open_chat_page(skill, screenshot_name: str = "") -> tuple[str, str]:
+    """打开聊天页并判定结果。
+
+    返回 ``(state, detail)``，state ∈ {CHAT_OK, CHAT_SLOW, CHAT_CAPPED, CHAT_FAILED}：
+      - CHAT_OK     聊天页正常打开
+      - CHAT_SLOW   慢渲染，延长等待后 editText 出现
+      - CHAT_CAPPED 聊天页被自动关闭 → 触达 Boss 每日沟通上限（detail 带截图路径）
+      - CHAT_FAILED 确实打不开（网络/UI 异常），候选可跳过
+    """
+    if skill.wait_for_element(_CHAT_EDITTEXT_ID, timeout=_CHAT_PROBE_TIMEOUT):
+        return CHAT_OK, "首轮即出现 editText"
+
+    # 首轮没等到 —— 先取证（toast 只存活 ~3s，截图越早越可能拍到），再分辨成因。
+    shot = ""
+    if screenshot_name:
+        try:
+            shot = skill.screenshot(screenshot_name) or ""
+        except Exception as exc:  # 取证失败不能影响主流程
+            logger.debug("  聊天页取证截图失败：%s", exc)
+
+    activity = _foreground_activity(skill)
+    if activity and not _is_chat_activity(activity):
+        return CHAT_CAPPED, f"聊天页被自动关闭，前台={activity}，截图={shot or '无'}"
+
+    # 还在聊天页 → 大概率是慢渲染，再等一轮
+    if skill.wait_for_element(_CHAT_EDITTEXT_ID, timeout=_CHAT_EXTEND_TIMEOUT):
+        return CHAT_SLOW, f"延长等待后出现 editText，前台={activity or '未知'}"
+
+    activity = _foreground_activity(skill)
+    if activity and not _is_chat_activity(activity):
+        return CHAT_CAPPED, f"聊天页被自动关闭，前台={activity}，截图={shot or '无'}"
+    return CHAT_FAILED, (
+        f"{_CHAT_PROBE_TIMEOUT + _CHAT_EXTEND_TIMEOUT:.0f}s 内未出现 editText，"
+        f"前台={activity or '未知'}"
+    )
 
 # ─── Haiku Prompt ─────────────────────────────────────────────────────────────
 
@@ -1245,6 +1329,10 @@ def live_greet_loop(
     logger = setup_logger("smart_match_greet", log_dir="./logs/boss")
     adb = ADBRunner()
     skill = BOSSAutomationSkill(adb, device_id=device_id)
+    # 2026-10-22：聊天页取证截图（触顶时拍下 toast 证据）落到 logs/boss 下，便于事后核查
+    _shot_dir = Path("./logs/boss/screenshots")
+    _shot_dir.mkdir(parents=True, exist_ok=True)
+    skill.output_dir = str(_shot_dir)
     # ── 2026-10-13 排查埋点：让 BOSSAutomationSkill 子 logger 也能输出 ──
     # android_skill.py:53 用 logging.getLogger("BOSSAutomationSkill") 拿到的 logger
     # 既没自己的 handler，propagate 也不到 root（root 默认 WARNING），所以 skill 内部
@@ -1864,11 +1952,13 @@ def _run_loop(
     # ── 2026-10-13 修复：导航失败 max retry 计数（item 3 配套，避免 discard 后无限重试） ──
     _NAV_FAIL_MAX = 2
     _nav_fail_count: dict[str, int] = {}
-    # ── 2026-10-21 修复：连续聊天页加载失败 → 判定触达 Boss 每日沟通上限 ──
+    # ── 2026-10-21/22 修复：聊天页加载判定 ──
     # 触顶时 Boss 的表现（实测）：点「立即沟通」→ 聊天页**确实打开**（ChatRoomActivity
     # 已 START，显示 loading 转圈）→ 约 3 秒后 toast「您今天已与150位BOSS沟通，休息一下，
     # 明天再来吧～」→ 聊天页自动关闭退回职位详情页。toast 文案拿不到（uiautomator dump
-    # 不含 toast 窗口），只能靠行为特征判定。
+    # 不含 toast 窗口），2026-10-22 改为用**前台 Activity**判定（聊天页被关闭 = 触顶），
+    # 并把「慢渲染」延长等待救回来，避免白丢候选。ChatLoadGuard 保留为兜底：
+    # 前台 Activity 取不到时的连续失败计数。
     _chat_guard = ChatLoadGuard()
     greeted_count = 0
     no_target_scrolls = 0
@@ -2427,30 +2517,44 @@ def _run_loop(
                     continue
                 time.sleep(0.5)  # 等弹窗关闭动画
 
-            # ── 2026-10-13 排查埋点：聊天页 editText 4s 超时 ──
-            if not skill.wait_for_element(
-                "com.hpbr.bosszhipin:id/editText_with_scrollbar", timeout=4.0
-            ):
-                logger.warning("  ⚠️ 聊天页 editText 4s 超时：%s（%s）", title, company)
-                _append_ui_error(result, f"{title}：聊天页加载超时")
+            # ── 2026-10-22：聊天页加载判定（区分「触顶」与「慢渲染」）──
+            _chat_state, _chat_detail = _open_chat_page(
+                skill, screenshot_name=f"chat_probe_{processed}.png"
+            )
+            if _chat_state in (CHAT_OK, CHAT_SLOW):
+                if _chat_state == CHAT_SLOW:
+                    logger.info("  ℹ️ 聊天页慢渲染，已延长等待恢复：%s", _chat_detail)
+                _chat_guard.record_success()  # 聊天页正常打开 → 计数清零
+            elif _chat_state == CHAT_CAPPED:
+                # 聊天页被系统自动关闭 = Boss 每日沟通上限（toast 后主动退回详情页）。
+                # 2026-10-22：改用前台 Activity 判定，第 1 次就能确认，不再空转 2 个候选。
+                logger.error(
+                    "  🛑 聊天页被自动关闭 —— 触达 Boss 每日沟通上限"
+                    "（toast：「您今天已与150位BOSS沟通，休息一下，明天再来吧～」），"
+                    "终止本轮。%s",
+                    _chat_detail,
+                )
+                _append_ui_error(result, f"{title}：聊天页自动关闭（疑似触达每日上限）")
+                _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
+                              skip_reason="触达每日上限", job_dict=job_dict, scored_result=scored)
+                result["errors"].append(f"触达 Boss 每日沟通上限（聊天页自动关闭）：{_chat_detail}")
+                break
+            else:
+                # 确实打不开（网络/UI 异常），跳过本候选；连续 N 次才收工。
+                logger.warning("  ⚠️ 聊天页加载失败：%s（%s）", _chat_detail, title)
+                _append_ui_error(result, f"{title}：聊天页加载失败")
                 _record_visit(db_conn, title, company, effective_hr_name, keyword, score,
                               skip_reason="聊天页超时", job_dict=job_dict, scored_result=scored)
-                # ── 2026-10-21：连续超时 = 触达每日沟通上限，终止本轮 ──
-                # 单次超时可能是网络抖动；连续 N 次跨不同职位超时，说明是平台侧的
-                # 硬限制（toast 提示「您今天已与150位BOSS沟通」），继续跑只是在空转。
                 if _chat_guard.record_failure():
                     logger.error(
-                        "  🛑 连续 %d 次聊天页加载失败 —— 疑似触达 Boss 每日沟通上限"
-                        "（toast：「您今天已与150位BOSS沟通，休息一下，明天再来吧～」），"
-                        "终止本轮。明日上限重置后可再跑。",
+                        "  🛑 连续 %d 次聊天页加载失败 —— 终止本轮。明日上限重置后可再跑。",
                         _chat_guard.streak,
                     )
                     result["errors"].append(
-                        f"连续 {_chat_guard.max_fail} 次聊天页加载失败，疑似触达每日沟通上限，终止"
+                        f"连续 {_chat_guard.max_fail} 次聊天页加载失败，终止"
                     )
                     break
                 continue
-            _chat_guard.record_success()  # 聊天页正常打开 → 计数清零
 
             # ── 第 2 层校验：聊天页的 HR / 职位 / 公司名是否真的是目标 ──
             # 防止：详情页显示 HR A 但聊天页跳到 HR B（同公司多 HR 代理），

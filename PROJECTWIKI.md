@@ -464,10 +464,20 @@ python scenarios/boss/scripts/sweep_big_tech.py --target 120 --mode company
 | 层级 | 手段 | 说明 |
 |---|---|---|
 | 配置层 | `candidate_profile.yaml: daily_hard_limit = 150` | 主动检查，到数退出。此前是 `0`（依据 2026-10-12「无公布上限」的观察），已被本次实测推翻 |
-| 行为层 | `smart_match_greet.ChatLoadGuard` | 连续 3 次「聊天页 editText 加载失败」→ 判定触顶 → 终止本轮。单次失败只是网络抖动，不终止 |
+| 行为层 | `smart_match_greet._open_chat_page()` | 按**前台 Activity** 区分成因：聊天页被自动关闭 → 判定触顶（第 1 次即终止 + 截图取证）；仍在聊天页 → 慢渲染，延长等待后重试 |
+| 兜底层 | `smart_match_greet.ChatLoadGuard` | 连续 3 次「聊天页 editText 加载失败」→ 终止本轮。仅在前台 Activity 取不到时兜底 |
 | 计数口径 | Boss 数**沟通次数**（点开聊天即计），脚本数**实际发出** | 脚本会略早于 Boss 触顶退出，方向安全 |
 
-**修复前后的差异**：修复前当天 19 个达标大厂岗位里有 **11 个**卡在「聊天页 editText 4s 超时」被丢弃（日志里表现为 `跳过（聊天页超时）`），看起来像 UI bug，其实是触顶。修复后同一现象会在第 3 次连续失败时**整轮终止**并给出明确原因，不再空转。
+**修复前后的差异**：修复前当天 19 个达标大厂岗位里有 **11 个**卡在「聊天页 editText 4s 超时」被丢弃（日志里表现为 `跳过（聊天页超时）`），看起来像 UI bug，其实是触顶。
+
+**2026-10-22 二次修正：超时有两种成因，旧逻辑混为一谈**
+
+| 成因 | 判据（前台 Activity） | 旧行为 | 新行为 |
+|---|---|---|---|
+| 触顶 | 聊天页被 Boss 自动关闭 → 前台已回 `JobDetailActivity` | 当成普通超时丢弃，**空转 3 次**才收工 | **第 1 次**即判定触顶，整轮终止，并截图取证（`logs/boss/screenshots/chat_probe_*.png`） |
+| 慢渲染 / 网络抖动 | 仍停在 `ChatRoomActivity` | **直接丢弃该候选**（白丢一个能发的岗位） | 首轮 3s 未见 `editText` → 延长 5s（累计 8s）重试，能救回来 |
+
+关键实现：`smart_match_greet._open_chat_page()` 返回四态 `CHAT_OK / CHAT_SLOW / CHAT_CAPPED / CHAT_FAILED`；`_foreground_activity()` 解析 `dumpsys window` 的 `mCurrentFocus`（取斜杠后的类名）；`_is_chat_activity()` 识别 `ChatRoomActivity`。**截图时机**：toast 只存活约 3s，故在首轮等待失败后**立刻**取证，再判成因。回归测试见 `tests/test_chat_page_open.py`（14 例）。
 
 **sweep 计数 bug（同一根因链上的第二个 bug）**：子进程被超时 kill 时，结尾的汇总行「打招呼成功：N 条」永远打不出来，`_parse_sent()` 只认这一行 → 实际发了 7 条被算成 0 → sweep 累计偏低 → **超发**。修法：`_parse_sent()` 改为取「汇总行」与「逐条 `✓ 打招呼成功 — ` 行计数」的**较大值**。注意区分两种日志格式——`✓ 达标！打招呼：` 是**发送前**打的，不能算已发出。
 

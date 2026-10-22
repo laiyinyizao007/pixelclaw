@@ -246,12 +246,13 @@ PYTHONUTF8=1 python scenarios/boss/scripts/smart_match_greet.py \
 - **症状**：App 显示「每日沟通次数已用完」，脚本自动退出
 - **修复**：等 24h，**次日 0 点**自动重置
 
-### 2b. `聊天页 editText 4s 超时` 连续出现 → **触达每日 150 次上限**（2026-10-21 加）
+### 2b. `聊天页 editText` 等不到 → **触达每日 150 次上限** 或 **慢渲染**（2026-10-21 加，2026-10-22 重做判定）
 - **症状**：达标大厂岗位一批批卡在「跳过（聊天页超时）」，看起来像 UI bug
 - **真实原因**：Boss 每日 **150 次沟通**上限。Boss **不弹窗**，只弹 **toast**「您今天已与150位BOSS沟通，休息一下，明天再来吧～」；聊天页其实**打开成功**（转圈 loading）→ 约 3s 后 toast → 聊天页自动关闭退回职位详情页
 - **toast 文案拿不到**：`uiautomator dump` 不含 toast 窗口 / `dumpsys notification` 只有队列无文案 / `logcat` 只有 `E/Toast: setGravity()` → 只能靠行为特征判定
-- **修复（已落地）**：`smart_match_greet.ChatLoadGuard` —— 连续 3 次聊天页加载失败即终止本轮；`profile.yaml: daily_hard_limit=150` 到数主动退出
+- **修复（已落地）**：`smart_match_greet._open_chat_page()` —— 按**前台 Activity** 区分两种成因：已回 `JobDetailActivity`（聊天页被自动关闭）→ **触顶，第 1 次即终止整轮**并截图取证；仍在 `ChatRoomActivity` → **慢渲染**，延长等待（累计 8s）重试，**救回候选**。`ChatLoadGuard`（连续 3 次失败）降级为兜底；`profile.yaml: daily_hard_limit=150` 到数主动退出
 - **注意计数口径**：Boss 数**沟通次数**（点开聊天即计），脚本数**实际发出** → 脚本会略早触顶退出
+- **取证截图**：触顶判定时会拍下当时画面 → `logs/boss/screenshots/chat_probe_*.png`（toast 只存活约 3s，晚一步就拍不到）
 
 ### 3. `无法返回职位列表` → 手动恢复
 - **症状**：`_return_to_job_list()` 失败 3 次
