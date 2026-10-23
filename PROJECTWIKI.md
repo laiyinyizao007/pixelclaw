@@ -277,6 +277,8 @@ Boss 列表卡 RecyclerView 懒加载 + HR 信息异步拉取，dump 时常拿�
 
 **已知未覆盖场景**：详情页 `tv_boss_name` 异步未返回时 detail.get("hr_name") 也为空，回退到 target.hr_name 同样空。**实测占比 < 1%**（visit 95/129 偶发），依赖 LLM 评分阶段仍能正常处理（缺 hr_name 不影响分数）。若该 case 频繁出现再考虑加详情页等待（独立改动）。
 
+> **同类机制已在公司名上暴露（2026-10-22 复核）**：同一个「详情页异步字段未渲染就 dump」的问题，在 `tv_com_name` / `tv_com_info` 上的发生率是 **18.6%**（41/220），远高于 `tv_boss_name` 的 <1%——因为公司块是独立异步请求，而 HR 名在列表卡片上通常已有。修法同上：等元素出现再取，而不是带空值继续。
+
 **visited_keys 懒加载对称性（2026-10-10 加）**：
 
 除 5 层去重外，`live_greet_loop` 内 `_find_next_job` 还有一个 per-screen 的内存级去重 `visited_keys: set[str]`，key 格式 `normalize_card_title(title) + "\t" + company`。原 ADD/CHECK 协议**不对称**（公司非空时只加 `title\tcompany` 不加 `title\t`；visible card company 为空时才查 `title\t`），导致「visit 时 company 已填充 + 下次循环 RecyclerView 复用位置 company 又空」的不对称场景无法命中——`smart_match_greet.py:932-941` 会无限选中同一 target 进入下一轮。
@@ -621,7 +623,9 @@ if not skill.adb.is_device_connected(skill.device_id):
 
 **招聘主体缺失时的两级兜底（2026-10-22 新增）**：
 
-Boss 上有一批岗位由**第三方主体 / 客户项目 / 灵活用工服务商代发**，`company` 与 `company_info` **双双为空**。大厂判定时 LLM 手里只剩分数和 JD 正文，没有任何主体依据，只能保守判否——实测这类漏判占「LLM 判非大厂」的 **44%**（10-21：25/57，10-22：18/39）。
+当 `company` 与 `company_info` **双双为空**时，大厂判定时 LLM 手里只剩分数和 JD 正文，没有任何主体依据，只能保守判否——实测这类漏判占「LLM 判非大厂」的 **44%**（10-21：25/57，10-22：26/67）。
+
+> ⚠️ **根因已于 2026-10-22 复核推翻**：早先写的「Boss 上由第三方主体 / 灵活用工代发、不披露雇主」是**误判**。真实根因是**我们提取过早（渲染时序竞态）**，详见下方「主体为空的真实根因」。两级兜底因此是**第二道防线**，不是主修方案。
 
 用户定的方案是**先 2 再 1**（`_run_loop` 内，评分前介入）：
 
@@ -643,6 +647,29 @@ Boss 上有一批岗位由**第三方主体 / 客户项目 / 灵活用工服务�
 **不硬编码公司名的落地方式**：判断逻辑里没有任何公司名字符串；yaml `big_tech_whitelist` 仍然只作为 prompt 参考样本注入。`tests/test_big_tech_company_inference.py::TestNoHardcodedCompanyNames` 扫描 infer_company.md 与三档话术，断言 **170 个白名单公司名一个都不出现**——这条约束被测试钉死。
 
 **推断结果写回**：① 推断出的名字会同时赋给局部变量 `company` 与 `job_dict["company"]`，让 `visited_keys` 去重、`_record_visit` 落库、报表统计都按推断主体归集，不再是一堆空 company 的孤儿记录。
+
+**主体为空的真实根因：提取时序竞态（2026-10-22 复核）**：
+
+复核结论：**不是 Boss 侧匿名/第三方代发不披露雇主，而是我们在详情页公司块渲染完成前就把 UI dump 走了**。判定方法不看推断，看**同岗位配对**：同一个 `title + hr_name` 在 DB 里几乎都出现两次（相隔 70~100 秒），第一次 `company` 空、第二次有值。
+
+| 证据 | 数字 |
+|---|---|
+| 10-22 访问总数 | 220 |
+| `company` + `company_info` 双空 | **41（18.6%）** |
+| 能在 DB 配到「孪生记录」（同 title+hr_name、晚 1~2 分钟、公司名有值） | **26 / 41** |
+| 孪生记录 JD 描述与空记录**长度与前 40 字符完全一致** | 逐条比对一致 → 同一岗位公告，不是两个不同岗位 |
+| 因主体缺失被判「LLM 判非大厂」 | 26 条（占全部 67 条 LLM 判非大厂的 39%）；其中 25 条有孪生记录 |
+| 孪生记录后来真的发出招呼 | 17 条 —— 靠「同一岗位再被列一次」才补上，属于运气 |
+
+代码上的三个成因：
+
+1. `smart_match_greet.py` 的 detail-check 循环**只等 `tv_job_name`**（3s × 3 次），**从不等待 `tv_com_name` / `tv_com_info`**；
+2. 列表卡片 `company` 为空时，`_company_match` 判定式 `not company or ...` 直接判 True 放行 → 空值一路带到评分；
+3. `boss_automation_skill.get_job_detail()` 里 `if not text: continue`——公司块节点已存在但 `text` 尚为空时整节点被跳过。
+
+**代价**：每个这样的岗位被**访问两次 + 评分两次**（多一次 LLM 调用），26 条纯因主体缺失被拒发。
+
+**正确修法方向**：详情页 `company` 为空时**等待/重试 dump**（等 `tv_com_name` / `tv_com_info` 出现再评分），而不是带着空主体去评分——既省一次 LLM 调用，又避免猜错主体名。`infer_company` 两级兜底保留为第二道防线（真·匿名岗位仍会走到它）。
 
 **典型运行**：
 ```bash
