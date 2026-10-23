@@ -1231,6 +1231,94 @@ class BOSSAutomationSkill(AndroidSkill):
         result["raw_texts"] = raw_texts
         return result
 
+    # ── 公司信息块（详情页底部，rv_list 懒加载）────────────────────────────
+    # 公司名（tv_com_name）、公司信息（tv_com_info）、地点（tv_location）都在
+    # 详情页**底部**的公司信息块里，不在顶部头部。该块由外层 rv_list RecyclerView
+    # 懒加载：inflate 之前页面滚不动，连续多轮 dump 字节完全相同，之后才突然
+    # 长出整块内容。所以「XML 未变」不能判定已到底，必须连续 N 轮不变才退出。
+    _MAX_STALE_DUMPS = 4
+    _MAX_DETAIL_SCROLLS = 30
+
+    @staticmethod
+    def _merge_detail(dst: Dict[str, Any], src: Dict[str, Any]) -> None:
+        """把后一次（更靠下滚动的）dump 合并进已积累的详情字典。"""
+        for key, val in src.items():
+            if key == "raw_texts":
+                dst.setdefault("raw_texts", [])
+                seen = set(dst["raw_texts"])
+                dst["raw_texts"] += [t for t in val if t not in seen]
+            elif key in ("skills", "benefits"):
+                existing = set(dst.get(key, []))
+                dst.setdefault(key, [])
+                dst[key] += [t for t in val if t not in existing]
+            elif key == "description":
+                # 展开前的 dump 里是截断版，保留更长的那一份。
+                if len(val) > len(dst.get(key, "")):
+                    dst[key] = val
+            elif key not in dst:
+                dst[key] = val
+
+    def scroll_for_company_info(
+        self,
+        detail: Dict[str, Any],
+        max_scrolls: int = 12,
+        max_stale: int = 3,
+    ) -> Dict[str, Any]:
+        """向下滚动详情页直到公司信息块 inflate，合并进 ``detail`` 并返回。
+
+        为什么必须有这一步：公司块在页面**底部**且由 RecyclerView 懒加载，不滚
+        到底就永远读不到——这正是 2026-10-22 有 18.6% 的访问拿不到公司名的原因
+        （41/220；26 条纯因此被 LLM 判「非大厂」而拒发）。
+
+        停止条件（任一满足即停）：
+          - ``company`` 拿到了（主目标）
+          - 连续 ``max_stale`` 轮 dump 完全相同（已经到底，块没 inflate）
+          - 滚到 ``max_scrolls`` 上限
+          - 滚出「网络异常」占位页（不可再滚）
+          - 职位标题变了（页面已不是这个职位，防止把别的公司的信息并进来）
+
+        Args:
+            detail: 已积累的详情字典（原地合并）。
+            max_scrolls: 最多滚动轮数。
+            max_stale: 连续多少轮 dump 相同即判定到底。
+
+        Returns:
+            合并后的 ``detail``。
+        """
+        prev_xml = ""
+        stale = 0
+        for _ in range(max_scrolls):
+            self.scroll_down(start_y=1600, end_y=800)
+            time.sleep(0.5)
+            xml_bot = self.get_ui_hierarchy()
+            if not xml_bot:
+                return detail
+            if "网络异常" in xml_bot:
+                # 占位页不可滚动，继续滚只是白等；网络异常由调用方处理。
+                self._merge_detail(detail, self.get_job_detail(xml=xml_bot))
+                return detail
+            if xml_bot == prev_xml:
+                stale += 1
+                if stale >= max_stale:
+                    return detail
+                time.sleep(1.0)   # 给懒加载的公司信息块留出 inflate 时间
+                continue
+            stale = 0
+            prev_xml = xml_bot
+            _d = self.get_job_detail(xml=xml_bot)
+            _title, _new_title = detail.get("title") or "", _d.get("title") or ""
+            if _title and _new_title and _title not in _new_title and _new_title not in _title:
+                # 页面已经不是这个职位了，再滚会并进别的公司的信息。
+                self._logger.warning(
+                    "滚动中职位标题变化（%s → %s），停止滚动抓公司信息",
+                    _title, _new_title,
+                )
+                return detail
+            self._merge_detail(detail, _d)
+            if (detail.get("company") or "").strip():
+                return detail
+        return detail
+
     def is_on_job_list(self) -> bool:
         """Return True if the current page contains at least one job list item."""
         return self.find_element(resource_id=self.ELEMENTS["job_name"]) is not None

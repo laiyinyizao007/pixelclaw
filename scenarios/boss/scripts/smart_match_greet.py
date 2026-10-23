@@ -709,10 +709,13 @@ def infer_recruiter_company(
 ) -> tuple[str, str, str]:
     """从职位描述反推招聘主体，返回 ``(company, confidence, evidence)``。
 
-    背景（2026-10-22）：Boss 上有一批岗位（第三方主体 / 客户项目 / 灵活用工
-    代发）的 ``company`` 与 ``company_info`` 字段**都是空的**，导致大厂判定时
-    LLM 手里没有任何主体依据，只能保守判否——实测占「LLM 判非大厂」的 44%。
-    这里先单独问一次 LLM「这岗位是谁在招」，拿反推出的名字走现有判定。
+    背景（2026-10-22）：当 ``company`` 与 ``company_info`` 字段**都是空的**，
+    大厂判定时 LLM 手里没有任何主体依据，只能保守判否——实测占「LLM 判非大厂」
+    的 44%。这里先单独问一次 LLM「这岗位是谁在招」，拿反推出的名字走现有判定。
+
+    注：空值的**主因**是公司信息块在详情页底部且由 RecyclerView 懒加载、
+    没滚到底就读不到（已在 ``BOSSAutomationSkill.scroll_for_company_info()``
+    里先滚一遍）；本函数是滚完仍拿不到时的**第二道防线**。
 
     约束：**不硬编码公司名**——判断完全交给 LLM（prompt 见
     ``config/prompts/infer_company.md``），任何失败都退化成空字符串，
@@ -2296,6 +2299,9 @@ def _run_loop(
         # 等待详情页加载并验证职位标题 + 公司名都匹配
         # 防止：(a) 列表 tap 错卡片（旧坐标错位） (b) Boss 显示上一个职位的缓存数据
         _detail_ok = False
+        # 展开 JD **之前**读到的公司名：展开会向下滚动把公司卡滚出屏幕，之后的
+        # dump 里就再也看不到 tv_com_name（滚动也会造成同样的空值）。
+        _pre_expand_company = ""
         logger.debug("  [detail-check] 等待详情页 tv_job_name，attempt 0/3")
         for _attempt in range(3):
             if not skill.wait_for_element("com.hpbr.bosszhipin:id/tv_job_name", timeout=3.0):
@@ -2305,6 +2311,7 @@ def _run_loop(
             _quick = skill.get_job_detail()
             _detail_title = _quick.get("title") or ""
             _detail_company = _quick.get("company") or ""
+            _pre_expand_company = _detail_company
             _title_match = (
                 not title
                 or not _detail_title
@@ -2342,9 +2349,24 @@ def _run_loop(
         skill.expand_description()
         detail = skill.get_job_detail()
 
+        # 公司信息块（tv_com_name / tv_com_info / tv_location）在详情页**底部**，
+        # 由外层 rv_list 懒加载——**不滚到底就永远读不到**。这才是 10-22 有
+        # 18.6%（41/220）访问拿不到公司名的原因（26 条纯因此被 LLM 判「非大厂」
+        # 而拒发）。滚到底抓一次，拿到公司名即停；仍拿不到才走下面的两级兜底。
+        if not (detail.get("company") or "").strip():
+            detail = skill.scroll_for_company_info(detail)
+            if (detail.get("company") or "").strip():
+                logger.info("  ⏳ 滚到底抓到公司信息：%s", detail.get("company"))
+            else:
+                logger.info("  ⏳ 滚到底仍未拿到公司信息 → 走主体兜底判定")
+            if any("网络异常" in t for t in detail.get("raw_texts", [])):
+                logger.warning("  滚动抓公司信息时出现网络异常，跳过")
+                _append_ui_error(result, f"{title}：滚动抓公司信息时网络异常")
+                continue
+
         job_dict = {
             "title":            detail.get("title") or title,
-            "company":          detail.get("company") or company,
+            "company":          detail.get("company") or _pre_expand_company or company,
             "salary_raw":       detail.get("salary") or target.salary,
             "experience":       detail.get("experience") or "",
             "location":         detail.get("location") or target.location or "",
@@ -2370,13 +2392,16 @@ def _run_loop(
             hr_name = job_dict["hr_name"]
 
         # ── 招聘主体缺失时的两级兜底（2026-10-22）──────────────────────────────
-        # Boss 上第三方主体 / 客户项目 / 灵活用工代发的岗位，company 与
-        # company_info **双双为空** → 大厂判定时 LLM 没有任何主体依据，保守判否，
-        # 实测占「LLM 判非大厂」的 44%（10-21: 25/57，10-22: 17/39）。
+        # 走到这里说明**滚到底仍未拿到公司信息**（真匿名岗位）。company 与
+        # company_info 双空 → 大厂判定时 LLM 没有任何主体依据，保守判否，
+        # 实测占「LLM 判非大厂」的 44%（10-21: 25/57，10-22: 26/67）。
         # 用户定的方案「先 2 再 1」：
         #   ① 先单独调一次 LLM 从职位描述**推断招聘主体**，用推断出的名字走现有判定
         #   ② 推断不出主体时，退回**业务域代理判定**（不再因信息缺失就判否）
         # 反推出的名字还会写回 job_dict / company，让下游去重与报表也变准。
+        #
+        # 注：空值的主因是「公司信息块在页面底部且懒加载，没滚到底」
+        # （见上面的 scroll_for_company_info），本兜底是**第二道防线**，不是主修方案。
         _company_inferred = False
         _proxy_mode = False
         if only_big_tech and not company.strip() and not (job_dict.get("company_info") or "").strip():
