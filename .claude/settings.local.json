@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chromium-arm64__navigate",
+      "mcp__chromium-arm64__screenshot",
+      "Bash(adb devices)"
+    ]
+  }
+}
