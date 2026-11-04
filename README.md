@@ -2,9 +2,8 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Platform: Linux/ARM64](https://img.shields.io/badge/platform-Linux%20ARM64-green.svg)](https://www.raspberrypi.com/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-**OpenClaw Automation System for Android Devices**
+**Vision-based automation system for Android devices**
 
 PixelClaw is a vision-based automation system for controlling Android devices using multi-level fallback strategies. Designed specifically for Raspberry Pi 5 (aarch64) to control devices like the Pixel 8a.
 
@@ -58,8 +57,8 @@ The committed `config/devices.json` holds the **Raspberry Pi 5** profile (curren
 
 | Host | `ip` | `port` (ADB) | `pairing_port` | `pairing_code` | Notes |
 |---|---|---|---|---|---|
-| **Raspberry Pi 5** (default in `devices.json`) | `10.32.7.125` | `42527` | `36111` | `988963` | Snapshot from 2026-10; re-check on every session — pairing port/code change every time wireless debugging is re-enabled |
-| **Windows** (historical, in `devices.windows.example.json`) | `172.19.0.1` | `45373` | — (not set) | `444047` | Pre-Pi setup; `pairing_port` falls back to `port` per `DeviceConnector.pair()` |
+| **Raspberry Pi 5** (see `devices.example.json`) | `<YOUR_PHONE_IP>` | `<ADB_PORT>` | `<PAIRING_PORT>` | `<PAIRING_CODE>` | Snapshot from 2026-10; re-check on every session — pairing port/code change every time wireless debugging is re-enabled |
+| **Windows** (historical) | `<YOUR_PC_IP>` | `<ADB_PORT>` | — | `<PAIRING_CODE>` | Pre-Pi setup; `pairing_port` falls back to `port` per `DeviceConnector.pair()` |
 
 To swap hosts: `cp config/devices.<host>.example.json config/devices.json` and edit the IP / pairing code from your phone's current "Wireless debugging" screen. See [docs/GETTING_STARTED.md §3](docs/GETTING_STARTED.md) for the three-port lifecycle.
 
@@ -88,8 +87,8 @@ pip install -r requirements.txt
 #   1. On the phone: Settings → System → Developer Options → Wireless debugging
 #      → "Pair device with pairing code" → note the IP:port and 6-digit code
 #   2. Run adb pair / adb connect with those values:
-adb pair 10.32.7.125:36111 988963    # pairing port + code from phone
-adb connect 10.32.7.125:42527         # ADB port (re-check after pairing)
+adb pair <PHONE_IP>:<PAIRING_PORT> <PAIRING_CODE>    # pairing port + code from phone
+adb connect <PHONE_IP>:<ADB_PORT>         # ADB port (re-check after pairing)
 adb devices -l                        # Verify: should show "device"
 
 # Run tests (no device or GPU required)
@@ -199,7 +198,7 @@ pixelclaw/
     "name": "Pixel 8a",
     "type": "android",
     "model": "Pixel 8a",
-    "ip": "10.32.7.125",
+    "ip": "<YOUR_PHONE_IP>",
     "port": 42527,
     "pairing_code": "988963",
     "pairing_port": 36111,
@@ -333,7 +332,7 @@ pip install paddlepaddle paddleocr
 
 3. **Note the IP and Port**:
    - The "IP address & Port" shown on the wireless-debugging home screen is the ADB port (after pairing). Tap "Pair device with pairing code" for the pairing port + 6-digit code.
-   - Example (Raspberry Pi 5): home shows `10.32.7.125:42527`, pairing dialog shows `10.32.7.125:36111` + code `988963`
+   - Example (Raspberry Pi 5): home shows `<PHONE_IP>:<ADB_PORT>`, pairing dialog shows `<PHONE_IP>:<PAIRING_PORT>` + code `988963`
    - Example (Windows, historical): home shows `172.19.0.1:45373`, pairing code `444047` (no separate pairing port — see `config/devices.windows.example.json`)
    - The IP depends on your WiFi subnet; values change whenever wireless debugging is toggled off/on
 
@@ -373,10 +372,10 @@ adb version
 adb devices -l
 
 # Manual connection (use YOUR phone's current IP / port / code)
-adb connect 10.32.7.125:42527
+adb connect <PHONE_IP>:<ADB_PORT>
 
 # Pair device (pairing port + code from the "Pair device with pairing code" dialog)
-adb pair 10.32.7.125:36111 988963
+adb pair <PHONE_IP>:<PAIRING_PORT> <PAIRING_CODE>
 ```
 
 ### Common Problems

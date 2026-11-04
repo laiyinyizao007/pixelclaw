@@ -88,3 +88,6 @@ scenarios/.device_lock
 
 # 运行时锁文件
 .claude/*.lock
+config/devices.json
+config/api_keys.json
+.env
