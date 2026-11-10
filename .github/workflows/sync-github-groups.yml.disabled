@@ -1,0 +1,100 @@
+# ⚠️ 已停用 —— 自动建组改在本机跑（dsh-groups-setup.timer，每周日 23:00）。
+#
+# 本机那个跑的是同一套脚本：setup_project_issues.py --auto → sync_portfolio.py --auto
+# → export_repo_ledger.py。定时触发不可靠 + 依赖不全，所以搬回本机。
+#
+name: Sync GitHub Groups
+
+# 把「所有 GitHub 仓」自动同步成看板上的项目组：
+#   1. setup_project_issues.py --auto  —— 新仓自动立项（顶层 Issue）+ 挂任务（sub-issue）
+#   2. sync_portfolio.py --auto        —— 写机器字段（分类/评分/最近推送/仓库/栈）
+#
+# 归档仓不立项：GitHub 不允许在归档仓开 issue。它们只在工作区台账里可见。
+# 归属判定靠 repo-tags.json（仓库内快照）+ project_registry.py 里的规则表。
+#
+# 每周日 23:40（北京时间）跑一次，紧跟在 Profile 周更和项目字段同步后面。
+
+on:
+  schedule:
+    - cron: '40 15 * * 0'  # 每周日 UTC 15:40（北京时间 23:40）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '只预览要做什么，不写入'
+        type: boolean
+        default: false
+
+jobs:
+  sync-groups:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: pip install python-dotenv anthropic
+
+      - name: 自动立项（新建缺失的项目组 + 挂 sub-issue）
+        env:
+          # 用 PROJECT_TOKEN 而非 GITHUB_TOKEN：后者默认没有 projects: write 权限
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PORTFOLIO_OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 setup_project_issues.py --auto ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: 同步机器字段
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PORTFOLIO_OWNER: ${{ github.repository_owner }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+        run: |
+          if [ -z "$PROJECT_NUMBER" ]; then
+            echo "::error::未找到仓库变量 PROJECT_NUMBER"
+            exit 1
+          fi
+          python3 sync_portfolio.py \
+            --project-number "$PROJECT_NUMBER" \
+            --owner "$PORTFOLIO_OWNER" \
+            --auto \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
+
+      - name: 导出台账快照
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: |
+          # 台账 = 全部 GitHub 仓 + 归属 + 标签 + 状态（看板放不下的那些也在里面）
+          python3 export_repo_ledger.py
+          python3 export_repo_tags.py 2>/dev/null || true
+
+      - name: 提交快照
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add repo-ledger.json repo-tags.json repo-notes.json
+          if git diff --cached --quiet; then
+            echo "快照没变化，跳过提交"
+          else
+            git commit -m 'chore: 更新台账快照'
+            git push
+          fi
+
+      - name: 同步摘要
+        if: always()
+        run: |
+          {
+            echo "## GitHub 项目组同步"
+            echo ""
+            echo "- 时间: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "- 缺失的仓已自动立项（顶层 Issue + 标签 group:<key>）"
+            echo "- 组内 issue 已挂成原生 sub-issue"
+            echo "- 机器字段（分类/评分/最近推送/仓库/栈）已刷新"
+            echo "- 人工字段（推进状态/进度/DDL/负责人）未被覆盖"
+          } >> "$GITHUB_STEP_SUMMARY"
