@@ -1,0 +1,102 @@
+# ⚠️ 这个 workflow 已停用 —— 回顾改在本机跑（systemd 定时器）。
+#
+# 原因：CI 里那两个 LLM key 都不好用（主 key 403 无权限，
+# fallback 的端点跟 SDK 格式对不上），而本机跑的 LLM 一直是好的。
+# 本机对应物：
+#   dsh-review-daily.timer     每天 21:30  每日回顾
+#   dsh-review-weekly.timer    每周一 09:00 周回顾
+#   dsh-review-autoclose.timer 每天 22:00  自动关闭已完成 Issue
+# 跑的是同一个 generate_weekly_plan.py，凭据取自 ~/.dsh/.credentials.yaml。
+#
+name: 每日回顾 & 周回顾自动更新
+# v1.17+：通过 LLM_FALLBACK_* 环境变量启用 Claude API 主备 fallback
+# 主 key 限流 / 失败时自动切换到备用 LLM；未设时行为等价于现状
+# 见 PROJECTWIKI.md §5.24 / §6
+
+on:
+  schedule:
+    # 每日回顾：每天 21:30 北京时间（UTC 13:30）
+    - cron: '30 13 * * *'
+    # 周回顾：周一 09:00 北京时间（UTC 01:00），周报文件由周日 weekly-update 生成
+    - cron: '0 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: '运行模式：daily（每日回顾）或 weekly（周回顾）'
+        required: false
+        default: 'daily'
+      backfill_date:
+        description: '回填日期（YYYY-MM-DD，仅 mode=daily 时有效，留空则回顾今日）'
+        required: false
+        default: ''
+
+permissions:
+  issues: write
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: 安装依赖
+        run: pip install anthropic openai
+      - name: 确定运行模式
+        id: mode
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "arg=--${{ inputs.mode }}-review" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 1 * * 1" ]; then
+            # 周一 09:00 BJ 触发 → 周回顾
+            echo "arg=--weekly-review" >> $GITHUB_OUTPUT
+          else
+            echo "arg=--daily-review" >> $GITHUB_OUTPUT
+          fi
+      - name: 运行回顾更新
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          LLM_FALLBACK_API_KEY: ${{ secrets.LLM_FALLBACK_API_KEY }}
+          LLM_FALLBACK_BASE_URL: ${{ secrets.LLM_FALLBACK_BASE_URL }}
+          LLM_FALLBACK_MODEL: ${{ vars.LLM_FALLBACK_MODEL || 'MiniMax-M3' }}
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_NUMBER: ${{ vars.PROJECT_NUMBER }}
+          GH_OWNER: ${{ github.repository_owner }}
+          BACKFILL_DATE: ${{ inputs.backfill_date }}
+        run: python3 generate_weekly_plan.py ${{ steps.mode.outputs.arg }}
+      - name: 提交新追踪仓库（如有）
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tracked_config.json
+          git diff --staged --quiet \
+            || git commit -m "chore: 自动追踪今日活跃仓库 $(date -u +%Y-%m-%d)" \
+            && git push
+
+  auto-close:
+    runs-on: ubuntu-latest
+    needs: review
+    # 只在每日回顾时运行（周一周回顾 cron 和 workflow_dispatch weekly 时跳过）
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule != '0 1 * * 1') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'daily') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: 安装依赖
+        run: pip install anthropic openai
+      - name: 自动关闭已完成 Issue
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          LLM_FALLBACK_API_KEY: ${{ secrets.LLM_FALLBACK_API_KEY }}
+          LLM_FALLBACK_BASE_URL: ${{ secrets.LLM_FALLBACK_BASE_URL }}
+          LLM_FALLBACK_MODEL: ${{ vars.LLM_FALLBACK_MODEL || 'MiniMax-M3' }}
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          GH_OWNER: ${{ github.repository_owner }}
+        run: python3 generate_weekly_plan.py --auto-close
