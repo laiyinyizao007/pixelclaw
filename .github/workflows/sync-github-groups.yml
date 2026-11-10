@@ -34,6 +34,9 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: 安装依赖
+        run: pip install python-dotenv anthropic
+
       - name: 自动立项（新建缺失的项目组 + 挂 sub-issue）
         env:
           # 用 PROJECT_TOKEN 而非 GITHUB_TOKEN：后者默认没有 projects: write 权限
