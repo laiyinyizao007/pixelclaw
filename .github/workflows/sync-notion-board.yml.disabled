@@ -1,0 +1,84 @@
+# ⚠️ 已停用 —— Notion 看板同步改在本机跑（dsh-notion-sync.timer，每 15 分钟）。
+#
+# 原因：GitHub Actions 的定时触发不可靠（cron 写 */15，实际只触发过 2 次），
+# 而且这里的依赖不全（注册表拖来 dotenv，workflow 没装 → 每次都秒挂）。
+# 本机对应物：dsh-notion-sync.timer
+#
+name: Sync Notion Board
+
+# Notion 当工作台，GitHub 当账本 —— 两边自动联动。
+#
+# 两档节奏：
+#   --check  每 15 分钟：只读 Notion，看有没有人改过（改了才写回 GitHub）。
+#                       便宜（十几次 API 调用），所以跑得勤，Notion 上改完几分钟就回 GitHub。
+#   全量同步  每 2 小时：GitHub → Notion 刷新结构与字段（95 个组 + 73 个任务 + 3 个分类视图库）。
+#
+# 密钥：PROJECT_TOKEN（GitHub，需 repo + project scope）、NOTION_TOKEN（Notion 内部集成）
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'      # 每 15 分钟：查改动 + 回写
+    - cron: '7 */2 * * *'       # 每 2 小时（错开整点）：全量刷新
+  workflow_dispatch:
+    inputs:
+      full:
+        description: '强制做一次全量刷新'
+        type: boolean
+        default: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install python-dotenv anthropic
+
+      - name: 判定这一轮做什么
+        id: which
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          elif [ "$(date -u +%M)" -lt 15 ]; then
+            echo "mode=check" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+          fi
+          echo "本轮模式：$(cat "$GITHUB_OUTPUT" | grep mode= | cut -d= -f2)"
+
+      - name: 导出台账快照
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        run: python3 export_repo_ledger.py
+
+      - name: 同步
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+        run: |
+          if [ "${{ steps.which.outputs.mode }}" = "check" ]; then
+            python3 sync_notion_board.py --check
+          else
+            python3 sync_notion_board.py
+          fi
+
+      - name: 同步摘要
+        if: always()
+        run: |
+          {
+            echo "## Notion 看板同步"
+            echo ""
+            echo "- 模式: ${{ steps.which.outputs.mode }}"
+            echo "- 时间: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "- check 模式：Notion 上的改动已写回 GitHub"
+            echo "- full 模式：GitHub → Notion 全量刷新（项目组 / 任务 / 分类视图库）"
+          } >> "$GITHUB_STEP_SUMMARY"
